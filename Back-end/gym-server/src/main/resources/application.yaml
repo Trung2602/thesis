@@ -1,0 +1,30 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gym-server
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/gymdb
+    username: postgres
+    password: Admin@123
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+user:
+  service:
+    url: http://localhost:8081
+
+vnp:
+  vnp_TmnCode: 9J2VIKEK
+  vnp_HashSecret: XEQX3BXDCXTNJ6LF53UDYU8F88W3P13J
+  vnp_Url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+  vnp_ReturnUrl: https://4a9723599745.ngrok-free.app/api/payment/return

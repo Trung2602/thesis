@@ -1,0 +1,44 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-server
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/userdb
+    username: postgres
+    password: Admin@123
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: trunglu2602@gmail.com
+    password: zlte yfay elus gxxc
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 3000
+          writetimeout: 5000
+
+gym:
+  service:
+    url: http://localhost:8080
+
+cloudinary:
+  cloud-name: dxgc9wwrd
+  api-key: 167655672385223
+  api-secret: M9MjBJTbL-Kv5_mr8u8QEGpxgo4
