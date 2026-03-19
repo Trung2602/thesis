@@ -1,18 +1,28 @@
-// pay_customer_model.dart
-class PayCustomerModel {
-  int? id;
-  String? date;
-  String? customerName;
-  String? planName;
-  int? price;
-  String? txnRef;   // mã giao dịch VNPAY
-  String? status;   // PENDING / SUCCESS / FAILED
-  String? bankCode; // ngân hàng (optional)
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
-  PayCustomerModel({
-    this.id,
+class PayCustomer {
+  final String? uuid;
+  final DateTime? date;
+
+  final String? customerUuid;
+  final String? customerName;
+
+  final String? planUuid;
+  final String? planName;
+
+  final int? price;
+
+  final String? txnRef;
+  final String? status;
+  final String? bankCode;
+
+  PayCustomer({
+    this.uuid,
     this.date,
+    this.customerUuid,
     this.customerName,
+    this.planUuid,
     this.planName,
     this.price,
     this.txnRef,
@@ -20,26 +30,28 @@ class PayCustomerModel {
     this.bankCode,
   });
 
-  // Chuyển từ JSON sang model
-  factory PayCustomerModel.fromJson(Map<String, dynamic> json) {
-    return PayCustomerModel(
-      id: json['id'] as int?,
-      date: json['date'] as String?,
-      customerName: json['customerName'] as String?,
-      planName: json['planName'] as String?,
-      price: json['price'] as int?,
-      txnRef: json['txnRef'] as String?,
-      status: json['status'] as String?,
-      bankCode: json['bankCode'] as String?,
+  factory PayCustomer.fromJson(Map<String, dynamic> json) {
+    return PayCustomer(
+      uuid: json['uuid'],
+      date: json['date'] != null ? DateTime.parse(json['date']) : null,
+      customerUuid: json['customerUuid'],
+      customerName: json['customerName'],
+      planUuid: json['planUuid'],
+      planName: json['planName'],
+      price: json['price'],
+      txnRef: json['txnRef'],
+      status: json['status'],
+      bankCode: json['bankCode'],
     );
   }
 
-  // Chuyển từ model sang JSON
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'date': date,
+      'uuid': uuid,
+      'date': date?.toIso8601String().split('T')[0],
+      'customerUuid': customerUuid,
       'customerName': customerName,
+      'planUuid': planUuid,
       'planName': planName,
       'price': price,
       'txnRef': txnRef,

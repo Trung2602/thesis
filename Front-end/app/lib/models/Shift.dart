@@ -1,38 +1,56 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
+
 class Shift {
-  final int id;
-  final String name;
-  final DateTime? checkin;
-  final DateTime? checkout;
+  final String? uuid;
+  final String? name;
+  final TimeOfDay? checkin;
+  final TimeOfDay? checkout;
   final double? duration;
 
   Shift({
-    required this.id,
-    required this.name,
+    this.uuid,
+    this.name,
     this.checkin,
     this.checkout,
     this.duration,
   });
 
-  /// Parse từ JSON (API trả về)
-  factory Shift.fromJson(Map<String, dynamic> json) {
-    return Shift(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      checkin: json['checkin'] != null ? DateTime.parse("1970-01-01T${json['checkin']}") : null,
-      checkout: json['checkout'] != null ? DateTime.parse("1970-01-01T${json['checkout']}") : null,
-      duration: (json['duration'] as num?)?.toDouble(),
+  static TimeOfDay? _parseTime(String? timeStr) {
+    if (timeStr == null) return null;
+    final parts = timeStr.split(':');
+    return TimeOfDay(
+      hour: int.parse(parts[0]),
+      minute: int.parse(parts[1]),
     );
   }
 
-  /// Convert ngược lại thành JSON để gửi lên API
+  static String? _formatTime(TimeOfDay? time) {
+    if (time == null) return null;
+    final h = time.hour.toString().padLeft(2, '0');
+    final m = time.minute.toString().padLeft(2, '0');
+    return "$h:$m:00";
+  }
+
+  factory Shift.fromJson(Map<String, dynamic> json) {
+    return Shift(
+      uuid: json['uuid'],
+      name: json['name'],
+      checkin: _parseTime(json['checkin']),
+      checkout: _parseTime(json['checkout']),
+      duration: json['duration'] != null
+          ? double.parse(json['duration'].toString())
+          : null,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'uuid': uuid,
       'name': name,
-      'checkin': checkin != null ? checkin!.toIso8601String().substring(11, 16) : null, // "HH:mm"
-      'checkout': checkout != null ? checkout!.toIso8601String().substring(11, 16) : null,
+      'checkin': _formatTime(checkin),
+      'checkout': _formatTime(checkout),
       'duration': duration,
     };
   }

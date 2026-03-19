@@ -1,3 +1,6 @@
+server:
+  port: 8082
+
 spring:
   application:
     name: ai-server
@@ -15,3 +18,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+google:
+  api:
+    key: "AIzaSyABdTy3BBzFnvnacZ90GD9zpNOTBosYgLM"

@@ -2,25 +2,25 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class Plan {
-  final int id;
-  final String name;
-  final double price;
-  final int durationDays;
-  final String description;
+  final String? uuid;
+  final String? name;
+  final int? price;
+  final int? durationDays;
+  final String? description;
 
   Plan({
-    required this.id,
-    required this.name,
-    required this.price,
-    required this.durationDays,
-    required this.description,
+    this.uuid,
+    this.name,
+    this.price,
+    this.durationDays,
+    this.description,
   });
 
   factory Plan.fromJson(Map<String, dynamic> json) {
     return Plan(
-      id: json['id'],
+      uuid: json['uuid'],
       name: json['name'],
-      price: (json['price'] as num).toDouble(),
+      price: json['price'],
       durationDays: json['durationDays'],
       description: json['description'],
     );
@@ -28,7 +28,7 @@ class Plan {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'uuid': uuid,
       'name': name,
       'price': price,
       'durationDays': durationDays,

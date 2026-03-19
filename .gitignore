@@ -1,0 +1,6 @@
+# Ignore large dataset folders
+Database/exercise-db/
+Database/FoodData_Central_csv_2025-12-18/
+
+# Ignore CSV files
+*.csv

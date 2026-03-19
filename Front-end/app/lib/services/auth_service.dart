@@ -11,16 +11,14 @@ import '../models/Account.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:provider/provider.dart';
 
-
-
 class AuthService {
-  Future<Account?> login(BuildContext context, String username, String password) async {
+  Future<Account?> login(BuildContext context, String mail, String password) async {
     final prefs = await SharedPreferences.getInstance();
 
     final response = await http.post(
       Uri.parse(Api.login),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"username": username, "password": password}),
+      body: jsonEncode({"mail": mail, "password": password}),
     );
 
     if (response.statusCode == 200) {
@@ -54,8 +52,8 @@ class AuthService {
         }
       }
     } else if (response.statusCode == 401) {
-      // Sai username hoặc password
-      print("Sai username hoặc password");
+      // Sai mail hoặc password
+      print("Sai mail hoặc password");
       return null;
     } else {
       // Có thể log error để debug

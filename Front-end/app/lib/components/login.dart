@@ -12,7 +12,7 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _mailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String? _errorMessage;
   bool _isLoading = false;
@@ -20,11 +20,11 @@ class _LoginState extends State<Login> {
   final AuthService _authService = AuthService();
 
   void _login() async {
-    final username = _usernameController.text.trim();
+    final mail = _mailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (username.isEmpty || password.isEmpty) {
-      setState(() => _errorMessage = "Tên đăng nhập hoặc mật khẩu không được để trống");
+    if (mail.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = "Mail hoặc mật khẩu không được để trống");
       return;
     }
     setState(() {
@@ -33,7 +33,7 @@ class _LoginState extends State<Login> {
     });
 
     try {
-      final account = await _authService.login(context, username, password);
+      final account = await _authService.login(context, mail, password);
 
       if (!mounted) return;
 
@@ -44,7 +44,7 @@ class _LoginState extends State<Login> {
         );
       } else {
         _passwordController.clear();
-        setState(() => _errorMessage = "Sai tên đăng nhập hoặc mật khẩu");
+        setState(() => _errorMessage = "Sai địa chỉ mail hoặc mật khẩu");
       }
     } catch (e) {
       setState(() => _errorMessage = "Có lỗi xảy ra: $e");
@@ -106,13 +106,13 @@ class _LoginState extends State<Login> {
                       style: const TextStyle(color: Colors.redAccent, fontSize: 16),
                     ),
                   ),
-                // Trường nhập tên đăng nhập
+                // Trường nhập mail
                 TextField(
-                  controller: _usernameController,
+                  controller: _mailController,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.person, color: Colors.white70),
-                    labelText: 'Tên đăng nhập',
+                    labelText: 'Mail',
                     labelStyle: const TextStyle(color: Colors.white70),
                     filled: true,
                     fillColor: const Color.fromRGBO(255, 255, 255, 0.1), // Sử dụng Color.fromRGBO để thay thế withOpacity

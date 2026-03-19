@@ -13,7 +13,7 @@ import '../models/Account.dart';
 import '../models/Plan.dart';
 import 'package:gym/models/AccountProvider.dart';
 import 'package:gym/models/Shift.dart';
-// Import các màn hình con sau này
+// Import các màn hình con
 import 'profile.dart';
 import 'day_off.dart';
 import 'pay_customer.dart';

@@ -1,35 +1,37 @@
 import 'package:flutter/material.dart';
 
 class StaffDayOff {
-  final int id;
-  final DateTime date;
-  final String staffName;
+  final String? uuid;
+  final DateTime? date;
+
+  final String? staffUuid;
+  final String? staffName;
 
   StaffDayOff({
-    required this.id,
-    required this.date,
-    required this.staffName,
+    this.uuid,
+    this.date,
+    this.staffUuid,
+    this.staffName,
   });
 
-  // Tạo object từ JSON
   factory StaffDayOff.fromJson(Map<String, dynamic> json) {
     return StaffDayOff(
-      id: json['id'],
-      date: DateTime.parse(json['date']),
-      staffName: json['staffName'] ?? '',
+      uuid: json['uuid'],
+      date: json['date'] != null ? DateTime.parse(json['date']) : null,
+      staffUuid: json['staffUuid'],
+      staffName: json['staffName'],
     );
   }
 
-  // Chuyển object về JSON (nếu cần gửi lên API)
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'date': date.toIso8601String().split('T').first, // yyyy-MM-dd
+      'uuid': uuid,
+      'date': date?.toIso8601String().split('T')[0], // yyyy-MM-dd
+      'staffUuid': staffUuid,
       'staffName': staffName,
     };
   }
 
-  // Parse danh sách từ JSON array
   static List<StaffDayOff> fromJsonList(List<dynamic> jsonList) {
     return jsonList.map((e) => StaffDayOff.fromJson(e)).toList();
   }

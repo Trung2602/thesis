@@ -1,23 +1,22 @@
 class Account {
-  final int id;
-  final String username;
-  final String password;
+  final String uuid;
   final String name;
   final DateTime? birthday;
-  final bool gender;
+  final String gender;
   final String role;
   final String mail;
   final String avatar;
   final bool isActive;
+
   final String? type;
   final DateTime? expiryDate;
+  final String? facilityName;
+  final double? baseSalary;
 
   Account({
-    required this.id,
-    required this.username,
-    required this.password,
+    required this.uuid,
     required this.name,
-    required this.birthday,
+    this.birthday,
     required this.gender,
     required this.role,
     required this.mail,
@@ -25,30 +24,34 @@ class Account {
     required this.isActive,
     this.type,
     this.expiryDate,
+    this.facilityName,
+    this.baseSalary,
   });
 
   factory Account.fromJson(Map<String, dynamic> json) {
     return Account(
-      id: json['id'],
-      username: json['username'],
-      password: json['password'],
+      uuid: json['uuid'],
       name: json['name'] ?? '',
-      birthday: json['birthday'] != null ? DateTime.parse(json['birthday']) : null,
-      gender: json['gender'],
+      birthday: json['birthday'] != null
+          ? DateTime.parse(json['birthday'])
+          : null,
+      gender: json['gender'] ?? '',
       role: json['role'] ?? '',
       mail: json['mail'] ?? '',
       avatar: json['avatar'] ?? '',
-      isActive: json['isActive'],
+      isActive: json['isActive'] ?? false,
       type: json['type'],
-      expiryDate: json['expiryDate'] != null ? DateTime.parse(json['expiryDate']) : null,
+      expiryDate: json['expiryDate'] != null
+          ? DateTime.parse(json['expiryDate']): null,
+      facilityName: json['facilityName'],
+      baseSalary: json['baseSalary'] != null
+          ? double.parse(json['baseSalary'].toString()): null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'username': username,
-      'password': password,
+      'uuid': uuid,
       'name': name,
       'birthday': birthday?.toIso8601String(),
       'gender': gender,
@@ -58,6 +61,8 @@ class Account {
       'isActive': isActive,
       'type': type,
       'expiryDate': expiryDate?.toIso8601String(),
+      'facilityName': facilityName,
+      'baseSalary': baseSalary,
     };
   }
 }
