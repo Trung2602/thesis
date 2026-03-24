@@ -54,7 +54,7 @@ CREATE TYPE activity_level_enum AS ENUM (
 
 CREATE TABLE foods (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    name TEXT,
+    name TEXT NOT NULL,
     category TEXT,
     calories_100g FLOAT,
     protein_100g FLOAT,
@@ -101,12 +101,12 @@ CREATE TABLE usda_food_category (
 -- EXERCISES
 CREATE TABLE exercises (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    name TEXT,
+    name TEXT NOT NULL,
     force TEXT,
     difficulty TEXT,
     mechanic TEXT,
     equipment TEXT,
-    primary_muscles TEXT[],
+    primary_muscles TEXT[] NOT NULL,
     secondary_muscles TEXT[],
     instructions TEXT[],
     images TEXT[],
@@ -114,42 +114,28 @@ CREATE TABLE exercises (
     embedding vector(768)
 );
 
--- USER PROFILE
-CREATE TABLE user_profiles (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_uuid UUID,
-    age INT,
-    height_cm FLOAT,
-    weight_kg FLOAT,
-    bmi FLOAT,
-    goal fitness_goal_enum,
-    activity_level activity_level_enum,
-    free_time_minutes INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- CHAT HISTORY
 CREATE TABLE chat_history (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_uuid UUID,
-    message TEXT,
-    ai_reply TEXT,
+    user_uuid UUID NOT NULL,
+    message TEXT NOT NULL,
+    ai_reply TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE meal_days (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_uuid UUID,
-    date DATE,
+    user_uuid UUID NOT NULL,
+    date DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_uuid, date)
 );
 
 CREATE TABLE meal_items (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    meal_day_uuid UUID,
-    meal_type meal_type_enum,
-    food_uuid UUID,
+    meal_day_uuid UUID NOT NULL,
+    meal_type meal_type_enum NOT NULL,
+    food_uuid UUID NOT NULL,
     grams FLOAT CHECK (grams > 0),
     CONSTRAINT fk_meal_day FOREIGN KEY (meal_day_uuid) REFERENCES meal_days(uuid) ON DELETE CASCADE,
     CONSTRAINT fk_food FOREIGN KEY (food_uuid) REFERENCES foods(uuid)
@@ -157,24 +143,28 @@ CREATE TABLE meal_items (
 
 CREATE TABLE workout_days (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_uuid UUID,
-    date DATE,
-    focus_muscle muscle_group_enum,
+    user_uuid UUID NOT NULL,
+    date DATE NOT NULL,
+    focus_muscle muscle_group_enum NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	UNIQUE(user_uuid, date)
 );
 
 CREATE TABLE workout_items (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    workout_day_uuid UUID,
-    exercise_uuid UUID,
+    workout_day_uuid UUID NOT NULL,
+    exercise_uuid UUID NOT NULL,
     number_sets INT CHECK (number_sets > 0),
-    number_reps INT,
+    number_reps INT, 
     duration_minutes INT,
     CONSTRAINT fk_workout_day FOREIGN KEY (workout_day_uuid) REFERENCES workout_days(uuid) ON DELETE CASCADE,
     CONSTRAINT fk_exercise FOREIGN KEY (exercise_uuid)  REFERENCES exercises(uuid)
 );
 
+ALTER TABLE workout_items ADD CONSTRAINT chk_workout_type
+CHECK (
+    number_reps IS NOT NULL OR duration_minutes IS NOT NULL
+);
 
 
 

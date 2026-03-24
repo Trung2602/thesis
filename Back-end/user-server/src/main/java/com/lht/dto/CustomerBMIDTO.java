@@ -1,6 +1,9 @@
 package com.lht.dto;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -10,14 +13,9 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CustomerRequestDTO {
-
-    private String mail;
-    private String password;
-    private String name;
+public class CustomerBMIDTO {
+    private UUID uuid;
     private LocalDate birthday;
-    private String gender;
-    private BigDecimal weight;
     private BigDecimal height;
-    private LocalDate expiryDate;
+    private BigDecimal weight;
 }

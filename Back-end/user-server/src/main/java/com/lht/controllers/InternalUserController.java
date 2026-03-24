@@ -1,5 +1,6 @@
 package com.lht.controllers;
 
+import com.lht.dto.CustomerBMIDTO;
 import com.lht.dto.InternalUserResponse;
 import com.lht.services.AccountService;
 import com.lht.services.CustomerService;
@@ -84,5 +85,10 @@ public class InternalUserController {
             @RequestParam UUID planUuid)
     {
         customerService.updateExpiryAfterPayment(customerUuid, planUuid);
+    }
+
+    @GetMapping("/customers/{uuid}/BMI")
+    public CustomerBMIDTO getBMICustomer(@PathVariable UUID uuid) {
+        return customerService.getBMI(uuid);
     }
 }

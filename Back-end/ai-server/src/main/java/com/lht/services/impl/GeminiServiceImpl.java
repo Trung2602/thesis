@@ -23,30 +23,73 @@ public class GeminiServiceImpl implements GeminiService {
 
     @Override
     public String generateFitnessPlan(double bmi, double calories, List<Food> foods, List<Exercise> exercises, String question) {
-        String foodContext = foods.stream().map(f -> f.getUuid() + " " + f.getName()).collect(Collectors.joining("\n"));
-        String exerciseContext = exercises.stream().map(e -> e.getUuid() + " " + e.getName()).collect(Collectors.joining("\n"));
+        String foodContext = foods.stream().map(f -> f.getUuid() + "|" + f.getName() + "|" + f.getCalories100g())
+                .collect(Collectors.joining("\n"));
+        String exerciseContext = exercises.stream().map(e -> e.getUuid() + "|" + e.getName() + "|" + String.join("; ", e.getInstructions()))
+                .collect(Collectors.joining("\n"));
 
         String prompt = """
-User question: %s
+Bạn là huấn luyện viên gym và chuyên gia dinh dưỡng.
+
+Người dùng hỏi:
+%s
+
+THÔNG TIN NGƯỜI DÙNG
+BMI: %.2f
+Daily Calories Target: %.2f kcal
+
+AVAILABLE FOODS (uuid|name|calories_per_100g):
+%s
+
+AVAILABLE EXERCISES (uuid|name):
+%s
+
+NHIỆM VỤ:
+Tạo kế hoạch tập luyện và ăn uống trong 7 ngày.
+
+QUY TẮC QUAN TRỌNG:
+1. Chỉ sử dụng thực phẩm trong danh sách AVAILABLE FOODS
+2. Chỉ sử dụng bài tập trong AVAILABLE EXERCISES
+3. Không được tạo thực phẩm hoặc bài tập mới
+4. KHÔNG hiển thị UUID trong kết quả
+5. Mỗi bữa chỉ 1 dòng (Breakfast/Lunch/Dinner)
+6. Mỗi bữa ăn có thể nhiều món
+7. Phải ghi số gram cho mỗi món
+
+FORMAT BẮT BUỘC:
 
 BMI: %.2f
-Daily calories: %.2f
+Calories needed per day: %.2f
 
-AVAILABLE FOODS:
-%s
+Chế độ ăn của bạn trong 1 tuần tới:
 
-AVAILABLE EXERCISES:
-%s
+Day 1
+Breakfast: Food name - xxx g
+Lunch: Food name - xxx g
+Dinner: Food name - xxx g
 
-Create:
-1 week meal plan
-1 week workout plan
+Day 2
+Breakfast: Food name - xxx g
+Lunch: Food name - xxx g
+Dinner: Food name - xxx g
 
-IMPORTANT:
-Only use foods and exercises from the list.
-Do NOT invent new ones.
-Return structured plan.
-""".formatted(question, bmi, calories, foodContext, exerciseContext);
+Kế hoạc tập luyện trong 1 tuần tới của bạn:
+
+Day 1
+Exercise: Exercise name
+Instructions: step1; step2; step3
+Sets: number
+Reps: number OR Duration: minutes
+
+Day 2
+Exercise: Exercise name
+Instructions: step1; step2; step3
+Sets: number
+Reps: number OR Duration: minutes
+
+Chỉ trả về kế hoạch theo format trên.
+Không giải thích thêm.
+""".formatted(question, bmi, calories, foodContext, exerciseContext, bmi, calories);
 
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
         Map<String, Object> request = Map.of("contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))));

@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: ai-server
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/your_database
+    username: your_username
+    password: your_password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: your_port
+
+user:
+  service:
+    url: http://localhost:port_user_server
+
+google:
+  api:
+    key: your_google_api_key

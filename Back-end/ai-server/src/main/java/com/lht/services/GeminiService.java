@@ -6,13 +6,5 @@ import com.lht.pojo.Food;
 import java.util.List;
 
 public interface GeminiService {
-
-    String generateFitnessPlan(
-            double bmi,
-            double calories,
-            List<Food> foods,
-            List<Exercise> exercises,
-            String question
-    );
-
+    String generateFitnessPlan(double bmi, double calories, List<Food> foods, List<Exercise> exercises, String question);
 }

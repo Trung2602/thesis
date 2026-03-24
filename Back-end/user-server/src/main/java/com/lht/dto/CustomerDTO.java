@@ -4,6 +4,7 @@ import com.lht.pojo.Account;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Getter
@@ -14,8 +15,9 @@ import java.time.LocalDate;
 @SuperBuilder
 public class CustomerDTO extends AccountDTO {
 
+    private BigDecimal weight;
+    private BigDecimal height;
     private LocalDate expiryDate;
-
     public CustomerDTO(Account acc) {
         super(acc);
     }

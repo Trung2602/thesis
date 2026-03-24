@@ -4,3 +4,8 @@ Database/FoodData_Central_csv_2025-12-18/
 
 # Ignore CSV files
 *.csv
+
+# Spring Boot config
+application.yaml
+application.yml
+.env

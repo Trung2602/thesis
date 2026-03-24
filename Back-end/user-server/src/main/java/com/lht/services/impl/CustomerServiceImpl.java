@@ -3,6 +3,7 @@ package com.lht.services.impl;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.lht.client.InternalGymClient;
+import com.lht.dto.CustomerBMIDTO;
 import com.lht.dto.CustomerDTO;
 import com.lht.dto.CustomerRequestDTO;
 import com.lht.pojo.AccountRole;
@@ -55,7 +56,8 @@ public class CustomerServiceImpl implements CustomerService {
         dto.setGender(c.getGender() != null ? c.getGender().name() : null);
 
         dto.setIsActive(c.getIsActive());
-
+        dto.setWeight(c.getWeight());
+        dto.setHeight(c.getHeight());
         dto.setExpiryDate(c.getExpiryDate());
 
         return dto;
@@ -76,6 +78,8 @@ public class CustomerServiceImpl implements CustomerService {
                         .birthday(c.getBirthday())
                         .gender(c.getGender() != null ? c.getGender().name() : null)
                         .isActive(c.getIsActive())
+                        .weight(c.getWeight())
+                        .height(c.getHeight())
                         .expiryDate(c.getExpiryDate())
                         .build())
                 .collect(Collectors.toList());
@@ -96,6 +100,8 @@ public class CustomerServiceImpl implements CustomerService {
             c.setGender(GenderType.valueOf(dto.getGender()));
         }
         c.setIsActive(dto.getIsActive());
+        c.setWeight(dto.getWeight());
+        c.setHeight(dto.getHeight());
         c.setExpiryDate(dto.getExpiryDate());
         return c;
     }
@@ -150,6 +156,8 @@ public class CustomerServiceImpl implements CustomerService {
         c.setGender(GenderType.valueOf(dto.getGender().toUpperCase()));
         c.setRole(AccountRole.CUSTOMER);
         c.setIsActive(true);
+        c.setWeight(dto.getWeight());
+        c.setHeight(dto.getHeight());
 
         if (dto.getExpiryDate() == null) {
             c.setExpiryDate(LocalDate.now().plusDays(1));
@@ -187,6 +195,8 @@ public class CustomerServiceImpl implements CustomerService {
         c.setMail(dto.getMail());
         c.setName(dto.getName());
         c.setBirthday(dto.getBirthday());
+        c.setWeight(dto.getWeight());
+        c.setHeight(dto.getHeight());
         if (dto.getGender() != null) {
             c.setGender(GenderType.valueOf(dto.getGender()));
         }
@@ -262,5 +272,19 @@ public class CustomerServiceImpl implements CustomerService {
         customer.setExpiryDate(newExpiry);
 
         customerRepository.save(customer);
+    }
+
+    @Override
+    public CustomerBMIDTO getBMI(UUID uuid) {
+
+        Customer c = customerRepository.findById(uuid).orElseThrow(() -> new RuntimeException("Customer not found"));
+
+        CustomerBMIDTO dto = new CustomerBMIDTO();
+        dto.setUuid(c.getUuid());
+        dto.setBirthday(c.getBirthday());
+        dto.setHeight(c.getHeight());
+        dto.setWeight(c.getWeight());
+
+        return dto;
     }
 }

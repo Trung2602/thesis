@@ -10,14 +10,9 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CustomerRequestDTO {
-
-    private String mail;
-    private String password;
-    private String name;
+public class CustomerDTO {
+    private UUID uuid;
     private LocalDate birthday;
-    private String gender;
-    private BigDecimal weight;
     private BigDecimal height;
-    private LocalDate expiryDate;
+    private BigDecimal weight;
 }

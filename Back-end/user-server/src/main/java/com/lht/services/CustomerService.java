@@ -1,5 +1,6 @@
 package com.lht.services;
 
+import com.lht.dto.CustomerBMIDTO;
 import com.lht.dto.CustomerDTO;
 import com.lht.dto.CustomerRequestDTO;
 import com.lht.pojo.Customer;
@@ -20,4 +21,5 @@ public interface CustomerService {
     String getCustomerNameByUuid(UUID uuid);
     Map<UUID, String> getCustomerNamesByUuids(Set<UUID> customerUuids);
     void updateExpiryAfterPayment(UUID customerUuid, UUID planUuid);
+    CustomerBMIDTO getBMI(UUID uuid);
 }

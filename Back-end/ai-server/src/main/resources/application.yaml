@@ -1,14 +1,14 @@
-server:
-  port: 8082
-
 spring:
+  config:
+    import: optional:file:.env[.properties]
+
   application:
     name: ai-server
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/aidb
-    username: postgres
-    password: Admin@123
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/aidb}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:Admin@123}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -19,6 +19,13 @@ spring:
       hibernate:
         format_sql: true
 
+server:
+  port: ${SERVER_PORT:8082}
+
+user:
+  service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
+
 google:
   api:
-    key: "AIzaSyABdTy3BBzFnvnacZ90GD9zpNOTBosYgLM"
+    key: ${GOOGLE_API_KEY:AIzaSyA_Gjapt-dzFaLIbLpBqQBUcEX6aku_4QU}

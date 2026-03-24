@@ -1,14 +1,14 @@
-server:
-  port: 8080
-
 spring:
+  config:
+    import: optional:file:.env[.properties]
+
   application:
     name: gym-server
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/gymdb
-    username: postgres
-    password: Admin@123
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/gymdb}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:Admin@123}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -19,12 +19,15 @@ spring:
       hibernate:
         format_sql: true
 
+server:
+  port: ${SERVER_PORT:8080}
+
 user:
   service:
-    url: http://localhost:8081
+    url: ${USER_SERVICE_URL:http://localhost:8081}
 
 vnp:
-  vnp_TmnCode: 9J2VIKEK
-  vnp_HashSecret: XEQX3BXDCXTNJ6LF53UDYU8F88W3P13J
-  vnp_Url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-  vnp_ReturnUrl: https://4a9723599745.ngrok-free.app/api/payment/return
+  vnp_TmnCode: ${VNP_TMN_CODE:TESTCODE}
+  vnp_HashSecret: ${VNP_HASH_SECRET:TESTSECRET}
+  vnp_Url: ${VNP_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+  vnp_ReturnUrl: ${VNP_RETURN_URL:http://localhost:8080/api/payment/return}
