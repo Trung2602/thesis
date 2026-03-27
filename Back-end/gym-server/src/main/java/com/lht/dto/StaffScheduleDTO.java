@@ -21,8 +21,4 @@ public class StaffScheduleDTO {
 
     private UUID shiftUuid;
     private String shiftName;
-
-    private LocalTime checkIn;
-    private LocalTime checkOut;
-
 }

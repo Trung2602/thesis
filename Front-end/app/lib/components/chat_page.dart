@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
-import 'package:gym/models/Account.dart';
+import 'package:gym/models/account.dart';
 import '../firebase_options.dart';
-import 'package:gym/models/AccountProvider.dart';
+import 'package:gym/models/account_provider.dart';
 import 'package:provider/provider.dart';
 
 class ChatPage extends StatelessWidget {

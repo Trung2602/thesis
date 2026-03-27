@@ -1,17 +1,17 @@
 class Facility {
-  final int? id;
+  final String? uuid;
   final String? name;
   final String? address;
 
   Facility({
-    this.id,
+    this.uuid,
     this.name,
     this.address,
   });
 
   factory Facility.fromJson(Map<String, dynamic> json) {
     return Facility(
-      id: json['id'],
+      uuid: json['uuid'],
       name: json['name'],
       address: json['address'],
     );
@@ -19,7 +19,7 @@ class Facility {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'uuid': uuid,
       'name': name,
       'address': address,
     };

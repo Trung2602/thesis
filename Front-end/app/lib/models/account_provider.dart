@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/Account.dart';
+import '../models/account.dart';
 
 class AccountProvider with ChangeNotifier {
   Account? _account;

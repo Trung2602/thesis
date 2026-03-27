@@ -3,30 +3,37 @@ package com.lht.jwt;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.SignedJWT;
+import org.springframework.beans.factory.annotation.Value;
+
 import java.util.Date;
 
 public class JwtUtils {
-    // SECRET nên được lưu bằng biến môi trường,
-    private static final String SECRET = "12345678901234567890123456789012"; // 32 ký tự (AES key)
+    @Value("${jwt.secret}")
+    private String secret;// 32 ký tự (AES key)
 
-    public static String getUsername(String token) throws Exception {
+    public boolean validateToken(String token) throws Exception {
         SignedJWT signedJWT = SignedJWT.parse(token);
-        return signedJWT.getJWTClaimsSet().getSubject();
-    }
-
-    public static String getRole(String token) throws Exception {
-        SignedJWT signedJWT = SignedJWT.parse(token);
-        return (String) signedJWT.getJWTClaimsSet().getClaim("role");
-    }
-
-    public static boolean validateToken(String token) throws Exception {
-        SignedJWT signedJWT = SignedJWT.parse(token);
-        JWSVerifier verifier = new MACVerifier(SECRET);
+        JWSVerifier verifier = new MACVerifier(secret);
 
         if (signedJWT.verify(verifier)) {
             Date expiration = signedJWT.getJWTClaimsSet().getExpirationTime();
             return expiration.after(new Date());
         }
         return false;
+    }
+
+    public String getMail(String token) throws Exception {
+        SignedJWT signedJWT = SignedJWT.parse(token);
+        return signedJWT.getJWTClaimsSet().getSubject();
+    }
+
+    public String getRole(String token) throws Exception {
+        SignedJWT signedJWT = SignedJWT.parse(token);
+        return signedJWT.getJWTClaimsSet().getStringClaim("role");
+    }
+
+    public String getUuid(String token) throws Exception {
+        SignedJWT signedJWT = SignedJWT.parse(token);
+        return signedJWT.getJWTClaimsSet().getStringClaim("uuid");
     }
 }

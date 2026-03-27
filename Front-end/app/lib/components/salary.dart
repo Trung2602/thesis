@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-import '../models/Account.dart';
-import '../models/AccountProvider.dart';
-import '../models/Salary.dart';
+import '../models/account.dart';
+import '../models/account_provider.dart';
+import '../models/salary.dart';
 import '../api.dart';
 
 class SalaryScreen extends StatefulWidget {
@@ -25,13 +25,13 @@ class _SalaryScreenState extends State<SalaryScreen> {
     super.didChangeDependencies();
     account = Provider.of<AccountProvider>(context).account;
     if (account != null) {
-      fetchSalaries(account!.id);
+      fetchSalaries(account!.uuid);
     }
   }
 
-  Future<void> fetchSalaries(int staffId) async {
+  Future<void> fetchSalaries(String staffUuid) async {
     try {
-      final response = await http.get(Uri.parse(Api.getSalaries(staffId)));
+      final response = await http.get(Uri.parse(Api.getSalaries(staffUuid)));
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = json.decode(response.body);
@@ -69,7 +69,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
         itemBuilder: (context, index) {
           final salary = salaries[index];
           return Card(
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withValues(alpha: 0.08),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -80,7 +80,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "${salary.date.month}/${salary.date.year}",
+                    salary.date != null ? "${salary.date!.month}/${salary.date!.year}" : "Không có ngày",
                     style: const TextStyle(
                       color: Color(0xFFFFAB40),
                       fontSize: 18,

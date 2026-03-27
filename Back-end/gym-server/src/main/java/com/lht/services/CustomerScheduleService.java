@@ -26,9 +26,7 @@ public interface CustomerScheduleService {
     
     Page<CustomerSchedule> getAllSort(String sortField, String sortDir, int page, int size);
 
-    List<CustomerScheduleDTO> getCustomerSchedulesByCustomerUuid(UUID customerUuid);
-
-    List<CustomerScheduleDTO> getCustomerSchedulesByStaffUuid(UUID staffUuid);
+    List<CustomerScheduleDTO> getSchedulesByAccount();
 
     boolean isScheduleConflict(UUID uuid, UUID staffUuid, LocalDate date, LocalTime checkin);
 

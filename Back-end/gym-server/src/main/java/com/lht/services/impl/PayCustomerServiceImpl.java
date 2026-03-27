@@ -2,7 +2,6 @@ package com.lht.services.impl;
 
 import com.lht.client.InternalUserClient;
 import com.lht.dto.PayCustomerDTO;
-import com.lht.dto.PlanDTO;
 import com.lht.pojo.PayCustomer;
 import com.lht.pojo.Plan;
 import com.lht.pojo.StatusType;
@@ -10,7 +9,6 @@ import com.lht.repositories.PayCustomerRepository;
 import com.lht.repositories.PlanRepository;
 import com.lht.services.PayCustomerService;
 
-import com.lht.services.PlanService;
 import jakarta.persistence.criteria.Predicate;
 
 import java.time.LocalDate;
@@ -33,7 +31,6 @@ public class  PayCustomerServiceImpl implements PayCustomerService {
 
     private final PayCustomerRepository payCustomerRepository;
     private final InternalUserClient internalUserClient;
-    private final PlanService planService;
     private final PlanRepository planRepository;
 
     private PayCustomerDTO mapToDTO(PayCustomer p) {

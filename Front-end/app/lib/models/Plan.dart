@@ -1,16 +1,13 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-
 class Plan {
   final String? uuid;
-  final String? name;
+  final String name;
   final int? price;
   final int? durationDays;
   final String? description;
 
   Plan({
     this.uuid,
-    this.name,
+    required this.name,
     this.price,
     this.durationDays,
     this.description,
@@ -19,9 +16,11 @@ class Plan {
   factory Plan.fromJson(Map<String, dynamic> json) {
     return Plan(
       uuid: json['uuid'],
-      name: json['name'],
-      price: json['price'],
-      durationDays: json['durationDays'],
+      name: json['name'] ?? '',
+      price: json['price'] != null ? int.parse(json['price'].toString()) : null,
+      durationDays: json['durationDays'] != null
+          ? int.parse(json['durationDays'].toString())
+          : null,
       description: json['description'],
     );
   }

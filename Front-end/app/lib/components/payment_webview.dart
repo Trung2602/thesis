@@ -22,7 +22,7 @@ class _PaymentWebViewState extends State<PaymentWebView> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) async {
-            if (request.url.contains("/api/payment/return")) {
+            if (request.url.contains("/api/v1/payment/return")) {
               final uri = Uri.parse(request.url);
               final response = await http.get(uri);
 
@@ -30,7 +30,6 @@ class _PaymentWebViewState extends State<PaymentWebView> {
                 // Parse JSON trả về từ backend
                 final Map<String, dynamic> json = jsonDecode(response.body);
                 final status = json['status']; // Lấy trực tiếp từ backend
-
                 // Trả dữ liệu về màn trước
                 Navigator.pop(context, {'status': status});
               } else {

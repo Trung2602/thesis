@@ -2,6 +2,7 @@ package com.lht.services.impl;
 
 import com.lht.client.InternalUserClient;
 import com.lht.dto.CustomerScheduleDTO;
+import com.lht.jwt.SecurityUtils;
 import com.lht.pojo.CustomerSchedule;
 import com.lht.repositories.CustomerScheduleRepository;
 import com.lht.services.CustomerScheduleService;
@@ -168,14 +169,16 @@ public class CustomerScheduleServiceImpl implements CustomerScheduleService {
     }
 
     @Override
-    public List<CustomerScheduleDTO> getCustomerSchedulesByCustomerUuid(UUID customerUuid) {
-        List<CustomerSchedule> schedules = customerScheduleRepository.findByCustomerUuid(customerUuid);
-        return mapToDTO(schedules);
-    }
-
-    @Override
-    public List<CustomerScheduleDTO> getCustomerSchedulesByStaffUuid(UUID staffUuid) {
-        List<CustomerSchedule> schedules = customerScheduleRepository.findByStaffUuid(staffUuid);
+    public List<CustomerScheduleDTO> getSchedulesByAccount() {
+        UUID uuid = SecurityUtils.getCurrentUserUuid();
+        String role = SecurityUtils.getCurrentUserRole();
+        List<CustomerSchedule> schedules = List.of();
+        
+        if ("CUSTOMER".equals(role)) {
+            schedules = customerScheduleRepository.findByCustomerUuid(uuid);
+        } else if ("STAFF".equals(role)){
+            schedules = customerScheduleRepository.findByStaffUuid(uuid);
+        }
         return mapToDTO(schedules);
     }
 

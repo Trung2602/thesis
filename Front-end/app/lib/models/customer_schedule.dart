@@ -1,5 +1,4 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
 
 class CustomerSchedule {
   final String? uuid;
@@ -31,14 +30,22 @@ class CustomerSchedule {
 
   static TimeOfDay? _parseTime(String? timeStr) {
     if (timeStr == null || timeStr.isEmpty) return null;
+
     final parts = timeStr.split(':');
-    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    if (parts.length < 2) return null;
+
+    return TimeOfDay(
+      hour: int.parse(parts[0]),
+      minute: int.parse(parts[1]),
+    );
   }
 
   static String? _formatTime(TimeOfDay? time) {
     if (time == null) return null;
+
     final h = time.hour.toString().padLeft(2, '0');
     final m = time.minute.toString().padLeft(2, '0');
+
     return '$h:$m:00';
   }
 

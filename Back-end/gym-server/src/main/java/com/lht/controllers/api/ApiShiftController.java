@@ -25,7 +25,7 @@ public class ApiShiftController {
 
     private final ShiftService shiftService;
 
-    @GetMapping("/all")
+    @GetMapping
     public ResponseEntity<List<ShiftDTO>> getShiftsAll() {
         return ResponseEntity.ok(this.shiftService.getAllShifts());
     }
@@ -56,7 +56,7 @@ public class ApiShiftController {
         return ResponseEntity.ok(shift);
     }
 
-    @PostMapping("/save")
+    @PostMapping
     public ResponseEntity<ShiftDTO> addOrUpdateShift(@RequestBody ShiftDTO shiftDTO) {
         return ResponseEntity.ok(this.shiftService.addOrUpdateShift(shiftDTO));
     }

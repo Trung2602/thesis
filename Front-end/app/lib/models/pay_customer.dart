@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 
 class PayCustomer {
   final String? uuid;
@@ -38,7 +37,7 @@ class PayCustomer {
       customerName: json['customerName'],
       planUuid: json['planUuid'],
       planName: json['planName'],
-      price: json['price'],
+      price: json['price'] != null ? int.parse(json['price'].toString()) : null,
       txnRef: json['txnRef'],
       status: json['status'],
       bankCode: json['bankCode'],

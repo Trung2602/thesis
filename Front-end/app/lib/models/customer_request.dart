@@ -4,6 +4,8 @@ class CustomerRequest {
   String name;
   DateTime birthday;
   String gender;
+  double weight;
+  double height;
   DateTime expiryDate;
 
   CustomerRequest({
@@ -12,6 +14,8 @@ class CustomerRequest {
     required this.name,
     required this.birthday,
     required this.gender,
+    required this.weight,
+    required this.height,
     required this.expiryDate,
   });
 
@@ -22,6 +26,8 @@ class CustomerRequest {
       "name": name,
       "birthday": birthday.toIso8601String().split('T')[0],
       "gender": gender,
+      "weight": weight,
+      "height": height,
       "expiryDate": expiryDate.toIso8601String().split('T')[0],
     };
   }

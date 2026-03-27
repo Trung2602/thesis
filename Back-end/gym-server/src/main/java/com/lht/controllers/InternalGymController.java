@@ -2,7 +2,9 @@ package com.lht.controllers;
 
 import com.lht.services.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -20,22 +22,22 @@ public class InternalGymController {
     private final FacilityService facilityService;
     private final CustomerScheduleService customerScheduleService;
 
-    @GetMapping("/plans/duration")
-    public int getDurationDays(@RequestParam UUID planUuid) {
-        return planService.getDurationDays(planUuid);
+    @GetMapping("/plans/{uuid}/duration")
+    public int getDurationDays(@PathVariable UUID uuid) {
+        return planService.getDurationDays(uuid);
     }
 
-    @GetMapping("/facility/name")
-    public String getFacilityNameByUuid(@RequestParam("uuid") UUID uuid) {
+    @GetMapping("/facilities/{uuid}/name")
+    public String getFacilityNameByUuid(@PathVariable UUID uuid) {
         return facilityService.getFacilityByUuid(uuid).getName();
     }
 
-    @PostMapping("/facility-by-uuids")
+    @PostMapping("/facilities/batch")
     public Map<UUID, String> getFacilityNamesByUuids(@RequestBody Set<UUID> facilityUuids) {
         return facilityService.getFacilityNamesByUuids(facilityUuids);
     }
 
-    @GetMapping("/staffs/available")
+    @GetMapping("/staffs")
     public Set<UUID> getAvailableStaff(
             @RequestParam LocalDate date,
             @RequestParam LocalTime checkIn,

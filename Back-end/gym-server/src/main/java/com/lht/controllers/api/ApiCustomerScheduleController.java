@@ -2,6 +2,8 @@ package com.lht.controllers.api;
 
 import com.lht.client.InternalUserClient;
 import com.lht.dto.CustomerScheduleDTO;
+import com.lht.dto.InternalUserResponse;
+import com.lht.jwt.SecurityUtils;
 import com.lht.pojo.CustomerSchedule;
 import com.lht.services.CustomerScheduleService;
 
@@ -15,6 +17,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -25,45 +28,21 @@ public class ApiCustomerScheduleController {
     private final CustomerScheduleService customerScheduleService;
     private final InternalUserClient internalUserClient;
 
-    @GetMapping("/customer/{uuid}") //lấy theo custotmerUuid
-    public ResponseEntity<List<CustomerScheduleDTO>> getCustomerSchedulesCustomer(@PathVariable("uuid") UUID uuid) {
-        List<CustomerScheduleDTO> schedules = customerScheduleService.getCustomerSchedulesByCustomerUuid(uuid);
-        return ResponseEntity.ok(schedules);
-    }
-
-    @GetMapping("/staff/{uuid}") //lấy theo staffUuid
-    public ResponseEntity<List<CustomerScheduleDTO>> getCustomerSchedulesStaff(@PathVariable("uuid") UUID uuid) {
-        List<CustomerScheduleDTO> schedules = customerScheduleService.getCustomerSchedulesByStaffUuid(uuid);
-        return ResponseEntity.ok(schedules);
-    }
-
-    @GetMapping("/account/{uuid}") //lấy theo accountUuid
-    public ResponseEntity<List<CustomerScheduleDTO>> getCustomerScheduleAll(@PathVariable("uuid") UUID uuid) {
-        List<CustomerScheduleDTO> schedules;
-        if (("Customer").equals(internalUserClient.getRoleByUuid(uuid))) {
-            schedules = customerScheduleService.getCustomerSchedulesByCustomerUuid(uuid);
-        } else {
-            schedules = customerScheduleService.getCustomerSchedulesByStaffUuid(uuid);
-        }
+    @GetMapping
+    public ResponseEntity<List<CustomerScheduleDTO>> getSchedules() {
+        List<CustomerScheduleDTO> schedules = customerScheduleService.getSchedulesByAccount();
         return ResponseEntity.ok(schedules);
     }
 
     @GetMapping("/filter")
     public ResponseEntity<List<CustomerScheduleDTO>> getCustomerSchedulesFilter(@RequestParam Map<String, String> params) {
+        UUID uuid = SecurityUtils.getCurrentUserUuid();
+        String role = SecurityUtils.getCurrentUserRole();
 
-        // Lấy accountUuid từ params
-        String accountUuid = params.get("accountUuid");
-        if (accountUuid == null) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        UUID uuid = UUID.fromString(accountUuid);
-        String role = internalUserClient.getRoleByUuid(uuid);
-
-        if ("Customer".equals(role)) {
-            params.put("customerUuid", accountUuid);
-        } else if ("Staff".equals(role)) {
-            params.put("staffUuid", accountUuid);
+        if ("CUSTOMER".equals(role)) {
+            params.put("customerUuid", uuid.toString());
+        } else if ("STAFF".equals(role)) {
+            params.put("staffUuid", uuid.toString());
         }
 
         List<CustomerScheduleDTO> schedules = this.customerScheduleService.getCustomerSchedules(params);

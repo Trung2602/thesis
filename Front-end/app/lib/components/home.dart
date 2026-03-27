@@ -6,13 +6,12 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../api.dart';
 // Import models
-import '../models/Account.dart';
-import '../models/Plan.dart';
-import 'package:gym/models/AccountProvider.dart';
-import 'package:gym/models/Shift.dart';
+import '../models/account.dart';
+import '../models/plan.dart';
+import 'package:gym/models/account_provider.dart';
+import 'package:gym/models/shift.dart';
 // Import các màn hình con
 import 'profile.dart';
 import 'day_off.dart';
@@ -51,18 +50,18 @@ class _HomeState extends State<Home> {
     if (savedAccount == null) {
       _pages = [
         const _DashboardScreen()];
-    } else if (savedAccount!.role == 'Customer') {
+    } else if (savedAccount!.role == 'CUSTOMER') {
       _pages = [
         const _DashboardScreen(),
         const CustomerScheduleScreen(),
         const PayCustomerScreen(),
         const Profile(),
       ];
-    } else if (savedAccount!.role == 'Staff') {
+    } else if (savedAccount!.role == 'STAFF') {
       _pages = [
         const _DashboardScreen(),
         const CustomerScheduleScreen(),
-        if (savedAccount!.type == 'Fulltime')
+        if (savedAccount!.type == 'FULLTIME')
           const DayOff()
         else
           const StaffScheduleScreen(),
@@ -498,8 +497,7 @@ class _DashboardScreen extends StatelessWidget {
                               _buildScheduleCard(
                                 shift.name,
                                 "Ca: ${shift.name}",
-                                "Giờ: ${shift.checkin != null ? shift.checkin!.toIso8601String().substring(11, 16) : '--:--'}"
-                                    " - ${shift.checkout != null ? shift.checkout!.toIso8601String().substring(11, 16) : '--:--'}",
+                                "Giờ: ${Shift.formatTime(shift.checkin) ?? '--:--'} - ${Shift.formatTime(shift.checkout) ?? '--:--'}",
                                 "Tổng thời gian: ${shift.duration ?? 0} giờ",
                               ),
                               const SizedBox(height: 10),
@@ -531,7 +529,7 @@ class _DashboardScreen extends StatelessWidget {
   // Hàm tiện ích để tạo các thẻ thông tin
   Widget _buildInfoCard(String title, String description, IconData icon) {
     return Card(
-      color: Colors.white.withOpacity(0.08), // Nền trong suốt nhẹ
+      color: Colors.white.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       elevation: 5,
       child: Padding(
@@ -596,7 +594,7 @@ class _DashboardScreen extends StatelessWidget {
   // Hàm tiện ích để tạo các thẻ lịch trình
   Widget _buildScheduleCard(String title, String subtitle, String time, String description) {
     return Card(
-      color: Colors.white.withOpacity(0.1), // Nền trong suốt nhẹ
+      color: Colors.white.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       elevation: 7,
       child: Padding(

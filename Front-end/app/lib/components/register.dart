@@ -1,9 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:gym/components/home.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/auth_service.dart';
-import '../models/Account.dart';
+import '../models/customer_request.dart';
 
 class Register extends StatefulWidget {
   const Register({super.key});
@@ -13,24 +12,26 @@ class Register extends StatefulWidget {
 }
 
 class _RegisterState extends State<Register> {
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _birthdayController = TextEditingController();
+  final TextEditingController _weightController = TextEditingController();
+  final TextEditingController _heightController = TextEditingController();
 
-  bool? _gender = true; // true = Nam, false = Nữ
-  String? _errorMessage;
+  bool _gender = true; // true = male
   bool _isLoading = false;
+  String? _errorMessage;
 
   File? _selectedImage;
 
+  final ImagePicker _picker = ImagePicker();
+  final AuthService _authService = AuthService();
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-
-  final AuthService _authService = AuthService();
-  final ImagePicker _picker = ImagePicker();
 
   late BuildContext rootContext;
 
@@ -41,84 +42,23 @@ class _RegisterState extends State<Register> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final pickedFile = await _picker.pickImage(source: source, imageQuality: 80);
-    if (pickedFile != null) {
+    final picked = await _picker.pickImage(source: source, imageQuality: 80);
+    if (picked != null) {
       setState(() {
-        _selectedImage = File(pickedFile.path);
+        _selectedImage = File(picked.path);
       });
     }
   }
 
-  // Future<void> _submitRegister() async {
-  //   if (_selectedImage == null) {
-  //     setState(() {
-  //       _errorMessage = "Vui lòng chọn ảnh đại diện!";
-  //     });
-  //     return;
-  //   }
-  //
-  //   if (_passwordController.text.trim() != _confirmPasswordController.text.trim()) {
-  //     setState(() {
-  //       _errorMessage = "Mật khẩu xác nhận không khớp!";
-  //     });
-  //     return;
-  //   }
-  //
-  //   setState(() {
-  //     _isLoading = true;
-  //     _errorMessage = null;
-  //   });
-  //
-  //   final account = Account(
-  //     id: 0,
-  //     username: _usernameController.text.trim(),
-  //     password: _passwordController.text.trim(),
-  //     name: _nameController.text.trim(),
-  //     mail: _emailController.text.trim(),
-  //     birthday: _birthdayController.text.trim().isNotEmpty
-  //         ? DateTime.tryParse(_birthdayController.text.trim())
-  //         : null,
-  //     gender: _gender ?? true,
-  //     role: "Customer",
-  //     isActive: true,
-  //     avatar: "", // server sẽ nhận file multipart
-  //   );
-  //
-  //   try {
-  //     // ép nullable File! vì đã chắc chắn có ảnh
-  //     final result = await _authService.registerAndLogin(context, account, _selectedImage!);
-  //
-  //     if (!mounted) return;
-  //
-  //     if (result != null) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text("Đăng ký thành công!")),
-  //       );
-  //       // Điều hướng sang màn hình Home hoặc màn hình chính
-  //       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Home()),);
-  //     }
-  //   } catch (e) {
-  //     setState(() {
-  //       _errorMessage = e.toString();
-  //     });
-  //   } finally {
-  //     setState(() {
-  //       _isLoading = false;
-  //     });
-  //   }
-  // }
   Future<void> _submitRegister() async {
+
     if (_selectedImage == null) {
-      setState(() {
-        _errorMessage = "Vui lòng chọn ảnh đại diện!";
-      });
+      setState(() => _errorMessage = "Vui lòng chọn ảnh đại diện");
       return;
     }
 
-    if (_passwordController.text.trim() != _confirmPasswordController.text.trim()) {
-      setState(() {
-        _errorMessage = "Mật khẩu xác nhận không khớp!";
-      });
+    if (_passwordController.text != _confirmPasswordController.text) {
+      setState(() => _errorMessage = "Mật khẩu không khớp");
       return;
     }
 
@@ -127,355 +67,284 @@ class _RegisterState extends State<Register> {
       _errorMessage = null;
     });
 
-    final account = Account(
-      id: 0,
-      username: _usernameController.text.trim(),
-      password: _passwordController.text.trim(),
-      name: _nameController.text.trim(),
-      mail: _emailController.text.trim(),
-      birthday: _birthdayController.text.trim().isNotEmpty
-          ? DateTime.tryParse(_birthdayController.text.trim())
-          : null,
-      gender: _gender ?? true,
-      role: "Customer",
-      isActive: true,
-      avatar: "",
-    );
-
     try {
-      // Gọi API đăng ký
-      final registered = await _authService.registerWithImage(account, _selectedImage!);
+
+      final request = CustomerRequest(
+        mail: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        name: _nameController.text.trim(),
+        birthday: DateTime.parse(_birthdayController.text),
+        gender: _gender ? "MALE" : "FEMALE",
+        weight: double.tryParse(_weightController.text) ?? 0,
+        height: double.tryParse(_heightController.text) ?? 0,
+        expiryDate: DateTime.now().add(const Duration(days: 1)),
+      );
+
+      final registered = await _authService.registerCustomer(request, _selectedImage);
 
       if (!mounted) return;
 
       if (registered) {
-        // Nếu đăng ký thành công, mở dialog nhập OTP
-        _showOtpDialog(context, account);
+        _showOtpDialog(request.mail);
       }
+
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
       });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
+
+    setState(() => _isLoading = false);
   }
 
-  void _showOtpDialog(BuildContext rootContext, Account account) {
+  void _showOtpDialog(String mail) {
+
     final otpController = TextEditingController();
 
     showDialog(
-      context: rootContext,
+      context: context,
       barrierDismissible: false,
-      builder: (ctx) {
+      builder: (_) {
         return AlertDialog(
-          title: const Text("Xác thực OTP"),
+          title: const Text("Nhập OTP"),
           content: TextField(
             controller: otpController,
             keyboardType: TextInputType.number,
             maxLength: 6,
-            decoration: const InputDecoration(
-              hintText: "Nhập 6 số OTP",
-            ),
+            decoration: const InputDecoration(hintText: "OTP"),
           ),
           actions: [
+
             TextButton(
-              onPressed: () => Navigator.pop(ctx), // dùng ctx để đóng dialog
-              child: const Text("Hủy"),
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Huỷ"),
             ),
+
             ElevatedButton(
               onPressed: () async {
+
                 final otp = int.tryParse(otpController.text.trim());
+
                 if (otp == null) return;
 
-                Navigator.pop(ctx); // đóng dialog bằng ctx
+                Navigator.pop(context);
 
-                // Gọi verifyOtpAndLogin
-                final acc = await _authService.verifyOtpAndLogin(
-                  rootContext,
-                  account.mail ?? '',
-                  account.password ?? '',
-                  otp,
-                );
-
-                if (!rootContext.mounted) return;
-
-                if (acc != null) {
-                  ScaffoldMessenger.of(rootContext).showSnackBar(
-                    const SnackBar(content: Text("Đăng ký & xác thực thành công!")),
+                final success = await _authService.verifyOtp(mail, otp);
+                if (!mounted) return;
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Đăng ký thành công, hãy đăng nhập")),
                   );
-                  Navigator.pushReplacement(
-                    rootContext,
-                    MaterialPageRoute(builder: (_) => const Home()),
-                  );
+                  Navigator.pop(context); // quay về login
                 } else {
-                  ScaffoldMessenger.of(rootContext).showSnackBar(
-                    const SnackBar(content: Text("OTP không hợp lệ hoặc đã hết hạn!")),
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("OTP không hợp lệ")),
                   );
+
                 }
+
               },
               child: const Text("Xác nhận"),
-            ),
+            )
           ],
         );
       },
     );
   }
 
-
-  //======================================
-
   bool get _isFormValid {
-    return _usernameController.text.isNotEmpty &&
+    return _nameController.text.isNotEmpty &&
+        _emailController.text.isNotEmpty &&
         _passwordController.text.isNotEmpty &&
         _confirmPasswordController.text.isNotEmpty &&
-        _passwordController.text == _confirmPasswordController.text &&
-        _nameController.text.isNotEmpty &&
-        _emailController.text.isNotEmpty &&
         _birthdayController.text.isNotEmpty &&
-        _selectedImage != null; // bắt buộc chọn ảnh
+        _weightController.text.isNotEmpty &&
+        _heightController.text.isNotEmpty &&
+        _selectedImage != null;
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F123A),
+
       appBar: AppBar(
-        title: const Text("Đăng ký tài khoản"),
+        title: const Text("Đăng ký"),
         backgroundColor: const Color(0xFF1A237E),
       ),
-      body: Container(
+
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        color: const Color(0xFF0F123A),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Avatar + chọn ảnh
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
-                    child: _selectedImage == null
-                        ? const Icon(Icons.person, size: 50, color: Colors.white70)
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        builder: (_) => SafeArea(
-                          child: Wrap(
-                            children: [
-                              ListTile(
-                                leading: const Icon(Icons.photo),
-                                title: const Text("Chọn từ thư viện"),
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  _pickImage(ImageSource.gallery);
-                                },
-                              ),
-                              ListTile(
-                                leading: const Icon(Icons.camera_alt),
-                                title: const Text("Chụp ảnh"),
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  _pickImage(ImageSource.camera);
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.image),
-                    label: const Text("Chọn ảnh"),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+        child: Column(
+          children: [
 
-              TextField(
-                controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: "Tên đăng nhập",
-                  labelStyle: TextStyle(color: Colors.white70),
-                ),
-                style: const TextStyle(color: Colors.white),
-                onChanged: (value) => setState(() {}),
-              ),
-              const SizedBox(height: 12),
+            /// Avatar
+            Row(
+              children: [
 
-              TextField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  labelText: "Mật khẩu",
-                  labelStyle: const TextStyle(color: Colors.white70),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.white70,
-                    ),
-                    onPressed: () {
-                      setState(() => _obscurePassword = !_obscurePassword);
-                    },
-                  ),
+                CircleAvatar(
+                  radius: 40,
+                  backgroundImage:
+                  _selectedImage != null ? FileImage(_selectedImage!) : null,
+                  child: _selectedImage == null
+                      ? const Icon(Icons.person, size: 40)
+                      : null,
                 ),
-                style: const TextStyle(color: Colors.white),
-                onChanged: (value) => setState(() {}),
-              ),
-              const SizedBox(height: 12),
 
-              TextField(
-                controller: _confirmPasswordController,
-                obscureText: _obscureConfirmPassword,
-                decoration: InputDecoration(
-                  labelText: "Xác nhận mật khẩu",
-                  labelStyle: const TextStyle(color: Colors.white70),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.white70,
-                    ),
-                    onPressed: () {
-                      setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
-                    },
-                  ),
-                ),
-                style: const TextStyle(color: Colors.white),
-                onChanged: (value) => setState(() {}),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(width: 10),
 
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: "Họ tên",
-                  labelStyle: TextStyle(color: Colors.white70),
-                ),
-                style: const TextStyle(color: Colors.white),
-                onChanged: (value) => setState(() {}),
-              ),
-              const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (_) => SafeArea(
+                        child: Wrap(
+                          children: [
 
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: "Email",
-                  labelStyle: TextStyle(color: Colors.white70),
-                ),
-                style: const TextStyle(color: Colors.white),
-                onChanged: (value) => setState(() {}),
-              ),
-              const SizedBox(height: 12),
-
-              TextField(
-                controller: _birthdayController,
-                readOnly: true, // không cho nhập tay
-                decoration: const InputDecoration(
-                  labelText: "Ngày sinh",
-                  labelStyle: TextStyle(color: Colors.white70),
-                  suffixIcon: Icon(Icons.calendar_today, color: Colors.white70),
-                ),
-                style: const TextStyle(color: Colors.white),
-                onTap: () async {
-                  DateTime initialDate = DateTime.now().subtract(const Duration(days: 365 * 18)); // mặc định 18 tuổi
-                  DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: initialDate,
-                    firstDate: DateTime(1900),
-                    lastDate: DateTime.now(),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: ColorScheme.light(
-                            primary: const Color(0xFF1A237E), // màu chọn ngày
-                            onPrimary: Colors.white, // màu chữ ngày được chọn
-                            onSurface: Colors.black, // màu chữ ngày bình thường
-                          ),
-                          textButtonTheme: TextButtonThemeData(
-                            style: TextButton.styleFrom(
-                              foregroundColor: const Color(0xFF1A237E), // màu nút Hủy/OK
+                            ListTile(
+                              leading: const Icon(Icons.photo),
+                              title: const Text("Chọn ảnh"),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _pickImage(ImageSource.gallery);
+                              },
                             ),
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
-                  );
 
-                  if (pickedDate != null) {
-                    _birthdayController.text = "${pickedDate.year.toString().padLeft(4,'0')}-"
-                        "${pickedDate.month.toString().padLeft(2,'0')}-"
-                        "${pickedDate.day.toString().padLeft(2,'0')}";
-                  }
-                },
-                onChanged: (value) => setState(() {}),
-              ),
+                            ListTile(
+                              leading: const Icon(Icons.camera_alt),
+                              title: const Text("Chụp ảnh"),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _pickImage(ImageSource.camera);
+                              },
+                            ),
 
-              Row(
-                children: [
-                  const Icon(Icons.wc, color: Colors.white70),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: DropdownButtonFormField<bool>(
-                      value: _gender,
-                      dropdownColor: const Color(0xFF1A237E),
-                      style: const TextStyle(color: Colors.white),
-                      items: const [
-                        DropdownMenuItem(
-                          value: true,
-                          child: Text("Nam", style: TextStyle(color: Colors.white)),
+                          ],
                         ),
-                        DropdownMenuItem(
-                          value: false,
-                          child: Text("Nữ", style: TextStyle(color: Colors.white)),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) setState(() => _gender = value);
-                      },
-                      decoration: const InputDecoration(
-                        labelText: "Giới tính",
-                        labelStyle: TextStyle(color: Colors.white70),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+                    );
+                  },
+                  child: const Text("Chọn ảnh"),
+                )
+              ],
+            ),
 
-              if (_errorMessage != null)
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.redAccent),
-                ),
-              const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-              ElevatedButton(
-                onPressed: _isLoading || !_isFormValid ? null : _submitRegister,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 40),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                  "Đăng ký",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
+            _input(_nameController, "Họ tên"),
+            _input(_emailController, "Email"),
+
+            _passwordField(
+                _passwordController,
+                "Mật khẩu",
+                    () => setState(() => _obscurePassword = !_obscurePassword),
+                _obscurePassword
+            ),
+
+            _passwordField(
+                _confirmPasswordController,
+                "Xác nhận mật khẩu",
+                    () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                _obscureConfirmPassword
+            ),
+
+            _datePicker(),
+
+            _input(_weightController, "Cân nặng (kg)", type: TextInputType.number),
+            _input(_heightController, "Chiều cao (cm)", type: TextInputType.number),
+
+            const SizedBox(height: 10),
+
+            DropdownButtonFormField<bool>(
+              initialValue : _gender,
+              items: const [
+                DropdownMenuItem(value: true, child: Text("Nam")),
+                DropdownMenuItem(value: false, child: Text("Nữ")),
+              ],
+              onChanged: (v) => setState(() => _gender = v!),
+              decoration: const InputDecoration(labelText: "Giới tính"),
+            ),
+
+            const SizedBox(height: 20),
+
+            if (_errorMessage != null)
+              Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+
+            const SizedBox(height: 20),
+
+            ElevatedButton(
+              onPressed: _isFormValid && !_isLoading ? _submitRegister : null,
+              child: _isLoading
+                  ? const CircularProgressIndicator()
+                  : const Text("Đăng ký"),
+            )
+
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _input(TextEditingController controller, String label,
+      {TextInputType type = TextInputType.text}) {
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        keyboardType: type,
+        decoration: InputDecoration(labelText: label),
+      ),
+    );
+  }
+
+  Widget _passwordField(
+      TextEditingController controller,
+      String label,
+      VoidCallback toggle,
+      bool obscure,
+      ) {
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        obscureText: obscure,
+        decoration: InputDecoration(
+          labelText: label,
+          suffixIcon: IconButton(
+            icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+            onPressed: toggle,
           ),
         ),
       ),
+    );
+  }
+
+  Widget _datePicker() {
+
+    return TextField(
+      controller: _birthdayController,
+      readOnly: true,
+      decoration: const InputDecoration(
+        labelText: "Ngày sinh",
+        suffixIcon: Icon(Icons.calendar_today),
+      ),
+      onTap: () async {
+
+        final date = await showDatePicker(
+          context: context,
+          initialDate: DateTime(2000),
+          firstDate: DateTime(1900),
+          lastDate: DateTime.now(),
+        );
+
+        if (date != null) {
+          _birthdayController.text =
+          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+        }
+      },
     );
   }
 }

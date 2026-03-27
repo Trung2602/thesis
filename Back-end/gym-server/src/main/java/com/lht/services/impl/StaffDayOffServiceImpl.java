@@ -1,7 +1,9 @@
 package com.lht.services.impl;
 
 import com.lht.client.InternalUserClient;
+import com.lht.dto.InternalUserResponse;
 import com.lht.dto.StaffDayOffDTO;
+import com.lht.jwt.SecurityUtils;
 import com.lht.pojo.StaffDayOff;
 import com.lht.repositories.StaffDayOffRepository;
 import com.lht.services.StaffDayOffService;
@@ -20,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,8 +38,6 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
         StaffDayOffDTO dto = new StaffDayOffDTO();
         dto.setUuid(s.getUuid());
         dto.setDate(s.getDateOff());
-        dto.setStaffUuid(s.getStaffUuid());
-        dto.setStaffName(internalUserClient.getStaffNameByUuid(s.getStaffUuid()));
         return dto;
     }
 
@@ -52,8 +53,6 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
                 .map(d -> StaffDayOffDTO.builder()
                         .uuid(d.getUuid())
                         .date(d.getDateOff())
-                        .staffUuid(d.getStaffUuid())
-                        .staffName(staffMap.getOrDefault(d.getStaffUuid(), "Unknown"))
                         .build())
                 .toList();
     }
@@ -62,7 +61,6 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
         StaffDayOff s = new StaffDayOff();
         s.setUuid(dto.getUuid());
         s.setDateOff(dto.getDate());
-        s.setStaffUuid(dto.getStaffUuid());
         return s;
     }
 
@@ -79,25 +77,34 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
     @Override
     public StaffDayOffDTO addOrUpdateStaffDayOff(StaffDayOffDTO dto) {
 
-        if (dto.getStaffUuid() == null) throw new IllegalArgumentException("Staff UUID is required");
+        UUID staffUuid = SecurityUtils.getCurrentUserUuid();
 
-        boolean exists = internalUserClient.existsByUuid(dto.getStaffUuid());
-        if (!exists) throw new IllegalArgumentException("Staff does not exist");
-
-        String staffType = internalUserClient.getStaffType(dto.getStaffUuid());
+        String staffType = internalUserClient.getStaffType(staffUuid);
         if (!"Fulltime".equalsIgnoreCase(staffType)) {
             throw new IllegalArgumentException("Only Fulltime staff can register day off");
         }
 
-        boolean alreadyExists = staffDayOffRepository.existsByStaffUuidAndDateOff(dto.getStaffUuid(), dto.getDate());
-        if (alreadyExists) {
-            throw new IllegalArgumentException("Day off already registered for this date");
+        if (dto.getUuid() == null) {
+            boolean alreadyExists = staffDayOffRepository.existsByStaffUuidAndDateOff(staffUuid, dto.getDate());
+            if (alreadyExists) {
+                throw new IllegalArgumentException("Day off already registered for this date");
+            }
+        }
+        StaffDayOff entity;
+        if (dto.getUuid() != null) {
+            entity = staffDayOffRepository.findById(dto.getUuid()).orElseThrow(() -> new RuntimeException("Day off not found"));
+            if (!entity.getStaffUuid().equals(staffUuid)) {
+                throw new RuntimeException("Forbidden");
+            }
+            entity.setDateOff(dto.getDate());
+        }
+        else {
+            entity = new StaffDayOff();
+            entity.setUuid(UUID.randomUUID());
+            entity.setStaffUuid(staffUuid);
+            entity.setDateOff(dto.getDate());
         }
 
-        StaffDayOff entity = toEntity(dto);
-        if (entity.getUuid() == null) {
-            entity.setUuid(UUID.randomUUID());
-        }
         StaffDayOff saved = staffDayOffRepository.save(entity);
         return mapToDTO(saved);
     }
@@ -112,45 +119,11 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
     }
 
     @Override
-    public List<StaffDayOffDTO> getStaffDayOffs(Map<String, String> params) {
-        Specification<StaffDayOff> spec = (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-
-            if (params.containsKey("staffUuid")) {
-                try {
-                    UUID staffUuid = UUID.fromString(params.get("staffUuid"));
-                    predicates.add(cb.equal(root.get("staffUuid"), staffUuid));
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalArgumentException("Invalid staffUuid format.");
-                }
-            }
-
-            if (params.containsKey("date")) {
-                try {
-                    LocalDate date = LocalDate.parse(params.get("date"));
-                    predicates.add(cb.equal(root.get("dateOff"), date));
-                } catch (DateTimeParseException e) {
-                    throw new IllegalArgumentException("Invalid date format. Expected yyyy-MM-dd.");
-                }
-            }
-
-            if (params.containsKey("month") && params.containsKey("year")) {
-                try {
-                    int month = Integer.parseInt(params.get("month"));
-                    int year = Integer.parseInt(params.get("year"));
-
-                    LocalDate start = LocalDate.of(year, month, 1);
-                    LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
-
-                    predicates.add(cb.between(root.get("dateOff"), start, end));
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("Invalid month/year. Expected number.");
-                }
-            }
-
-            return cb.and(predicates.toArray(new Predicate[0]));
-        };
-        List<StaffDayOff> dayOff = staffDayOffRepository.findAll(spec);
+    public List<StaffDayOffDTO> getStaffDayOffs(int month, int year) {
+        UUID uuid = SecurityUtils.getCurrentUserUuid();
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+        List<StaffDayOff> dayOff = staffDayOffRepository.findByStaffUuidAndDateOffBetween(uuid, start, end);
         return mapToDTO(dayOff);
     }
 
@@ -176,7 +149,8 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
     }
 
     @Override
-    public List<StaffDayOffDTO> getStaffDayOffByStaffUuid(UUID uuid) {
+    public List<StaffDayOffDTO> getStaffDayOffByStaffUuid() {
+        UUID uuid = SecurityUtils.getCurrentUserUuid();
         return mapToDTO(staffDayOffRepository.findByStaffUuid(uuid));
     }
 

@@ -12,6 +12,6 @@ import java.util.UUID;
         url = "${user.service.url}"
 )
 public interface InternalUserClient {
-    @GetMapping("/internal/customers/{uuid}/BMI")
+    @GetMapping("/internal/customers/{uuid}/bmi")
     CustomerDTO getCustomer(@PathVariable UUID uuid);
 }

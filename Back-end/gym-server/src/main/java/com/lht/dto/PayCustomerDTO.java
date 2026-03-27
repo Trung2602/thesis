@@ -20,7 +20,7 @@ public class PayCustomerDTO {
 
     private UUID planUuid;
     private String planName;
-    private Integer price; // plan.price
+    private Integer price;
 
     private String txnRef;   // thêm mã giao dịch VNPAY
     private String status;   // PENDING / SUCCESS / FAILED

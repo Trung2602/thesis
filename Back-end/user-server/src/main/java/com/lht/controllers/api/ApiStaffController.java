@@ -19,7 +19,7 @@ public class ApiStaffController {
 
     private final StaffService staffService;
 
-    @GetMapping("/available")
+    @GetMapping
     public List<NameUUIDDTO> getAvailableStaff(
             @RequestParam LocalDate date,
             @RequestParam LocalTime checkin,

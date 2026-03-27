@@ -6,6 +6,7 @@ import com.lht.services.AccountService;
 import com.lht.services.CustomerService;
 import com.lht.services.StaffService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,30 +23,33 @@ public class InternalUserController {
     private final StaffService staffService;
     private final CustomerService customerService;
 
-    @GetMapping("/users/get-role-uuid")
-    public String getRoleByUuid(@RequestParam UUID uuid) {
+    @GetMapping("/users/{uuid}/role")
+    public String getRoleByUuid(@PathVariable UUID uuid) {
         return accountService.getRoleByUuid(uuid);
     }
 
-    @GetMapping("/users/exists-uuid")
-    public boolean existsByUuid(@RequestParam UUID uuid) {
-
-        return accountService.existsByUuid(uuid);
+    @RequestMapping(value = "/users/{uuid}", method = RequestMethod.HEAD)
+    public ResponseEntity<Void> existsUser(@PathVariable UUID uuid) {
+        boolean exists = accountService.existsByUuid(uuid);
+        if (exists) {
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    @GetMapping("/users/staff-type")
-    public String getStaffType(@RequestParam UUID uuid) {
-
+    @GetMapping("/staffs/{uuid}/type")
+    public String getStaffType(@PathVariable UUID uuid) {
         return staffService.getStaffType(uuid);
     }
 
-    @GetMapping("/users/info-mail")
+    @GetMapping("/users")
     public InternalUserResponse getInternalByMail(@RequestParam String mail) {
         return accountService.getInternalUserByMail(mail);
     }
 
-    @GetMapping("/users/info-uuid")
-    public InternalUserResponse getInternalByUuid(@RequestParam UUID uuid) {
+    @GetMapping("/users/{uuid}")
+    public InternalUserResponse getInternalByUuid(@PathVariable UUID uuid) {
         return accountService.getInternalUserByUuid(uuid);
     }
 
@@ -59,35 +63,35 @@ public class InternalUserController {
         return staffService.getStaffsFulltime();
     }
 
-    @GetMapping("/staff/name")
-    public String getStaffNameByUuid(@RequestParam UUID uuid) {
+    @GetMapping("/staffs/{uuid}/name")
+    public String getStaffNameByUuid(@PathVariable UUID uuid) {
         return staffService.getStaffNameByUuid(uuid);
     }
 
-    @PostMapping("/staff-by-uuids")
+    @PostMapping("/staffs/batch")
     public Map<UUID, String> getStaffNamesByUuids(@RequestBody Set<UUID> staffUuids) {
         return staffService.getStaffNamesByUuids(staffUuids);
     }
 
-    @GetMapping("/customer/name")
-    public String getCustomerNameByUuid(@RequestParam UUID uuid) {
+    @GetMapping("/customers/{uuid}/name")
+    public String getCustomerNameByUuid(@PathVariable UUID uuid) {
         return customerService.getCustomerNameByUuid(uuid);
     }
 
-    @PostMapping("/customer-by-uuids")
+    @PostMapping("/customers/batch")
     public Map<UUID, String> getCustomerNamesByUuids(@RequestBody Set<UUID> customerUuids) {
         return customerService.getCustomerNamesByUuids(customerUuids);
     }
 
-    @PostMapping("/update-expiry-after-payment")
+    @PatchMapping("/customers/{uuid}/expiry")
     public void updateExpiryAfterPayment(
-            @RequestParam UUID customerUuid,
+            @PathVariable UUID uuid,
             @RequestParam UUID planUuid)
     {
-        customerService.updateExpiryAfterPayment(customerUuid, planUuid);
+        customerService.updateExpiryAfterPayment(uuid, planUuid);
     }
 
-    @GetMapping("/customers/{uuid}/BMI")
+    @GetMapping("/customers/{uuid}/bmi")
     public CustomerBMIDTO getBMICustomer(@PathVariable UUID uuid) {
         return customerService.getBMI(uuid);
     }

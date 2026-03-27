@@ -2,11 +2,8 @@ package com.lht.services.impl;
 
 import com.lht.client.InternalUserClient;
 import com.lht.dto.StaffScheduleDTO;
-import com.lht.pojo.CustomerSchedule;
 import com.lht.pojo.Shift;
-import com.lht.pojo.StaffDayOff;
 import com.lht.pojo.StaffSchedule;
-import com.lht.repositories.CustomerScheduleRepository;
 import com.lht.repositories.ShiftRepository;
 import com.lht.repositories.StaffDayOffRepository;
 import com.lht.repositories.StaffScheduleRepository;
@@ -38,7 +35,6 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
     private final InternalUserClient internalUserClient;
     private final ShiftRepository shiftRepository;
     private final StaffDayOffRepository staffDayOffRepository;
-    private final CustomerScheduleRepository customerScheduleRepository;
 
     private StaffScheduleDTO mapToDTO(StaffSchedule s) {
         StaffScheduleDTO dto = new StaffScheduleDTO();
@@ -51,8 +47,6 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
         Shift shift = shiftRepository.findById(s.getShiftUuid()).orElse(null);
         if (shift != null) {
             dto.setShiftName(shift.getName());
-            dto.setCheckIn(shift.getCheckin());
-            dto.setCheckOut(shift.getCheckout());
         }
         return dto;
     }
@@ -80,8 +74,6 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
                             .staffName(staffMap.getOrDefault(s.getStaffUuid(), "Unknown"))
                             .shiftUuid(s.getShiftUuid())
                             .shiftName(shift != null ? shift.getName() : null)
-                            .checkIn(shift != null ? shift.getCheckin() : null)
-                            .checkOut(shift != null ? shift.getCheckout() : null)
                             .build();
                 })
                 .toList();

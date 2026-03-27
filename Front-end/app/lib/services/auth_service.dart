@@ -2,14 +2,15 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:gym/models/AccountProvider.dart';
+import 'package:gym/models/account_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api.dart';
-import '../models/Account.dart';
-import 'package:http_parser/http_parser.dart';
+import '../models/account.dart';
 import 'package:provider/provider.dart';
+
+import '../models/customer_request.dart';
 
 class AuthService {
   Future<Account?> login(BuildContext context, String mail, String password) async {
@@ -78,87 +79,45 @@ class AuthService {
     return null;
   }
 
-  Future<bool> registerWithImage(Account account, File? imageFile) async {
+  Future<bool> registerCustomer(CustomerRequest request, File? image) async {
+
     var uri = Uri.parse(Api.register);
 
-    var request = http.MultipartRequest("POST", uri);
+    var req = http.MultipartRequest("POST", uri);
 
-    // Thêm từng field text tương ứng với @ModelAttribute
-    request.fields['username'] = account.username ?? '';
-    request.fields['password'] = account.password ?? '';
-    request.fields['name'] = account.name ?? '';
-    request.fields['birthday'] = account.birthday != null
-        ? DateFormat('yyyy-MM-dd').format(account.birthday!)
-        : '';
-    request.fields['gender'] = account.gender != null ? (account.gender! ? 'true' : 'false') : '';
-    request.fields['role'] = account.role ?? '';
-    request.fields['mail'] = account.mail ?? '';
-    request.fields['isActive'] = account.isActive != null ? (account.isActive! ? 'true' : 'false') : '';
+    request.toJson().forEach((key, value) {
+      req.fields[key] = value.toString();
+    });
 
-    // Thêm file nếu có
-    if (imageFile != null) {
-      request.files.add(
-        await http.MultipartFile.fromPath('image', imageFile.path),
-      );
+    if (image != null) {
+      req.files.add(await http.MultipartFile.fromPath('image', image.path));
     }
 
-    // Gửi request
-    var streamedResponse = await request.send();
-    var response = await http.Response.fromStream(streamedResponse);
+    var res = await req.send();
+    var response = await http.Response.fromStream(res);
 
-
-    if (response.statusCode == 200) {
-      var data = jsonDecode(response.body);
-      debugPrint(data["message"]); // OTP đã được gửi
-      return true;
-    } else {
-      throw Exception("Đăng ký thất bại: ${response.body}");
-    }
+    return response.statusCode == 200;
   }
 
   // Xác thực OTP
-  Future<Account?> verifyOtp(String mail, int otp) async {
-    var response = await http.post(
+  Future<bool> verifyOtp(String mail, int otp) async {
+    final response = await http.post(
       Uri.parse(Api.otpURL),
-      body: {
-        "mail": mail,
-        "otp": otp.toString(),
+      headers: {
+        "Content-Type": "application/json",
       },
+      body: jsonEncode({
+        "mail": mail,
+        "otp": otp,
+      }),
     );
 
     if (response.statusCode == 200) {
-      var data = jsonDecode(response.body);
-      return Account.fromJson(data);
+      return true; // OTP đúng
     } else {
-      debugPrint("OTP sai: ${response.body}");
-      return null;
+      debugPrint("OTP sai hoặc hết hạn: ${response.body}");
+      return false;
     }
-  }
-
-  //. Sau khi verify thành công -> login để lấy token
-  Future<Account?> verifyOtpAndLogin(
-      BuildContext context, String mail, String password, int otp) async {
-    final acc = await verifyOtp(mail, otp);
-
-    if (acc != null) {
-      // login đúng bằng username và password gốc
-      return await login(context, acc.username, password);
-    }
-    return null;
-  }
-
-
-  // Đăng ký + đăng nhập tự động
-  Future<Account?> registerAndLogin(BuildContext context, Account account, File? imageFile) async {
-    // 1. Thực hiện đăng ký
-    var registeredAccount = await registerWithImage(account, imageFile);
-
-    if (registeredAccount != null) {
-      // 2. Sau khi đăng ký thành công, gọi login để lấy token
-      return await login(context, account.username ?? '', account.password ?? '');
-    }
-
-    return null;
   }
 
   Future<void> logout(BuildContext context) async {

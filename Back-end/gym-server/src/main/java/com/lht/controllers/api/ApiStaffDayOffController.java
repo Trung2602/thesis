@@ -24,18 +24,14 @@ public class ApiStaffDayOffController {
     private final StaffDayOffService staffDayOffService;
 
     @GetMapping
-    public ResponseEntity<List<StaffDayOffDTO>> getAllStaffDayOffs() {
-        return ResponseEntity.ok(staffDayOffService.getAllStaffDayOffs());
-    }
-
-    @GetMapping("/staff/{uuid}")
-    public ResponseEntity<List<StaffDayOffDTO>> getStaffDayOffsByStaffUuid(@PathVariable UUID uuid) {
-        return ResponseEntity.ok(staffDayOffService.getStaffDayOffByStaffUuid(uuid));
-    }
-
-    @GetMapping("/filter")
-    public ResponseEntity<List<StaffDayOffDTO>> getStaffDayOffsFilter(@RequestParam Map<String, String> params) {
-        return ResponseEntity.ok(staffDayOffService.getStaffDayOffs(params));
+    public ResponseEntity<List<StaffDayOffDTO>> getStaffDayOffs(
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year
+    ) {
+        if (month != null && year != null) {
+            return ResponseEntity.ok(staffDayOffService.getStaffDayOffs(month, year));
+        }
+        return ResponseEntity.ok(staffDayOffService.getStaffDayOffByStaffUuid());
     }
 
     @GetMapping("/{uuid}")
@@ -48,8 +44,7 @@ public class ApiStaffDayOffController {
 
     @PostMapping
     public ResponseEntity<StaffDayOffDTO> addOrUpdateStaffDayOff(@RequestBody StaffDayOffDTO dto) {
-        StaffDayOffDTO saved = staffDayOffService.addOrUpdateStaffDayOff(dto);
-        return ResponseEntity.ok(saved);
+        return ResponseEntity.ok(staffDayOffService.addOrUpdateStaffDayOff(dto));
     }
 
     @DeleteMapping("/{uuid}")
@@ -59,15 +54,4 @@ public class ApiStaffDayOffController {
         }
         return ResponseEntity.notFound().build();
     }
-
-    @GetMapping("/sort")
-    public ResponseEntity<Page<StaffDayOffDTO>> getAllSort(
-            @RequestParam(defaultValue = "dateOff") String sortField,
-            @RequestParam(defaultValue = "asc") String sortDir,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
-
-        return ResponseEntity.ok(staffDayOffService.getAllSort(sortField, sortDir, page, size));
-    }
-
 }

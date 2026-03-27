@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/AccountProvider.dart';
-import '../models/PayCustomer.dart';
-import '../models/Account.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/account_provider.dart';
+import '../models/pay_customer.dart';
+import '../models/account.dart';
 import '../api.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -16,7 +17,7 @@ class PayCustomerScreen extends StatefulWidget {
 }
 
 class _PayCustomerScreenState extends State<PayCustomerScreen> {
-  List<PayCustomerModel> payList = [];
+  List<PayCustomer> payList = [];
   bool loading = true;
 
   Account? account;
@@ -29,62 +30,73 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
   }
 
   Future<void> fetchPayCustomers() async {
-    setState(() {
-      loading = true;
-    });
-
+    if (!mounted) return;
+    setState(() => loading = true);
     try {
-      final url = Api.getPayCustomersAll(account!.id);
+      final url = Api.getPayCustomersAll(account!.uuid);
       final response = await http.get(Uri.parse(url));
-
+      if (!mounted) return;
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        payList = data.map((e) => PayCustomerModel.fromJson(e)).toList();
+        final data = jsonDecode(response.body) as List;
+        setState(() {
+          payList = data.map((e) => PayCustomer.fromJson(e)).toList();
+          loading = false;
+        });
       } else {
+        setState(() => loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi khi tải dữ liệu: ${response.statusCode}')),
+          SnackBar(content: Text('Lỗi: ${response.statusCode}')),
         );
       }
     } catch (e) {
+      if (!mounted) return;
+      setState(() => loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Lỗi: $e')),
       );
     }
+  }
 
-    setState(() {
-      loading = false;
-    });
+  void showMsg(String message, {bool isError = false}) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
   }
 
   Future<void> _showPlanDialogAndPay() async {
     List<dynamic> plans = [];
 
-    // 1. Lấy danh sách gói từ API
+    //Lấy danh sách gói từ API
     try {
       final res = await http.get(Uri.parse(Api.getPlans));
+      if (!mounted) return;
       if (res.statusCode == 200) {
         plans = jsonDecode(res.body);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Lỗi tải gói: ${res.statusCode}")));
+        showMsg("Lỗi tải gói: ${res.statusCode}", isError: true);
         return;
       }
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Lỗi: $e")));
+      if (!mounted) return;
+      showMsg("Lỗi: $e", isError: true);
       return;
     }
 
-    // 2. Mở dialog chọn gói
+    //Mở dialog chọn gói
     final selectedPlan = await showDialog<dynamic>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         if (plans.isEmpty) {
           return AlertDialog(
             title: const Text("Chưa có gói tập"),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => Navigator.of(dialogContext).pop(),
                 child: const Text("OK"),
               )
             ],
@@ -102,7 +114,7 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
                 final plan = plans[index];
                 return ListTile(
                   title: Text("${plan['name']} - ${plan['price']} VND"),
-                  onTap: () => Navigator.of(context).pop(plan),
+                  onTap: () => Navigator.of(dialogContext).pop(plan),
                 );
               },
             ),
@@ -110,15 +122,25 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
         );
       },
     );
-
+    if (!mounted) return;
     if (selectedPlan == null) return;
 
     try {
-      // Gọi API /payment/create
-      final uri = Uri.parse(
-          "${Api.createPayment}?planId=${selectedPlan['id']}&username=${account!.username}");
-      final res = await http.get(uri);
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString("token") ?? "";
+      final res = await http.post(
+        Uri.parse(Api.createPayment),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "planUuid": selectedPlan['uuid'],
+        }),
+      );
 
+
+      if (!mounted) return;
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         final paymentUrl = data['paymentUrl'];
@@ -130,31 +152,34 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
             builder: (_) => PaymentWebView(paymentUrl: paymentUrl),
           ),
         );
-
-        if (resultUrl != null && resultUrl['status'] == 'SUCCESS') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Thanh toán thành công!")),
-          );
+        if (!mounted) return;
+        if (resultUrl?['status'] == 'SUCCESS') {
+          showMsg("Thanh toán thành công!");
           await fetchPayCustomers();
-          final accRes = await http.get(Uri.parse(Api.getCustomerById(account!.id)));
+          if (!mounted) return;
+          final prefs = await SharedPreferences.getInstance();
+          final token = prefs.getString("token") ?? "";
+          final accRes = await http.get(
+            Uri.parse(Api.me),
+            headers: {
+              'Authorization': 'Bearer $token',
+            },
+          );
+          if (!mounted) return;
           if (accRes.statusCode == 200) {
             final updatedCustomer = Account.fromJson(jsonDecode(accRes.body));
             Provider.of<AccountProvider>(context, listen: false).setAccount(updatedCustomer);
           }
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Thanh toán thất bại")),
-          );
+          showMsg("Thanh toán thất bại", isError: true);
         }
 
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi tạo thanh toán: ${res.statusCode}")),
-        );
+        showMsg("Lỗi tạo thanh toán: ${res.statusCode}", isError: true);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Lỗi: $e")));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi: $e")));
     }
   }
 
@@ -186,7 +211,7 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
           itemBuilder: (context, index) {
             final pay = payList[index];
             return Card(
-              color: Colors.white.withOpacity(0.08),
+              color: Colors.white.withValues(alpha: 0.08),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15)),
               child: Padding(

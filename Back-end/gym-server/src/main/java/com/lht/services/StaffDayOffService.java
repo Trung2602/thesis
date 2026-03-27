@@ -18,9 +18,9 @@ public interface StaffDayOffService {
     StaffDayOffDTO addOrUpdateStaffDayOff(StaffDayOffDTO dto);
     boolean deleteStaffDayOff(UUID uuid);
 
-    List<StaffDayOffDTO> getStaffDayOffs(Map<String, String> params);
+    public List<StaffDayOffDTO> getStaffDayOffs(int month, int year);
     Page<StaffDayOffDTO> getAllSort(String sortField, String sortDir, int page, int size);
     int countByStaffUuidAndMonthYear(UUID staffUuid, int month, int year);
-    List<StaffDayOffDTO> getStaffDayOffByStaffUuid(UUID uuid);
+    List<StaffDayOffDTO> getStaffDayOffByStaffUuid();
     List<UUID> getStaffsWorking(LocalDate date, LocalTime checkIn, LocalTime checkOut);
 }

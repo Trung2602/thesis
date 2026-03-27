@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class Salary {
   final String? uuid;
   final DateTime? date;
@@ -8,7 +6,7 @@ class Salary {
   final double? price;
 
   final String? staffUuid;
-  final String? staffName;
+  final String staffName;
 
   Salary({
     this.uuid,
@@ -17,7 +15,7 @@ class Salary {
     this.dayOff,
     this.price,
     this.staffUuid,
-    this.staffName,
+    required this.staffName,
   });
 
   factory Salary.fromJson(Map<String, dynamic> json) {
@@ -27,11 +25,14 @@ class Salary {
       duration: json['duration'] != null
           ? double.parse(json['duration'].toString())
           : null,
-      dayOff: json['dayOff'],
-      price:
-          json['price'] != null ? double.parse(json['price'].toString()) : null,
+      dayOff: json['dayOff'] != null
+          ? int.parse(json['dayOff'].toString())
+          : null,
+      price: json['price'] != null
+          ? double.parse(json['price'].toString())
+          : null,
       staffUuid: json['staffUuid'],
-      staffName: json['staffName'],
+      staffName: json['staffName'] ?? '',
     );
   }
 

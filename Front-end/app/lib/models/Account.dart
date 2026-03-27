@@ -8,10 +8,16 @@ class Account {
   final String avatar;
   final bool isActive;
 
+  // STAFF
   final String? type;
-  final DateTime? expiryDate;
-  final String? facilityName;
   final double? baseSalary;
+  final String? facilityUuid;
+  final String? facilityName;
+
+  // CUSTOMER
+  final double? weight;
+  final double? height;
+  final DateTime? expiryDate;
 
   Account({
     required this.uuid,
@@ -23,9 +29,12 @@ class Account {
     required this.avatar,
     required this.isActive,
     this.type,
-    this.expiryDate,
-    this.facilityName,
     this.baseSalary,
+    this.facilityUuid,
+    this.facilityName,
+    this.weight,
+    this.height,
+    this.expiryDate,
   });
 
   factory Account.fromJson(Map<String, dynamic> json) {
@@ -35,17 +44,30 @@ class Account {
       birthday: json['birthday'] != null
           ? DateTime.parse(json['birthday'])
           : null,
-      gender: json['gender'] ?? '',
+      gender: json['gender'] ?? 'MALE',
       role: json['role'] ?? '',
       mail: json['mail'] ?? '',
       avatar: json['avatar'] ?? '',
       isActive: json['isActive'] ?? false,
+
+      // STAFF
       type: json['type'],
-      expiryDate: json['expiryDate'] != null
-          ? DateTime.parse(json['expiryDate']): null,
+      facilityUuid: json['facilityUuid'],
       facilityName: json['facilityName'],
       baseSalary: json['baseSalary'] != null
-          ? double.parse(json['baseSalary'].toString()): null,
+          ? double.parse(json['baseSalary'].toString())
+          : null,
+
+      // CUSTOMER
+      weight: json['weight'] != null
+          ? double.parse(json['weight'].toString())
+          : null,
+      height: json['height'] != null
+          ? double.parse(json['height'].toString())
+          : null,
+      expiryDate: json['expiryDate'] != null
+          ? DateTime.parse(json['expiryDate'])
+          : null,
     );
   }
 
@@ -59,10 +81,15 @@ class Account {
       'mail': mail,
       'avatar': avatar,
       'isActive': isActive,
+
       'type': type,
-      'expiryDate': expiryDate?.toIso8601String(),
-      'facilityName': facilityName,
       'baseSalary': baseSalary,
+      'facilityUuid': facilityUuid,
+      'facilityName': facilityName,
+
+      'weight': weight,
+      'height': height,
+      'expiryDate': expiryDate?.toIso8601String(),
     };
   }
 }

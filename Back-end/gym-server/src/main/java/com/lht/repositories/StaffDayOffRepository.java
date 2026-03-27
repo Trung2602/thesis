@@ -16,5 +16,7 @@ public interface StaffDayOffRepository extends JpaRepository<StaffDayOff, UUID>,
 
     long countByStaffUuidAndDateOffBetween(UUID staffUuid, LocalDate start, LocalDate end);
 
+    List<StaffDayOff> findByStaffUuidAndDateOffBetween(UUID staffUuid, LocalDate start, LocalDate end);
+
     List<StaffDayOff> findByDateOff(LocalDate dateOff);
 }

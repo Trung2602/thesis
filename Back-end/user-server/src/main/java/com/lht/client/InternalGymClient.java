@@ -1,10 +1,7 @@
 package com.lht.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -18,16 +15,16 @@ import java.util.UUID;
 )
 public interface InternalGymClient {
 
-    @GetMapping("/internal/plans/duration")
-    int getDurationDays(@RequestParam("planUuid") UUID planUuid);
+    @GetMapping("/internal/plans/{uuid}/duration")
+    int getDurationDays(@PathVariable("uuid") UUID uuid);
 
-    @GetMapping("/internal/facility/name")
-    String getFacilityNameByUuid(@RequestParam("uuid") UUID uuid);
+    @GetMapping("/internal/facilities/{uuid}/name")
+    String getFacilityNameByUuid(@PathVariable("uuid") UUID uuid);
 
-    @PostMapping("/internal/facility-by-uuids")
+    @PostMapping("/internal/facilities/batch")
     Map<UUID, String> getFacilityNamesByUuids(@RequestBody Set<UUID> facilityUuids);
 
-    @GetMapping("/internal/staffs/available")
+    @GetMapping("/internal/staffs")
     Set<UUID> getAvailableStaff(
             @RequestParam("date") LocalDate date,
             @RequestParam("checkIn") LocalTime checkIn,
