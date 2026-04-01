@@ -2,7 +2,7 @@ package com.lht.services.impl;
 
 import com.lht.client.InternalUserClient;
 import com.lht.dto.CustomerScheduleDTO;
-import com.lht.jwt.SecurityUtils;
+import com.lht.component.SecurityUtils;
 import com.lht.pojo.CustomerSchedule;
 import com.lht.repositories.CustomerScheduleRepository;
 import com.lht.services.CustomerScheduleService;
@@ -146,8 +146,24 @@ public class CustomerScheduleServiceImpl implements CustomerScheduleService {
     }
 
     @Override
-    public CustomerSchedule addOrUpdateCustomerSchedule(CustomerSchedule s) {
-        return customerScheduleRepository.save(s);
+    public CustomerSchedule addOrUpdateCustomerSchedule(CustomerScheduleDTO dto) {
+        CustomerSchedule cs;
+        if (dto.getUuid() != null) {
+            cs = customerScheduleRepository.findById(dto.getUuid()).orElse(new CustomerSchedule());
+        } else {
+            cs = new CustomerSchedule();
+        }
+        cs.setDate(dto.getDate());
+        cs.setCheckin(dto.getCheckin());
+        cs.setCheckout(dto.getCheckout());
+
+        UUID currentUserUuid = SecurityUtils.getCurrentUserUuid();
+        cs.setCustomerUuid(currentUserUuid);
+
+        cs.setStaffUuid(dto.getStaffUuid());
+        cs.setFacilityUuid(dto.getFacilityUuid());
+
+        return customerScheduleRepository.save(cs);
     }
 
     @Override

@@ -61,14 +61,12 @@ class _RegisterState extends State<Register> {
       setState(() => _errorMessage = "Mật khẩu không khớp");
       return;
     }
-
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-
       final request = CustomerRequest(
         mail: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -98,9 +96,7 @@ class _RegisterState extends State<Register> {
   }
 
   void _showOtpDialog(String mail) {
-
     final otpController = TextEditingController();
-
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -122,27 +118,21 @@ class _RegisterState extends State<Register> {
 
             ElevatedButton(
               onPressed: () async {
-
                 final otp = int.tryParse(otpController.text.trim());
-
                 if (otp == null) return;
-
                 Navigator.pop(context);
-
                 final success = await _authService.verifyOtp(mail, otp);
                 if (!mounted) return;
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Đăng ký thành công, hãy đăng nhập")),
                   );
-                  Navigator.pop(context); // quay về login
+                  Navigator.pop(context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("OTP không hợp lệ")),
                   );
-
                 }
-
               },
               child: const Text("Xác nhận"),
             )
@@ -179,10 +169,9 @@ class _RegisterState extends State<Register> {
         child: Column(
           children: [
 
-            /// Avatar
+            // Avatar
             Row(
               children: [
-
                 CircleAvatar(
                   radius: 40,
                   backgroundImage:
@@ -201,7 +190,6 @@ class _RegisterState extends State<Register> {
                       builder: (_) => SafeArea(
                         child: Wrap(
                           children: [
-
                             ListTile(
                               leading: const Icon(Icons.photo),
                               title: const Text("Chọn ảnh"),
@@ -210,7 +198,6 @@ class _RegisterState extends State<Register> {
                                 _pickImage(ImageSource.gallery);
                               },
                             ),
-
                             ListTile(
                               leading: const Icon(Icons.camera_alt),
                               title: const Text("Chụp ảnh"),
@@ -219,7 +206,6 @@ class _RegisterState extends State<Register> {
                                 _pickImage(ImageSource.camera);
                               },
                             ),
-
                           ],
                         ),
                       ),
@@ -234,23 +220,17 @@ class _RegisterState extends State<Register> {
 
             _input(_nameController, "Họ tên"),
             _input(_emailController, "Email"),
-
-            _passwordField(
-                _passwordController,
+            _passwordField(_passwordController,
                 "Mật khẩu",
                     () => setState(() => _obscurePassword = !_obscurePassword),
                 _obscurePassword
             ),
-
-            _passwordField(
-                _confirmPasswordController,
+            _passwordField(_confirmPasswordController,
                 "Xác nhận mật khẩu",
                     () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                 _obscureConfirmPassword
             ),
-
             _datePicker(),
-
             _input(_weightController, "Cân nặng (kg)", type: TextInputType.number),
             _input(_heightController, "Chiều cao (cm)", type: TextInputType.number),
 
@@ -263,13 +243,23 @@ class _RegisterState extends State<Register> {
                 DropdownMenuItem(value: false, child: Text("Nữ")),
               ],
               onChanged: (v) => setState(() => _gender = v!),
-              decoration: const InputDecoration(labelText: "Giới tính"),
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: "Giới tính",
+                labelStyle: TextStyle(color: Colors.yellowAccent),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white54),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.yellowAccent),
+                ),
+              ),
+              dropdownColor: const Color(0xFF0F123A),
             ),
 
             const SizedBox(height: 20),
 
-            if (_errorMessage != null)
-              Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+            if (_errorMessage != null)Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
 
             const SizedBox(height: 20),
 
@@ -286,35 +276,46 @@ class _RegisterState extends State<Register> {
     );
   }
 
-  Widget _input(TextEditingController controller, String label,
-      {TextInputType type = TextInputType.text}) {
-
+  Widget _input(TextEditingController controller, String label, {TextInputType type = TextInputType.text}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: controller,
         keyboardType: type,
-        decoration: InputDecoration(labelText: label),
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.yellowAccent),
+          enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.white54),
+          ),
+          focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.yellowAccent),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _passwordField(
-      TextEditingController controller,
-      String label,
-      VoidCallback toggle,
-      bool obscure,
-      ) {
-
+  Widget _passwordField(TextEditingController controller, String label, VoidCallback toggle, bool obscure,) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: controller,
         obscureText: obscure,
+        style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,
+          labelStyle: const TextStyle(color: Colors.yellowAccent),
+          enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.white54),
+          ),
+          focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.yellowAccent),
+          ),
           suffixIcon: IconButton(
-            icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+            icon: Icon(obscure ? Icons.visibility_off : Icons.visibility,
+                color: Colors.white70),
             onPressed: toggle,
           ),
         ),
@@ -323,23 +324,28 @@ class _RegisterState extends State<Register> {
   }
 
   Widget _datePicker() {
-
     return TextField(
       controller: _birthdayController,
       readOnly: true,
+      style: const TextStyle(color: Colors.white),
       decoration: const InputDecoration(
         labelText: "Ngày sinh",
-        suffixIcon: Icon(Icons.calendar_today),
+        labelStyle: TextStyle(color: Colors.yellowAccent),
+        suffixIcon: Icon(Icons.calendar_today, color: Colors.white70),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: Colors.white54),
+        ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: Colors.yellowAccent),
+        ),
       ),
       onTap: () async {
-
         final date = await showDatePicker(
           context: context,
           initialDate: DateTime(2000),
           firstDate: DateTime(1900),
           lastDate: DateTime.now(),
         );
-
         if (date != null) {
           _birthdayController.text =
           "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";

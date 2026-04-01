@@ -20,7 +20,7 @@ public interface CustomerScheduleService {
 
     List<CustomerScheduleDTO> getCustomerSchedules(Map<String, String> params);
 
-    CustomerSchedule addOrUpdateCustomerSchedule(CustomerSchedule cs);
+    CustomerSchedule addOrUpdateCustomerSchedule(CustomerScheduleDTO dto);
 
     boolean deleteCustomerSchedule(UUID uuid);
     

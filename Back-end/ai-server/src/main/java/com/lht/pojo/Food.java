@@ -1,5 +1,6 @@
 package com.lht.pojo;
 
+import com.pgvector.PGvector;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -33,6 +34,6 @@ public class Food {
     @Column(name = "fat_100g")
     private Float fat100g;
 
-    @Column(columnDefinition = "vector(768)")
-    private float[] embedding;
+    @Column(name = "embedding", columnDefinition = "vector(768)")
+    private PGvector embedding;
 }

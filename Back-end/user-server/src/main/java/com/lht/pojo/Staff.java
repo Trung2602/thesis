@@ -17,7 +17,7 @@ import java.util.UUID;
 public class Staff extends Account {
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "staff_type")
+    @Column(name = "type", nullable = false)
     private StaffType type;
 
     @Column(name = "base_salary", nullable = false, precision = 11, scale = 2)

@@ -1,6 +1,7 @@
 package com.lht.controllers.api;
 
 import com.lht.dto.PayCustomerDTO;
+import com.lht.component.SecurityUtils;
 import com.lht.services.PayCustomerService;
 
 import java.util.List;
@@ -25,11 +26,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApiPayCustomerController {
 
     private final PayCustomerService payCustomerService;
-
-    @GetMapping
-    public ResponseEntity<List<PayCustomerDTO>> getAllPayCustomers() {
-        return ResponseEntity.ok(payCustomerService.getAllPayCustomers());
-    }
 
     @GetMapping("/{uuid}")
     public ResponseEntity<PayCustomerDTO> getPayCustomerByUuid(@PathVariable UUID uuid) {
@@ -56,15 +52,18 @@ public class ApiPayCustomerController {
         return ResponseEntity.ok(payCustomerService.getAllSort(sortField, sortDir, page, size));
     }
 
-    @GetMapping("/customer/{uuid}")
-    public ResponseEntity<List<PayCustomerDTO>> getByCustomerUuid(@PathVariable UUID uuid) {
-        return ResponseEntity.ok(
-                payCustomerService.getPayCustomerByCustomerUuid(uuid)
-        );
+    @GetMapping
+    public ResponseEntity<List<PayCustomerDTO>> getByCustomerUuid() {
+        UUID uuid = SecurityUtils.getCurrentUserUuid();
+        return ResponseEntity.ok(payCustomerService.getPayCustomerByCustomerUuid(uuid));
     }
 
     @PostMapping
     public ResponseEntity<?> addOrUpdatePayCustomer(@RequestBody PayCustomerDTO dto) {
+        if (dto.getPlanUuid() == null) {
+            return ResponseEntity.badRequest().body("Plan không được để trống");
+        }
+
         try {
             PayCustomerDTO result = payCustomerService.addOrUpdatePayCustomer(dto);
             return ResponseEntity.ok(result);

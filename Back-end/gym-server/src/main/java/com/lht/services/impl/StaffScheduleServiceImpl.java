@@ -2,6 +2,7 @@ package com.lht.services.impl;
 
 import com.lht.client.InternalUserClient;
 import com.lht.dto.StaffScheduleDTO;
+import com.lht.component.SecurityUtils;
 import com.lht.pojo.Shift;
 import com.lht.pojo.StaffSchedule;
 import com.lht.repositories.ShiftRepository;
@@ -40,7 +41,6 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
         StaffScheduleDTO dto = new StaffScheduleDTO();
         dto.setUuid(s.getUuid());
         dto.setDate(s.getDate());
-        dto.setStaffUuid(s.getStaffUuid());
         dto.setShiftUuid(s.getShiftUuid());
         dto.setStaffName(internalUserClient.getStaffNameByUuid(s.getStaffUuid()));
 
@@ -70,22 +70,12 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
                     return StaffScheduleDTO.builder()
                             .uuid(s.getUuid())
                             .date(s.getDate())
-                            .staffUuid(s.getStaffUuid())
                             .staffName(staffMap.getOrDefault(s.getStaffUuid(), "Unknown"))
                             .shiftUuid(s.getShiftUuid())
                             .shiftName(shift != null ? shift.getName() : null)
                             .build();
                 })
                 .toList();
-    }
-
-    private StaffSchedule toEntity(StaffScheduleDTO dto) {
-        StaffSchedule s = new StaffSchedule();
-        s.setUuid(dto.getUuid());
-        s.setDate(dto.getDate());
-        s.setStaffUuid(dto.getStaffUuid());
-        s.setShiftUuid(dto.getShiftUuid());
-        return s;
     }
 
     @Override
@@ -100,45 +90,22 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
 
     @Override
     public StaffScheduleDTO addOrUpdateStaffSchedule(StaffScheduleDTO dto) {
-
-        if (dto.getStaffUuid() == null)
-            throw new IllegalArgumentException("Staff UUID is required");
-
-        if (dto.getShiftUuid() == null)
-            throw new IllegalArgumentException("Shift UUID is required");
-
-        if (dto.getDate() == null)
-            throw new IllegalArgumentException("Date is required");
-
-        boolean exists = internalUserClient.existsByUuid(dto.getStaffUuid());
-        if (!exists)
-            throw new IllegalArgumentException("Staff does not exist");
-
-
-        Shift shift = shiftRepository.findById(dto.getShiftUuid())
-                .orElseThrow(() -> new IllegalArgumentException("Shift does not exist"));
-
-
-        boolean dayOff = staffDayOffRepository.existsByStaffUuidAndDateOff(dto.getStaffUuid(), dto.getDate());
-
-        if (dayOff) {
-            throw new IllegalStateException("Staff already registered day off");
-        }
-
-        boolean conflict = staffScheduleRepository
-            .existsByStaffUuidAndDateAndShiftUuid(
-                    dto.getStaffUuid(),
-                    dto.getDate(),
-                    dto.getShiftUuid()
-            );
-
+        UUID uuid = SecurityUtils.getCurrentUserUuid();
+        Shift shift = shiftRepository.findById(dto.getShiftUuid()).orElseThrow(() -> new IllegalArgumentException("Shift does not exist"));
+        boolean conflict = staffScheduleRepository.existsByStaffUuidAndDateAndShiftUuid(uuid, dto.getDate(), dto.getShiftUuid());
         if (conflict) {
             throw new IllegalStateException("Staff already has this shift");
         }
-        StaffSchedule entity = toEntity(dto);
-        if (entity.getUuid() == null) {
-            entity.setUuid(UUID.randomUUID());
+        StaffSchedule entity;
+        if (dto.getUuid() != null) {
+            entity = staffScheduleRepository.findById(dto.getUuid()).orElseThrow(() -> new IllegalArgumentException("Staff schedule not found"));
+        } else {
+            entity = new StaffSchedule();
         }
+
+        entity.setDate(dto.getDate());
+        entity.setShiftUuid(dto.getShiftUuid());
+        entity.setStaffUuid(SecurityUtils.getCurrentUserUuid());
         StaffSchedule saved = staffScheduleRepository.save(entity);
         return mapToDTO(saved);
     }
@@ -154,17 +121,20 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
 
     @Override
     public List<StaffScheduleDTO> getStaffSchedules(Map<String, String> params) {
+        UUID uuid = SecurityUtils.getCurrentUserUuid();
         Specification<StaffSchedule> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-
+            UUID staffUuid;
             if (params.containsKey("staffUuid")) {
                 try {
-                    UUID staffUuid = UUID.fromString(params.get("staffUuid"));
-                    predicates.add(cb.equal(root.get("staffUuid"), staffUuid));
+                    staffUuid = UUID.fromString(params.get("staffUuid"));
                 } catch (IllegalArgumentException e) {
                     throw new IllegalArgumentException("Invalid staffUuid format");
                 }
+            } else {
+                staffUuid = uuid;
             }
+            predicates.add(cb.equal(root.get("staffUuid"), staffUuid));
 
             if (params.containsKey("shiftUuid")) {
                 try {

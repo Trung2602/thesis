@@ -24,34 +24,6 @@ BEGIN
 END;
 $$;
 
-CREATE TYPE meal_type_enum AS ENUM (
-    'breakfast',
-    'lunch',
-    'dinner'
-);
-
-CREATE TYPE fitness_goal_enum AS ENUM (
-    'lose_weight',
-    'gain_muscle',
-    'maintain'
-);
-
-CREATE TYPE muscle_group_enum AS ENUM (
-    'chest',
-    'back',
-    'legs',
-    'shoulders',
-    'arms',
-    'core',
-    'full_body'
-);
-
-CREATE TYPE activity_level_enum AS ENUM (
-    'low',
-    'medium',
-    'high'
-);
-
 CREATE TABLE foods (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     name TEXT NOT NULL,
@@ -122,50 +94,6 @@ CREATE TABLE chat_history (
     ai_reply TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE TABLE meal_days (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_uuid UUID NOT NULL,
-    date DATE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_uuid, date)
-);
-
-CREATE TABLE meal_items (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    meal_day_uuid UUID NOT NULL,
-    meal_type meal_type_enum NOT NULL,
-    food_uuid UUID NOT NULL,
-    grams FLOAT CHECK (grams > 0),
-    CONSTRAINT fk_meal_day FOREIGN KEY (meal_day_uuid) REFERENCES meal_days(uuid) ON DELETE CASCADE,
-    CONSTRAINT fk_food FOREIGN KEY (food_uuid) REFERENCES foods(uuid)
-);
-
-CREATE TABLE workout_days (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_uuid UUID NOT NULL,
-    date DATE NOT NULL,
-    focus_muscle muscle_group_enum NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	UNIQUE(user_uuid, date)
-);
-
-CREATE TABLE workout_items (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    workout_day_uuid UUID NOT NULL,
-    exercise_uuid UUID NOT NULL,
-    number_sets INT CHECK (number_sets > 0),
-    number_reps INT, 
-    duration_minutes INT,
-    CONSTRAINT fk_workout_day FOREIGN KEY (workout_day_uuid) REFERENCES workout_days(uuid) ON DELETE CASCADE,
-    CONSTRAINT fk_exercise FOREIGN KEY (exercise_uuid)  REFERENCES exercises(uuid)
-);
-
-ALTER TABLE workout_items ADD CONSTRAINT chk_workout_type
-CHECK (
-    number_reps IS NOT NULL OR duration_minutes IS NOT NULL
-);
-
 
 
 -- IMPORT EXERCISE JSON

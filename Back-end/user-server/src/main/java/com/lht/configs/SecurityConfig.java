@@ -2,7 +2,7 @@ package com.lht.configs;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
-import com.lht.jwt.JwtFilter;
+import com.lht.component.JwtFilter;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +14,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -51,58 +52,36 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(requests -> requests
-                        // Cho phép truy cập các tài nguyên tĩnh
                         .requestMatchers("/login", "/css/**", "/images/logo_transparent_white.png", "/js/**").permitAll()
                         .requestMatchers("/").hasRole("ADMIN")
                         // ===== PUBLIC API =====
-                        .requestMatchers("/api/v1/account/login").permitAll()
-                        .requestMatchers("/api/v1/customer/register").permitAll()
-                        .requestMatchers("/api/v1/customer/verify-otp").permitAll()
+                        .requestMatchers("/api/v1/auth/login").permitAll()
+                        .requestMatchers("/api/v1/auth/register").permitAll()
+                        .requestMatchers("/api/v1/auth/verify/otp").permitAll()
 
                         // ===== INTERNAL MICROSERVICE =====
                         .requestMatchers("/internal/**").permitAll()
 
                         // ===== STAFF =====
-                        .requestMatchers(HttpMethod.GET, "/api/v1/staffs/available")
-                        .hasAnyRole("ADMIN","CUSTOMER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/staffs").hasAnyRole("ADMIN","CUSTOMER")
 
                         // ===== ACCOUNT =====
                         .requestMatchers("/api/v1/account/me").authenticated()
                         .requestMatchers("/api/v1/account/update").authenticated()
                         .requestMatchers("/api/v1/account/change-password").authenticated()
                         .requestMatchers("/api/v1/account/verify-password").authenticated()
+                        .requestMatchers(HttpMethod.DELETE,"/api/v1/account/{uuid}").authenticated()
 
                         // ===== DEFAULT =====
                         .anyRequest().authenticated())
-                // Cấu hình form đăng nhập
-//                .formLogin(form -> form.loginPage("/login")
-//                .loginProcessingUrl("/login")
-//                .successHandler((request, response, authentication) -> {
-//                    // Nếu là ADMIN thì cho vào trang chủ
-//                    if (authentication.getAuthorities().stream()
-//                            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
-//                        response.sendRedirect("/");
-//                    } else {
-//                        // Nếu không phải ADMIN thì logout và trả về lỗi "forbidden"
-//                        request.getSession().invalidate();
-//                        response.sendRedirect("/login?error=forbidden");
-//                    }
-//                })
-//                .failureHandler((request, response, exception) -> {
-//                    // Sai username/password
-//                    response.sendRedirect("/login?error=bad_credentials");
-//                })
-//                .permitAll()
-//                )
-                .formLogin(form -> form.disable())
-                .httpBasic(httpBasic -> httpBasic.disable())
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-                //.logout(logout -> logout.logoutSuccessUrl("/login?logout=true").permitAll());
         return http.build();
     }
 

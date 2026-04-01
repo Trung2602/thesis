@@ -3,13 +3,15 @@ import 'dart:convert';
 import 'package:gym/models/account.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:gym/api.dart';
+import 'package:gym/api/api.dart';
 import 'package:gym/models/customer_schedule.dart';
 import 'package:gym/models/account_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-import '../models/uuid_name.dart';
+import '../cache/app_cache.dart';
+import '../models/available_staff.dart';
+import '../services/auth_service.dart';
 
 class CustomerScheduleScreen extends StatefulWidget {
   const CustomerScheduleScreen({super.key});
@@ -24,93 +26,206 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
   DateTime? _selectedDay;
   Account? account;
   List<CustomerSchedule> schedulesForSelectedDay = [];
-  bool isLoading = false;
-  List<UuidName> staffList = [];
+  List<AvailableStaff> staffList = [];
   bool isLoadingStaff = true;
+  bool _loading = false;
+  bool isFirstLoad = true;
+
+  final cache = AppCache().customerScheduleCache;
+
+  @override
+  void initState() {
+    super.initState();
+    final today = DateTime.now();
+    _selectedDay = today;
+    _focusedDay = today;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      loadSchedulesForDay(today);
+    });
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     account = Provider.of<AccountProvider>(context).account;
-
   }
 
-  Future<void> fetchWorkingStaff({required DateTime date, required TimeOfDay checkIn, required TimeOfDay checkOut,}) async {
-    setState(() {
-      isLoadingStaff = true;
-    });
-
-    // Chuyển TimeOfDay sang string HH:mm:ss
-    String checkInStr = "${checkIn.hour.toString().padLeft(2,'0')}:${checkIn.minute.toString().padLeft(2,'0')}:00";
-    String checkOutStr = "${checkOut.hour.toString().padLeft(2,'0')}:${checkOut.minute.toString().padLeft(2,'0')}:00";
-
-    String dateStr = "${date.year.toString().padLeft(4,'0')}-${date.month.toString().padLeft(2,'0')}-${date.day.toString().padLeft(2,'0')}";
-
-    final uri = Uri.parse("${Api.getWorkingStaff}?date=$dateStr&checkIn=$checkInStr&checkOut=$checkOutStr");
-
+  Future<void> loadSchedulesForDay(DateTime day) async {
+    final dateStr = _formatDate(day);
+    if (cache.containsKey(dateStr)) {
+      setState(() {
+        schedulesForSelectedDay = cache[dateStr]!;
+        isFirstLoad = false;
+      });
+      return;
+    }
+    if (isFirstLoad) {
+      setState(() => isFirstLoad = true);
+    } else {
+      setState(() => _loading = true);
+    }
     try {
-      final response = await http.get(uri);
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        final staffs = data.map((e) => UuidName.fromJson(e)).toList();
-
+      final schedules = await _getCustomerSchedulesFilter(dateStr);
+      if (!mounted) return;
+      cache[dateStr] = schedules;
+      if (cache.length > 20) {
+        cache.remove(cache.keys.first);
+      }
+      setState(() {
+        schedulesForSelectedDay = schedules;
+        isFirstLoad = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      _showMsg("Lỗi khi tải lịch: $e");
+    } finally {
+      if (mounted) {
         setState(() {
-          staffList = staffs;
+          _loading = false;
+          isFirstLoad = false;
         });
+      }
+    }
+  }
+
+  Future<void> fetchWorkingStaffForTime(DateTime date, TimeOfDay checkIn, TimeOfDay checkOut) async {
+    setState(() => isLoadingStaff = true);
+    try {
+      final staffs = await _fetchWorkingStaff(date, checkIn, checkOut);
+      if (!mounted) return;
+      setState(() => staffList = staffs);
+    } catch (e) {
+      _showMsg("Lỗi tải danh sách nhân viên: $e");
+    } finally {
+      if (mounted) setState(() => isLoadingStaff = false);
+    }
+  }
+
+  Future<void> addCustomerSchedule(DateTime date, TimeOfDay checkIn, TimeOfDay checkOut, AvailableStaff staff,) async {
+    try {
+      final token = await AuthService().getToken();
+
+      final newSchedule = CustomerSchedule(
+        date: date,
+        checkin: checkIn,
+        checkout: checkOut,
+        staffUuid: staff.uuid,
+        facilityUuid: staff.facilityUuid,
+      );
+
+      print("New Schedule =${newSchedule.toJson()}, ");
+
+      final uri = Uri.parse(Api.postCustomerSchedule);
+
+      final res = await http.post(
+        uri,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode(newSchedule.toJson()),
+      );
+
+      if (res.statusCode == 200) {
+        final posted = CustomerSchedule.fromJson(jsonDecode(res.body));
+        _showMsg("Đã thêm lịch: ${posted.date}");
+        cache.remove(_formatDate(date));
+        await loadSchedulesForDay(date);
+      } else if (res.statusCode == 409) {
+        // Trùng lịch
+        _showMsg("Lịch trùng ngày và giờ checkin, không thể tạo", isError: true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi server: ${response.statusCode}")),
-        );
+        throw Exception("Failed to post schedule: ${res.body}");
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Lỗi tải danh sách nhân viên: $e")),
-      );
-    } finally {
-      setState(() {
-        isLoadingStaff = false;
-      });
+      _showMsg("Lỗi khi thêm lịch: $e", isError: true);
     }
   }
 
-
-  Future<List<CustomerSchedule>> getCustomerSchedulesAll() async {
-    final response = await http.get(Api.getCustomerSchedulesAll as Uri);
-    if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      return data.map((e) => CustomerSchedule.fromJson(e)).toList();
-    } else {
-      throw Exception("Failed to load schedules");
-    }
+  String _formatDate(DateTime day) {
+    return "${day.year.toString().padLeft(4,'0')}-${day.month.toString().padLeft(2,'0')}-${day.day.toString().padLeft(2,'0')}";
   }
 
-  Future<List<CustomerSchedule>> getCustomerSchedulesFilter(String date) async {
-    final uri = Uri.parse("${Api.getCustomerSchedulesFilter}?&date=$date");
-    final response = await http.get(uri);
-
-    if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      return data.map((e) => CustomerSchedule.fromJson(e)).toList();
-    } else {
-      throw Exception("Failed to load schedules");
-    }
-  }
-
-  Future<CustomerSchedule> postCustomerSchedule(CustomerSchedule dto) async {
-    final uri = Uri.parse(Api.postCustomerSchedule);
-
-    final response = await http.post(
-      uri,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(dto.toJson()), // chuyển DTO sang JSON
+  void _showMsg(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? Colors.redAccent : Colors.green,
+      ),
     );
+  }
 
-    if (response.statusCode == 200) {
-      return CustomerSchedule.fromJson(jsonDecode(response.body));
+  Future<List<AvailableStaff>> _fetchWorkingStaff(DateTime date, TimeOfDay checkIn, TimeOfDay checkOut) async {
+    final token = await AuthService().getToken();
+    String checkInStr = "${checkIn.hour.toString().padLeft(2,'0')}:${checkIn.minute.toString().padLeft(2,'0')}:00";
+    String checkOutStr = "${checkOut.hour.toString().padLeft(2,'0')}:${checkOut.minute.toString().padLeft(2,'0')}:00";
+    String dateStr = _formatDate(date);
+
+    final uri = Uri.parse(Api.getWorkingStaff).replace(queryParameters: {
+      "date": dateStr,
+      "checkin": checkInStr,
+      "checkout": checkOutStr,
+    });
+
+    final res = await http.get(uri, headers: {
+      "Content-Type": "application/json",
+      'Authorization': 'Bearer $token',
+    });
+
+    if (res.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(res.body);
+      return data.map((e) => AvailableStaff.fromJson(e)).toList();
     } else {
-      throw Exception("Failed to post schedule: ${response.body}");
+      throw Exception("Server error: ${res.statusCode}");
     }
+  }
+
+  Future<List<CustomerSchedule>> _getCustomerSchedulesFilter(String date) async {
+    final token = await AuthService().getToken();
+    final uri = Uri.parse("${Api.getCustomerSchedulesFilter}?date=$date");
+    final res = await http.get(uri, headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer $token",
+    });
+
+    if (res.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(res.body);
+      return data.map((e) => CustomerSchedule.fromJson(e)).toList();
+    } else {
+      throw Exception("Failed to load schedules: ${res.statusCode}");
+    }
+  }
+
+  Future<void> _deleteSchedule(String uuid) async {
+    try {
+      final token = await AuthService().getToken();
+      final uri = Uri.parse(Api.deleteCustomerSchedule(uuid));
+
+      final res = await http.delete(uri, headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      });
+
+      if (res.statusCode == 204) {
+        _showMsg("Xóa lịch thành công");
+      } else {
+        _showMsg("Lỗi khi xóa lịch: ${res.body}", isError: true);
+      }
+    } catch (e) {
+      _showMsg("Lỗi khi xóa lịch: $e", isError: true);
+    }
+  }
+
+  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
+    final dateStr = _formatDate(selectedDay);
+    setState(() {
+      _selectedDay = selectedDay;
+      _focusedDay = focusedDay;
+      if (!cache.containsKey(dateStr)) {
+        _loading = true;
+      }
+    });
+    await loadSchedulesForDay(selectedDay);
   }
 
   @override
@@ -120,11 +235,11 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header + Buttons
+          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
+            children: const [
+              Text(
                 "Lịch Trình Huấn Luyện",
                 style: TextStyle(
                   color: Color(0xFFFFAB40),
@@ -135,12 +250,11 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
                   ],
                 ),
               ),
-
             ],
           ),
           const SizedBox(height: 20),
 
-          // TableCalendar
+          // Calendar
           Card(
             color: Colors.white.withValues(alpha: 0.1),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -153,42 +267,20 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
                 focusedDay: _focusedDay,
                 calendarFormat: _calendarFormat,
                 selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                onDaySelected: (selectedDay, focusedDay) async {
-                  setState(() {
-                    _selectedDay = selectedDay;
-                    _focusedDay = focusedDay;
-                    isLoading = true;
-                  });
-                  final dateStr = "${selectedDay.year.toString().padLeft(4,'0')}-${selectedDay.month.toString().padLeft(2,'0')}-${selectedDay.day.toString().padLeft(2,'0')}";
-                  try {
-                    final schedules = await getCustomerSchedulesFilter(dateStr);
-                    setState(() {
-                      schedulesForSelectedDay = schedules;
-                    });
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Lỗi khi tải lịch: $e')),
-                    );
-                  } finally {
-                    setState(() {
-                      isLoading = false;
-                    });
-                  }
-                },
+                onDaySelected: _onDaySelected,
                 onFormatChanged: (format) {
                   if (_calendarFormat != format) {
-                    setState(() {
-                      _calendarFormat = format;
-                    });
+                    setState(() => _calendarFormat = format);
                   }
                 },
-                onPageChanged: (focusedDay) {
-                  _focusedDay = focusedDay;
-                },
+                onPageChanged: (focusedDay) => _focusedDay = focusedDay,
                 headerStyle: const HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
-                  titleTextStyle: TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
+                  titleTextStyle: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.bold),
                   leftChevronIcon: Icon(Icons.chevron_left, color: Color(0xFFFFD740)),
                   rightChevronIcon: Icon(Icons.chevron_right, color: Color(0xFFFFD740)),
                 ),
@@ -215,191 +307,149 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
           ),
 
           const SizedBox(height: 30),
+
+          // Buttons Row: Today + Add Schedule
           Row(
             children: [
-              // Nút Today
               ElevatedButton(
                 onPressed: () async {
                   final today = DateTime.now();
                   setState(() {
                     _selectedDay = today;
                     _focusedDay = today;
-                    isLoading = true;
+                    if (!cache.containsKey(_formatDate(today))) {
+                      _loading = true;
+                    }
                   });
-
-                  // Format ngày theo yyyy-MM-dd
-                  final dateStr = "${today.year.toString().padLeft(4,'0')}-"
-                      "${today.month.toString().padLeft(2,'0')}-"
-                      "${today.day.toString().padLeft(2,'0')}";
-
-                  try {
-                    final schedules = await getCustomerSchedulesFilter(dateStr);
-                    setState(() {
-                      schedulesForSelectedDay = schedules;
-                    });
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Lỗi khi tải lịch hôm nay: $e')),
-                    );
-                  } finally {
-                    setState(() {
-                      isLoading = false;
-                    });
-                  }
+                  await loadSchedulesForDay(today);
                 },
                 child: const Text("Today"),
               ),
-
               const SizedBox(width: 10),
-              //=====================================================
-              // Nút Add Schedule
+              // Add Schedule Button
               _selectedDay == null ||
-                  _selectedDay!.isBefore(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day)) ||
-                  account?.role == "Staff"
-                  ? const SizedBox.shrink() // Ẩn nút nếu chưa chọn ngày hoặc ngày quá khứ
+                  _selectedDay!.isBefore(DateTime(
+                      DateTime.now().year,
+                      DateTime.now().month,
+                      DateTime.now().day)) ||
+                  account?.role == "STAFF"
+                  ? const SizedBox.shrink()
                   : ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.greenAccent),
                 onPressed: () async {
                   // Chọn giờ checkin
-                  final TimeOfDay? selectedCheckin = await showTimePicker(
+                  final TimeOfDay? selectedCheckin =
+                  await showTimePicker(
                     context: context,
                     initialTime: const TimeOfDay(hour: 8, minute: 0),
                   );
                   if (selectedCheckin == null) return;
 
                   // Chọn giờ checkout
-                  final TimeOfDay? selectedCheckout = await showTimePicker(
+                  final TimeOfDay? selectedCheckout =
+                  await showTimePicker(
                     context: context,
-                    initialTime: TimeOfDay(hour: selectedCheckin.hour + 1, minute: selectedCheckin.minute),
+                    initialTime: TimeOfDay(
+                        hour: selectedCheckin.hour + 1,
+                        minute: selectedCheckin.minute),
                   );
                   if (selectedCheckout == null) return;
 
-                  // Lấy danh sách nhân viên đang làm việc
-                  await fetchWorkingStaff(
-                    date: _selectedDay!,
-                    checkIn: selectedCheckin,
-                    checkOut: selectedCheckout,
-                  );
+                  // Fetch staff
+                  await fetchWorkingStaffForTime(
+                      _selectedDay!, selectedCheckin, selectedCheckout);
 
-                  // Mở dialog chọn nhân viên từ danh sách working staff
-                  UuidName? selectedStaff = await showDialog<UuidName>(
-                    context: context,
-                    builder: (context) {
-                      if (isLoadingStaff) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (staffList.isEmpty) {
-                        return AlertDialog(
-                          title: const Text("Không có nhân viên trống"),
-                          content: const Text("Không có nhân viên nào làm việc trong khoảng thời gian này."),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text("OK"),
-                            ),
-                          ],
-                        );
-                      }
-
-                      return AlertDialog(
-                        title: const Text("Chọn nhân viên"),
-                        content: SizedBox(
-                          width: double.maxFinite,
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: staffList.length,
-                            itemBuilder: (context, index) {
-                              final staff = staffList[index];
-                              return ListTile(
-                                title: Text(staff.name),
-                                onTap: () {
-                                  Navigator.of(context).pop(staff); // Trả nhân viên đã chọn
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  );
-
+                  // Chọn nhân viên từ danh sách
+                  AvailableStaff? selectedStaff =
+                  await _showStaffSelectionDialog();
                   if (selectedStaff == null) return;
 
-                  final dateStr = "${_selectedDay!.year.toString().padLeft(4,'0')}-${_selectedDay!.month.toString().padLeft(2,'0')}-${_selectedDay!.day.toString().padLeft(2,'0')}";
-
-                  try {
-                    final newSchedule = CustomerSchedule(
-                      customerName: account!.name,
-                      date: _selectedDay!,
-                      checkin: selectedCheckin,
-                      checkout: selectedCheckout,
-                      staffUuid: selectedStaff.uuid, // dùng nhân viên đã chọn
-                    );
-
-                    final posted = await postCustomerSchedule(newSchedule);
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Đã thêm lịch: ${posted.date}")),
-                    );
-
-                    // Tải lại danh sách sự kiện
-                    final schedules = await getCustomerSchedulesFilter(dateStr);
-                    setState(() {
-                      schedulesForSelectedDay = schedules;
-                    });
-                  } catch (e) {
-                    if (e.toString().contains("409")) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Lịch trùng ngày và giờ checkin, không thể tạo")),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Lỗi khi thêm lịch: $e')),
-                      );
-                    }
-                  }
+                  // Thêm lịch
+                  await addCustomerSchedule(
+                      _selectedDay!, selectedCheckin, selectedCheckout, selectedStaff);
                 },
                 child: const Text("Add Schedule"),
-              )
-
+              ),
             ],
           ),
+
           const SizedBox(width: 30),
+          const SizedBox(height: 20),
           const Text(
             "Sự Kiện Trong Ngày Được Chọn:",
             style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                shadows: [Shadow(blurRadius: 5.0, color: Colors.black54, offset: Offset(1, 1))]
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              shadows: [
+                Shadow(blurRadius: 5.0, color: Colors.black54, offset: Offset(1, 1))
+              ],
             ),
           ),
           const SizedBox(height: 15),
 
-          // Danh sách sự kiện
           _selectedDay == null
               ? const Text(
             "Hãy chọn một ngày trên lịch để xem lịch trình của bạn.",
             style: TextStyle(color: Colors.white70, fontSize: 16),
           )
               : _buildEventListForSelectedDay(_selectedDay!),
-
-          const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-
-
+// ====================== STAFF SELECTION DIALOG ======================
+  Future<AvailableStaff?> _showStaffSelectionDialog() async {
+    return showDialog<AvailableStaff>(
+      context: context,
+      builder: (context) {
+        if (isLoadingStaff) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (staffList.isEmpty) {
+          return AlertDialog(
+            title: const Text("Không có nhân viên trống"),
+            content: const Text(
+                "Không có nhân viên nào làm việc trong khoảng thời gian này."),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text("OK"),
+              ),
+            ],
+          );
+        }
+        return AlertDialog(
+          title: const Text("Chọn nhân viên"),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: staffList.length,
+              itemBuilder: (context, index) {
+                final staff = staffList[index];
+                return ListTile(
+                  title: Text(staff.name),
+                  onTap: () => Navigator.of(context).pop(staff),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   // Hàm giả lập để hiển thị danh sách sự kiện cho một ngày cụ thể
-  // Trong ứng dụng thực tế, bạn sẽ lấy dữ liệu từ một nguồn nào đó (API, database, v.v.)
   Widget _buildEventListForSelectedDay(DateTime day) {
-    if (isLoading) {
+    if (isFirstLoad) {
       return const Center(child: CircularProgressIndicator(color: Colors.white));
     }
-
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator(color: Colors.white));
+    }
     if (schedulesForSelectedDay.isEmpty) {
       return Text(
         "Không có sự kiện vào ngày ${day.toLocal().toString().split(' ')[0]}",
@@ -423,6 +473,29 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
               "Huấn luyện viên: ${schedule.staffName ?? 'Chưa có'}\nKhách hàng: ${schedule.customerName ?? 'Chưa có'}\n${schedule.checkin?.format(context)} - ${schedule.checkout?.format(context)}",
               style: const TextStyle(color: Colors.white70),
             ),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete, color: Colors.redAccent),
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text("Xác nhận xóa"),
+                    content: const Text("Bạn có chắc muốn xóa lịch này không?"),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Hủy")),
+                      TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Xóa")),
+                    ],
+                  ),
+                );
+
+                if (confirmed != true) return;
+
+                await _deleteSchedule(schedule.uuid!);
+                cache.remove(_formatDate(day));
+                await loadSchedulesForDay(day);
+              },
+            ),
+
           ),
         );
       }).toList(),

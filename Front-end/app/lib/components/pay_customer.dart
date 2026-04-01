@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../cache/app_cache.dart';
 import '../models/account_provider.dart';
 import '../models/pay_customer.dart';
 import '../models/account.dart';
-import '../api.dart';
+import '../api/api.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../services/auth_service.dart';
 import 'payment_webview.dart';
 
 class PayCustomerScreen extends StatefulWidget {
@@ -18,43 +20,98 @@ class PayCustomerScreen extends StatefulWidget {
 
 class _PayCustomerScreenState extends State<PayCustomerScreen> {
   List<PayCustomer> payList = [];
+  List<PayCustomer> _allData = [];
+  int _visibleCount = 5;
+
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoadingMore = false;
   bool loading = true;
+  bool _loading = false;
+  bool isFirstLoad = true;
+
+  final cache = AppCache().payCustomerCache;
 
   Account? account;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 100 &&
+          !_isLoadingMore) {
+        _loadMore();
+      }
+    });
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     account = Provider.of<AccountProvider>(context).account;
-    fetchPayCustomers();
+
+    if (account != null && isFirstLoad) {
+      isFirstLoad = false;
+      fetchPayCustomers(account!.uuid);
+    }
   }
 
-  Future<void> fetchPayCustomers() async {
-    if (!mounted) return;
-    setState(() => loading = true);
+  Future<void> fetchPayCustomers(String userUuid) async {
+    if (cache.containsKey(userUuid)) {
+      final cachedData = cache[userUuid]!;
+      setState(() {
+        _allData = cachedData;
+        _visibleCount = 5;
+        payList = _allData.take(_visibleCount).toList();
+      });
+
+      return;
+    }
+    setState(() => _loading = true);
+
     try {
-      final url = Api.getPayCustomersAll(account!.uuid);
-      final response = await http.get(Uri.parse(url));
+      final token = await AuthService().getToken();
+
+      final response = await http.get(
+        Uri.parse(Api.getPayCustomersAll),
+        headers: {
+          "Content-Type": "application/json",
+          'Authorization': 'Bearer $token',
+        },
+      );
       if (!mounted) return;
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List;
+        final result = data.map((e) => PayCustomer.fromJson(e)).toList();
+        cache[userUuid] = result;
         setState(() {
-          payList = data.map((e) => PayCustomer.fromJson(e)).toList();
-          loading = false;
+          _allData = result;
+          _visibleCount = 5;
+          payList = _allData.take(_visibleCount).toList();
         });
-      } else {
-        setState(() => loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: ${response.statusCode}')),
-        );
       }
     } catch (e) {
-      if (!mounted) return;
-      setState(() => loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e')),
-      );
+      debugPrint("Fetch pay error: $e");
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _loadMore() {
+    if (_visibleCount >= _allData.length) return;
+
+    setState(() => _isLoadingMore = true);
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+
+      setState(() {
+        _visibleCount += 5;
+        payList = _allData.take(_visibleCount).toList();
+        _isLoadingMore = false;
+      });
+    });
   }
 
   void showMsg(String message, {bool isError = false}) {
@@ -70,8 +127,6 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
 
   Future<void> _showPlanDialogAndPay() async {
     List<dynamic> plans = [];
-
-    //Lấy danh sách gói từ API
     try {
       final res = await http.get(Uri.parse(Api.getPlans));
       if (!mounted) return;
@@ -155,7 +210,8 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
         if (!mounted) return;
         if (resultUrl?['status'] == 'SUCCESS') {
           showMsg("Thanh toán thành công!");
-          await fetchPayCustomers();
+          cache.remove(account!.uuid);
+          await fetchPayCustomers(account!.uuid);
           if (!mounted) return;
           final prefs = await SharedPreferences.getInstance();
           final token = prefs.getString("token") ?? "";
@@ -197,7 +253,7 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: loading
+        child: _loading
             ? const Center(child: CircularProgressIndicator())
             : payList.isEmpty
             ? const Center(
@@ -207,45 +263,41 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
           ),
         )
             : ListView.builder(
-          itemCount: payList.length,
+          controller: _scrollController,
+          itemCount: payList.length + 1,
           itemBuilder: (context, index) {
-            final pay = payList[index];
-            return Card(
-              color: Colors.white.withValues(alpha: 0.08),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15)),
-              child: Padding(
-                padding: const EdgeInsets.all(15.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Gói tập: ${pay.planName}",
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 16)),
-                    const SizedBox(height: 5),
-                    Text("Giá: ${pay.price} VND",
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 14)),
-                    const SizedBox(height: 5),
-                    Text("Ngày đóng: ${pay.date}",
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 14)),
-                    const SizedBox(height: 5),
-                    Text("Mã GD: ${pay.txnRef ?? '-'}",
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 14)),
-                    const SizedBox(height: 5),
-                    Text("Trạng thái: ${pay.status ?? 'Unknown'}",
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 14)),
-                    if (pay.bankCode != null)
-                      Text("Ngân hàng: ${pay.bankCode}",
-                          style: const TextStyle(
-                              color: Colors.white70, fontSize: 14)),
-                  ],
+            if (index < payList.length) {
+              final pay = payList[index];
+              return Card(
+                color: Colors.white.withValues(alpha: 0.08),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15)),
+                child: Padding(
+                  padding: const EdgeInsets.all(15.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Gói tập: ${pay.planName}",
+                          style: const TextStyle(color: Colors.white)),
+                      Text("Giá: ${pay.price} VND",
+                          style: const TextStyle(color: Colors.white70)),
+                      Text("Ngày đóng: ${pay.date}",
+                          style: const TextStyle(color: Colors.white70)),
+                      Text("Mã GD: ${pay.txnRef ?? '-'}",
+                          style: const TextStyle(color: Colors.white70)),
+                      Text("Trạng thái: ${pay.status ?? 'Unknown'}",
+                          style: const TextStyle(color: Colors.white70)),
+                    ],
+                  ),
                 ),
-              ),
-            );
+              );
+            }
+            return _isLoadingMore
+                ? const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            )
+                : const SizedBox.shrink();
           },
         ),
       ),

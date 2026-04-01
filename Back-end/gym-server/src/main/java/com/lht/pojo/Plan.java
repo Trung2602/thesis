@@ -1,5 +1,7 @@
 package com.lht.pojo;
 
+import org.hibernate.annotations.Generated;
+import org.hibernate.annotations.GenerationTime;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,6 +18,7 @@ public class Plan {
 
     @Id
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
+    @Generated(GenerationTime.INSERT)
     private UUID uuid;
 
     @Column(length = 100)

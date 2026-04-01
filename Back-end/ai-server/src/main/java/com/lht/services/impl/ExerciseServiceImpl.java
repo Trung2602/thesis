@@ -7,6 +7,7 @@ import com.lht.services.ExerciseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -14,13 +15,10 @@ import java.util.List;
 public class ExerciseServiceImpl implements ExerciseService {
 
     private final ExerciseRepository exerciseRepository;
-    private final EmbeddingService embeddingService;
 
     @Override
-    public List<Exercise> findExercisesForWorkout(String query) {
-
-        String embedding = embeddingService.createEmbedding(query);
-
-        return exerciseRepository.searchByEmbedding(embedding, 20);
+    public List<Exercise> findTopSimilar(float[] queryVector, int k) {
+        String vector = Arrays.toString(queryVector);
+        return exerciseRepository.findTopSimilar(vector, k);
     }
 }

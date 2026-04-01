@@ -2,6 +2,8 @@ package com.lht.pojo;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Generated;
+import org.hibernate.annotations.GenerationTime;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.Serializable;
@@ -21,8 +23,8 @@ public abstract class Account implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-//    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "uuid", updatable = false, nullable = false)
+    @Generated(GenerationTime.INSERT)
     private UUID uuid;
 
     @Column(unique = true, nullable = false, length = 100)
@@ -38,11 +40,11 @@ public abstract class Account implements Serializable {
     private LocalDate birthday;
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "gender_type")
+    @Column(name = "gender", nullable = false)
     private GenderType gender;
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "account_role")
+    @Column(name = "role", nullable = false)
     private AccountRole role;
 
     private String avatar;

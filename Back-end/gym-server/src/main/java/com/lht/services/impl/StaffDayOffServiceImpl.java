@@ -1,28 +1,19 @@
 package com.lht.services.impl;
 
 import com.lht.client.InternalUserClient;
-import com.lht.dto.InternalUserResponse;
 import com.lht.dto.StaffDayOffDTO;
-import com.lht.jwt.SecurityUtils;
+import com.lht.component.SecurityUtils;
 import com.lht.pojo.StaffDayOff;
 import com.lht.repositories.StaffDayOffRepository;
 import com.lht.services.StaffDayOffService;
-import jakarta.persistence.criteria.Predicate;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,14 +67,11 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
 
     @Override
     public StaffDayOffDTO addOrUpdateStaffDayOff(StaffDayOffDTO dto) {
-
         UUID staffUuid = SecurityUtils.getCurrentUserUuid();
-
         String staffType = internalUserClient.getStaffType(staffUuid);
         if (!"Fulltime".equalsIgnoreCase(staffType)) {
             throw new IllegalArgumentException("Only Fulltime staff can register day off");
         }
-
         if (dto.getUuid() == null) {
             boolean alreadyExists = staffDayOffRepository.existsByStaffUuidAndDateOff(staffUuid, dto.getDate());
             if (alreadyExists) {
@@ -96,11 +84,13 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
             if (!entity.getStaffUuid().equals(staffUuid)) {
                 throw new RuntimeException("Forbidden");
             }
+            if (!dto.getDate().isAfter(LocalDate.now())) {
+                throw new RuntimeException("Cannot update past or today's day off. Only future dates allowed.");
+            }
             entity.setDateOff(dto.getDate());
         }
         else {
             entity = new StaffDayOff();
-            entity.setUuid(UUID.randomUUID());
             entity.setStaffUuid(staffUuid);
             entity.setDateOff(dto.getDate());
         }

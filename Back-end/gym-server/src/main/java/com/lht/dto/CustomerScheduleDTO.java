@@ -1,6 +1,5 @@
 package com.lht.dto;
 
-import com.lht.pojo.CustomerSchedule;
 import lombok.*;
 
 import java.time.LocalDate;

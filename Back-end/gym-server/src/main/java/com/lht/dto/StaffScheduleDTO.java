@@ -16,7 +16,6 @@ public class StaffScheduleDTO {
     private UUID uuid;
     private LocalDate date;
 
-    private UUID staffUuid;
     private String staffName;
 
     private UUID shiftUuid;

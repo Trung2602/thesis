@@ -13,13 +13,10 @@ import java.util.UUID;
 public interface ExerciseRepository extends JpaRepository<Exercise, UUID> {
 
     @Query(value = """
-        SELECT *
-        FROM exercises
-        ORDER BY embedding <-> CAST(:embedding AS vector)
-        LIMIT :limit
-        """, nativeQuery = true)
-    List<Exercise> searchByEmbedding(
-            @Param("embedding") String embedding,
-            @Param("limit") int limit
-    );
+        SELECT * FROM exercises
+        ORDER BY embedding <=> CAST(:vector AS vector)
+        LIMIT :k
+    """, nativeQuery = true)
+    List<Exercise> findTopSimilar(@Param("vector") String vector,
+                                  @Param("k") int k);
 }

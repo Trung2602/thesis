@@ -1,6 +1,7 @@
 package com.lht.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -26,8 +27,8 @@ public interface InternalGymClient {
 
     @GetMapping("/internal/staffs")
     Set<UUID> getAvailableStaff(
-            @RequestParam("date") LocalDate date,
-            @RequestParam("checkIn") LocalTime checkIn,
-            @RequestParam("checkOut") LocalTime checkOut
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam("checkin") @DateTimeFormat(pattern = "h:mm a") LocalTime checkin,
+            @RequestParam("checkout") @DateTimeFormat(pattern = "h:mm a") LocalTime checkout
     );
 }

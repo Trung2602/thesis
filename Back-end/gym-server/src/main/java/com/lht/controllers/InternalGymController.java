@@ -2,6 +2,7 @@ package com.lht.controllers;
 
 import com.lht.services.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -39,10 +40,10 @@ public class InternalGymController {
 
     @GetMapping("/staffs")
     public Set<UUID> getAvailableStaff(
-            @RequestParam LocalDate date,
-            @RequestParam LocalTime checkIn,
-            @RequestParam LocalTime checkOut
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam @DateTimeFormat(pattern = "h:mm a") LocalTime checkin,
+            @RequestParam @DateTimeFormat(pattern = "h:mm a") LocalTime checkout
     ) {
-        return customerScheduleService.getAvailableStaff(date, checkIn, checkOut);
+        return customerScheduleService.getAvailableStaff(date, checkin, checkout);
     }
 }

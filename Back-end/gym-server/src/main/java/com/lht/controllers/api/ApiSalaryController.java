@@ -1,5 +1,6 @@
 package com.lht.controllers.api;
 
+import com.lht.component.SecurityUtils;
 import com.lht.dto.SalaryDTO;
 import com.lht.services.SalaryService;
 import java.util.List;
@@ -25,8 +26,9 @@ public class ApiSalaryController {
 
     private final SalaryService salaryService;
 
-    @GetMapping("/staff/{uuid}")
-    public ResponseEntity<List<SalaryDTO>> getSalariesByStaffUuid(@PathVariable("uuid") UUID uuid) {
+    @GetMapping
+    public ResponseEntity<List<SalaryDTO>> getSalariesByStaffUuid() {
+        UUID uuid = SecurityUtils.getCurrentUserUuid();
         List<SalaryDTO> salaries = salaryService.getSalaryByStaffUuid(uuid);
         return ResponseEntity.ok(salaries);
     }

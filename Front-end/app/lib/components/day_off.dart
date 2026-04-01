@@ -4,7 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../api.dart';
+import '../api/api.dart';
+import '../cache/app_cache.dart';
 import '../models/account.dart';
 import '../models/account_provider.dart';
 import '../models/staff_day_off.dart';
@@ -19,9 +20,12 @@ class DayOff extends StatefulWidget {
 class _DayOffState extends State<DayOff> {
   List<StaffDayOff> _registeredDaysOff = [];
   Account? account;
-
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
+
+  bool _loading = false;
+  bool isFirstLoad = true;
+  final cache = AppCache().staffDayOffCache;
 
   @override
   void didChangeDependencies() {
@@ -33,9 +37,21 @@ class _DayOffState extends State<DayOff> {
   }
 
   Future<void> fetchStaffDayOffsByMonth(int month, int year) async {
+    final key = "$month-$year";
+    if (cache.containsKey(key)) {
+      setState(() {
+        _registeredDaysOff = cache[key]!;
+        isFirstLoad = false;
+      });
+      return;
+    }
+    if (isFirstLoad) {
+      setState(() => isFirstLoad = true);
+    } else {
+      setState(() => _loading = true);
+    }
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString("token") ?? "";
-
     final url = Uri.parse(Api.getStaffDayOffs).replace(
       queryParameters: {
         "month": month.toString(),
@@ -43,20 +59,32 @@ class _DayOffState extends State<DayOff> {
       },
     );
     try {
-      final res = await http.get(url,
-        headers: {
-          "Authorization": "Bearer $token",
-        },);
+      final res = await http.get(url, headers: {
+        "Authorization": "Bearer $token",
+      });
+
       if (res.statusCode == 200) {
         final List<dynamic> body = jsonDecode(res.body);
+        final data = StaffDayOff.fromJsonList(body);
+        cache[key] = data;
+        if (cache.length > 12) {
+          cache.remove(cache.keys.first);
+        }
+
         setState(() {
-          _registeredDaysOff = StaffDayOff.fromJsonList(body);
+          _registeredDaysOff = data;
+          isFirstLoad = false;
         });
-      } else {
-        debugPrint("Lỗi load day off: ${res.statusCode}");
       }
     } catch (e) {
-      debugPrint("Exception fetchStaffDayOffsByMonth: $e");
+      debugPrint("Exception: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          isFirstLoad = false;
+        });
+      }
     }
   }
 
@@ -112,6 +140,7 @@ class _DayOffState extends State<DayOff> {
 
       if (res.statusCode == 200) {
         showMsg("Đăng ký nghỉ thành công ngày ${picked.day}/${picked.month}/${picked.year}");
+        cache.remove("$_selectedMonth-$_selectedYear");
         fetchStaffDayOffsByMonth(_selectedMonth, _selectedYear);
       } else {
         showMsg("Lỗi đăng ký nghỉ (${res.statusCode})", isError: true);
@@ -129,10 +158,10 @@ class _DayOffState extends State<DayOff> {
       if (!mounted) return;
 
       if (res.statusCode == 200 || res.statusCode == 204) {
+        cache.remove("$_selectedMonth-$_selectedYear");
         setState(() {
           _registeredDaysOff.removeWhere((d) => d.uuid == uuid);
         });
-
         showMsg("Xoá ngày nghỉ thành công");
       } else if (res.statusCode == 404) {
         showMsg("Ngày nghỉ không tồn tại hoặc đã bị xoá", isError: true);
@@ -204,6 +233,12 @@ class _DayOffState extends State<DayOff> {
                 const SizedBox(width: 12),
                 ElevatedButton(
                   onPressed: () {
+                    final key = "$_selectedMonth-$_selectedYear";
+                    setState(() {
+                      if (!cache.containsKey(key)) {
+                        _loading = true;
+                      }
+                    });
                     fetchStaffDayOffsByMonth(_selectedMonth, _selectedYear);
                   },
                   style: ElevatedButton.styleFrom(
@@ -241,7 +276,15 @@ class _DayOffState extends State<DayOff> {
             ),
             const SizedBox(height: 10),
             Expanded(
-              child: _registeredDaysOff.isEmpty
+              child: isFirstLoad
+                  ? const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              )
+                  : _loading
+                  ? const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              )
+                  : _registeredDaysOff.isEmpty
                   ? const Center(
                 child: Text(
                   'Không có ngày nghỉ nào trong tháng này.',
@@ -281,7 +324,7 @@ class _DayOffState extends State<DayOff> {
                       subtitle: Text(
                         "Ngày nghỉ đã đăng ký",
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.08),
+                          color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 12,
                         ),
                       ),

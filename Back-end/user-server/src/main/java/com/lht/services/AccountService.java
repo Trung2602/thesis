@@ -21,7 +21,7 @@ public interface AccountService extends UserDetailsService{
     boolean deleteAccount(UUID uuid);
     boolean changeIsActive(UUID uuid);
     Account authenticate(String mail, String password);
-    AccountDTO getCurrentAccountDTO(String mail);
+    AccountDTO getCurrentAccountDTO();
     Account getAccountByMail(String mail);
     String checkDuplicate(String mail);
     void changePassword(String mail, PasswordDTO request);

@@ -5,10 +5,13 @@ import 'package:http/http.dart' as http;
 import 'package:table_calendar/table_calendar.dart';
 import 'package:provider/provider.dart';
 
-import 'package:gym/api.dart';
+import 'package:gym/api/api.dart';
 import 'package:gym/models/staff_schedule.dart';
 import 'package:gym/models/account_provider.dart';
 import 'package:gym/models/account.dart';
+
+import '../cache/app_cache.dart';
+import '../services/auth_service.dart';
 
 class StaffScheduleScreen extends StatefulWidget {
   const StaffScheduleScreen({super.key});
@@ -21,11 +24,13 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-
   Account? account;
-
-  bool isLoading = false;
   List<StaffSchedule> schedulesForSelectedDay = [];
+
+  bool _loading = false;
+  bool isFirstLoad = true;
+
+  final cache = AppCache().staffScheduleCache;
 
   @override
   void didChangeDependencies() {
@@ -63,36 +68,13 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
     return !date.isBefore(limit);
   }
 
-  // ================= API =================
-  Future<List<StaffSchedule>> getStaffSchedulesFilter(String date) async {
-    final res = await http.get(
-      Uri.parse("${Api.getStaffSchedulesFilter}?date=$date"),
-    );
-
-    if (res.statusCode == 200) {
-      final List data = jsonDecode(res.body);
-      return data.map((e) => StaffSchedule.fromJson(e)).toList();
-    }
-    throw Exception("Lỗi load staff schedules");
-  }
-
-  Future<StaffSchedule> postStaffSchedule(StaffSchedule schedule) async {
-    final res = await http.post(
-      Uri.parse(Api.postStaffSchedule),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(schedule.toJson()),
-    );
-
-    if (res.statusCode == 200) {
-      return StaffSchedule.fromJson(jsonDecode(res.body));
-    }
-
-    throw Exception("Lỗi tạo staff schedule: ${res.body}");
-  }
-
   Future<void> deleteStaffSchedule(String uuid) async {
+    final token = await AuthService().getToken();
     final res = await http.delete(
       Uri.parse(Api.deleteStaffSchedule(uuid)),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
     );
 
     if (res.statusCode != 200 && res.statusCode != 204) {
@@ -102,12 +84,35 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
 
   // ================= LOAD =================
   Future<void> _loadSchedulesForDay(DateTime day) async {
-    setState(() => isLoading = true);
-
+    final dateString = formatDate(day);
+    if (cache.containsKey(dateString)) {
+      setState(() {
+        schedulesForSelectedDay = cache[dateString]!;
+        isFirstLoad = false;
+      });
+      return;
+    }
+    setState(() {
+      _loading = true;
+      isFirstLoad = true;
+    });
+    final token = await AuthService().getToken();
     try {
-      final schedules = await getStaffSchedulesFilter(formatDate(day));
-      if (!mounted) return;
+      final uri = Uri.parse(Api.getStaffSchedulesFilter)
+          .replace(queryParameters: {'date': dateString});
 
+      final response = await http.get(
+        uri,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (!mounted) return;
+      if (response.statusCode != 200) {
+        throw Exception("Server error: ${response.statusCode}");
+      }
+      final List data = jsonDecode(response.body);
+      final schedules = data.map((e) => StaffSchedule.fromJson(e)).toList();
+      cache[dateString] = schedules;
       setState(() {
         schedulesForSelectedDay = schedules;
       });
@@ -116,19 +121,28 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
       showMsg("Lỗi khi tải lịch: $e", isError: true);
     } finally {
       if (mounted) {
-        setState(() => isLoading = false);
+        setState(() {
+          _loading = false;
+          isFirstLoad = false;
+        });
       }
     }
   }
 
-  // ================= ADD =================
   Future<void> _handleAddSchedule() async {
     if (_selectedDay == null) return;
 
+    final token = await AuthService().getToken();
     List<dynamic> shifts = [];
 
     try {
-      final res = await http.get(Uri.parse(Api.getShifts));
+      final res = await http.get(
+        Uri.parse(Api.getShifts),
+        headers: {
+          "Content-Type": "application/json",
+          'Authorization': 'Bearer $token',
+        },
+      );
       if (!mounted) return;
 
       if (res.statusCode == 200) {
@@ -142,7 +156,6 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
       showMsg("Lỗi: $e", isError: true);
       return;
     }
-
     final selectedShift = await _showShiftDialog(shifts);
     if (!mounted) return;
     if (selectedShift == null) return;
@@ -154,19 +167,30 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
     );
 
     try {
-      await postStaffSchedule(newSchedule);
+      final res = await http.post(
+        Uri.parse(Api.postStaffSchedule),
+        headers: {
+          "Content-Type": "application/json",
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(newSchedule.toJson()),
+      );
+
       if (!mounted) return;
 
-      showMsg("Đã thêm lịch staff");
-      _loadSchedulesForDay(_selectedDay!);
-    } catch (e) {
-      if (!mounted) return;
-
-      if (e.toString().contains("409")) {
+      if (res.statusCode == 200) {
+        showMsg("Đã thêm lịch staff");
+        cache.remove(formatDate(_selectedDay!));
+        await _loadSchedulesForDay(_selectedDay!);
+      } else if (res.statusCode == 409) {
         showMsg("Lịch bị trùng, không thể tạo", isError: true);
       } else {
-        showMsg("Lỗi: $e", isError: true);
+        showMsg("Lỗi khi tạo lịch: ${res.statusCode}", isError: true);
       }
+
+    } catch (e) {
+      if (!mounted) return;
+      showMsg("Lỗi: $e", isError: true);
     }
   }
 
@@ -177,7 +201,8 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
       if (!mounted) return;
 
       showMsg("Đã xóa lịch staff");
-      _loadSchedulesForDay(_selectedDay!);
+      cache.remove(formatDate(_selectedDay!));
+      await _loadSchedulesForDay(_selectedDay!);
     } catch (e) {
       if (!mounted) return;
       showMsg("Lỗi xóa lịch: $e", isError: true);
@@ -302,47 +327,51 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
   }
 
   Widget _buildScheduleList() {
-    if (isLoading) {
+    if (isFirstLoad && _loading) {
       return const Center(
-          child: CircularProgressIndicator(color: Colors.white));
-    }
-
-    if (schedulesForSelectedDay.isEmpty) {
-      return Text(
-        "Không có ca làm vào ngày ${_selectedDay!.toLocal().toString().split(' ')[0]}",
-        style: const TextStyle(color: Colors.white70, fontSize: 16),
+        child: CircularProgressIndicator(color: Colors.white),
       );
     }
 
     return Column(
-      children: schedulesForSelectedDay.map((s) {
-        return Card(
-          color: Colors.white.withValues(alpha: 0.15),
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          child: ListTile(
-            leading:
-            const Icon(Icons.schedule, color: Color(0xFFFFD740)),
-            title: Text(
-              s.shiftName ?? "",
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              "Nhân viên: ${s.staffName}\nCa làm: ${s.shiftName}",
-              style: const TextStyle(color: Colors.white70),
-            ),
-            trailing: canDelete(s.date!)
-                ? IconButton(
-              icon: const Icon(Icons.delete,
-                  color: Colors.redAccent),
-              onPressed: () => _handleDelete(s.uuid!),
-            )
-                : null,
-          ),
-        );
-      }).toList(),
+      children: [
+        if (_loading)
+          const LinearProgressIndicator(),
+
+        if (schedulesForSelectedDay.isEmpty)
+          Text(
+            "Không có ca làm vào ngày ${_selectedDay!.toLocal().toString().split(' ')[0]}",
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
+          )
+        else
+          ...schedulesForSelectedDay.map((s) {
+            return Card(
+              color: Colors.white.withValues(alpha: 0.15),
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              child: ListTile(
+                leading: const Icon(Icons.schedule, color: Color(0xFFFFD740)),
+                title: Text(
+                  s.shiftName ?? "",
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  "Nhân viên: ${s.staffName}\nCa làm: ${s.shiftName}",
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                trailing: canDelete(s.date!)
+                    ? IconButton(
+                  icon: const Icon(Icons.delete,
+                      color: Colors.redAccent),
+                  onPressed: () => _handleDelete(s.uuid!),
+                )
+                    : null,
+              ),
+            );
+          }),
+      ],
     );
   }
 

@@ -13,13 +13,10 @@ import java.util.UUID;
 public interface FoodRepository extends JpaRepository<Food, UUID> {
 
     @Query(value = """
-        SELECT *
-        FROM foods
-        ORDER BY embedding <-> CAST(:embedding AS vector)
-        LIMIT :limit
-        """, nativeQuery = true)
-    List<Food> searchByEmbedding(
-            @Param("embedding") String embedding,
-            @Param("limit") int limit
-    );
+    SELECT * FROM foods
+    ORDER BY embedding <=> CAST(:vector AS vector)
+    LIMIT :k
+""", nativeQuery = true)
+    List<Food> findTopSimilar(@Param("vector") String vector,
+                              @Param("k") int k);
 }

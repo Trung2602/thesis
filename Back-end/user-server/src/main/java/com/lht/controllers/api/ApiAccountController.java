@@ -3,8 +3,8 @@ package com.lht.controllers.api;
 import com.lht.dto.*;
 import com.lht.pojo.Account;
 import com.lht.services.AccountService;
-import com.lht.jwt.JwtUtils;
-import java.security.Principal;
+
+import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import static com.lht.component.SecurityUtils.getCurrentUserMail;
 
 @RestController
 @RequestMapping("/api/v1/account")
@@ -22,49 +24,24 @@ public class ApiAccountController {
     private final PasswordEncoder passwordEncoder;
 
     @PatchMapping("/me") //name, avatar, birthday, gender
-    public ResponseEntity<?> updateAccount(Principal principal,
+    public ResponseEntity<?> updateAccount(
             @ModelAttribute AccountDTO dto,
             @RequestPart(value = "image", required = false) MultipartFile file) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chưa đăng nhập");
-        }
-        String mail = principal.getName();
+        String mail = getCurrentUserMail();
         AccountDTO updated = accountService.updateProfile(mail, dto, file);
 
         return ResponseEntity.ok(updated);
     }
 
-    @DeleteMapping
-    public ResponseEntity<?> deleteAccount(Principal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chưa đăng nhập");
-        }
-        String mail = principal.getName();
-        Account account = accountService.getAccountByMail(mail);
-        if (account == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tài khoản không tồn tại");
-        }
-        accountService.deleteAccount(account.getUuid());
-        return ResponseEntity.ok("Xóa tài khoản thành công");
-    }
-
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentAccount(Principal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chưa đăng nhập");
-        }
-        String mail = principal.getName();
-        AccountDTO dto = accountService.getCurrentAccountDTO(mail);
-
+    public ResponseEntity<?> getCurrentAccount() {
+        AccountDTO dto = accountService.getCurrentAccountDTO();
         return ResponseEntity.ok(dto);
     }
 
     @PostMapping("/me/password/verify")
-    public ResponseEntity<?> verifyPassword(@RequestBody PasswordDTO request, Principal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chưa đăng nhập");
-        }
-        String mail = principal.getName();
+    public ResponseEntity<?> verifyPassword(@RequestBody PasswordDTO request) {
+        String mail = getCurrentUserMail();
         Account account = accountService.getAccountByMail(mail);
         if (account == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tài khoản không tồn tại");
@@ -77,13 +54,18 @@ public class ApiAccountController {
     }
 
     @PatchMapping("/me/password")
-    public ResponseEntity<?> changePassword(@RequestBody PasswordDTO request, Principal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chưa đăng nhập");
-        }
-        String mail = principal.getName();
+    public ResponseEntity<?> changePassword(@RequestBody PasswordDTO request) {
+        String mail = getCurrentUserMail();
         accountService.changePassword(mail, request);
 
         return ResponseEntity.ok("Mật khẩu đã được cập nhật thành công");
+    }
+
+    @DeleteMapping("/{uuid}")
+    public ResponseEntity<Void> deleteAccount(@PathVariable UUID uuid) {
+        if (accountService.deleteAccount(uuid)) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 }

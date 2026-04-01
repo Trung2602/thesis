@@ -1,9 +1,6 @@
 package com.lht.services;
 
-import com.lht.dto.InternalUserResponse;
-import com.lht.dto.NameUUIDDTO;
-import com.lht.dto.StaffDTO;
-import com.lht.dto.StaffRequestDTO;
+import com.lht.dto.*;
 import com.lht.pojo.Staff;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,5 +22,5 @@ public interface StaffService {
     Map<UUID, String> getStaffNamesByUuids(Set<UUID> staffUuids);
     String getStaffType(UUID uuid);
     List<UUID> getStaffsFulltime();
-    List<NameUUIDDTO> getAvailableStaff(LocalDate date, LocalTime checkin, LocalTime checkout);
+    List<AvailableStaffDTO> getAvailableStaff(LocalDate date, LocalTime checkin, LocalTime checkout);
 }

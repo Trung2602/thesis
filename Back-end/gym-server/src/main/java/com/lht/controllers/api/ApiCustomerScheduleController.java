@@ -2,22 +2,17 @@ package com.lht.controllers.api;
 
 import com.lht.client.InternalUserClient;
 import com.lht.dto.CustomerScheduleDTO;
-import com.lht.dto.InternalUserResponse;
-import com.lht.jwt.SecurityUtils;
+import com.lht.component.SecurityUtils;
 import com.lht.pojo.CustomerSchedule;
 import com.lht.services.CustomerScheduleService;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -63,30 +58,17 @@ public class ApiCustomerScheduleController {
 
     @PostMapping
     public ResponseEntity<?> addOrUpdateCustomerSchedule(@RequestBody CustomerScheduleDTO dto) {
-        if (dto.getCustomerUuid() == null ||
-                dto.getStaffUuid() == null ||
-                dto.getFacilityUuid() == null ||
-                dto.getDate() == null ||
-                dto.getCheckin() == null) {
+        if (dto.getStaffUuid() == null ||
+            dto.getFacilityUuid() == null ||
+            dto.getDate() == null ||
+            dto.getCheckin() == null) {
             return ResponseEntity.badRequest().body("Missing required fields");
         }
-
-        CustomerSchedule cs = new CustomerSchedule();
-        cs.setUuid(dto.getUuid());
-        cs.setDate(dto.getDate());
-        cs.setCheckin(dto.getCheckin());
-        cs.setCheckout(dto.getCheckout());
-        cs.setCustomerUuid(dto.getCustomerUuid());
-        cs.setStaffUuid(dto.getStaffUuid());
-        cs.setFacilityUuid(dto.getFacilityUuid());
-
         boolean conflict = customerScheduleService.isScheduleConflict(dto.getUuid(), dto.getStaffUuid(), dto.getDate(), dto.getCheckin());
         if (conflict) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("Đã có lịch trùng staff + ngày + giờ checkin");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Đã có lịch trùng staff + ngày + giờ checkin");
         }
-
-        CustomerSchedule saved = customerScheduleService.addOrUpdateCustomerSchedule(cs);
+        CustomerSchedule saved = customerScheduleService.addOrUpdateCustomerSchedule(dto);
         return ResponseEntity.ok(saved);
     }
 

@@ -12,6 +12,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CustomerDTO {
     private UUID uuid;
+    private String gender;
     private LocalDate birthday;
     private BigDecimal height;
     private BigDecimal weight;

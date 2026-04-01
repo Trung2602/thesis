@@ -16,7 +16,6 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.*;
 
 import lombok.RequiredArgsConstructor;
@@ -30,6 +29,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import static com.lht.component.SecurityUtils.getCurrentUserMail;
 
 @Service
 @Transactional
@@ -233,32 +234,31 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public AccountDTO getCurrentAccountDTO(String mail) {
+    public AccountDTO getCurrentAccountDTO() {
+        String mail = getCurrentUserMail();
 
-        Account account = accountRepository.findByMail(mail)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+        Account account = accountRepository.findByMail(mail).orElseThrow(() -> new RuntimeException("Account not found"));
+
+        String mailJWT = getCurrentUserMail();
+        System.out.println("MAIL = " + mailJWT);
 
         if (account instanceof Staff staff) {
             StaffDTO dto = new StaffDTO(account);
             dto.setType(staff.getType().name());
             dto.setBaseSalary(staff.getBaseSalary());
-            dto.setFacilityUuid(staff.getFacilityUuid());
             dto.setFacilityName(internalGymClient.getFacilityNameByUuid(staff.getFacilityUuid()));
             return dto;
         }
-
         if (account instanceof Customer customer) {
             CustomerDTO dto = new CustomerDTO(account);
             dto.setExpiryDate(customer.getExpiryDate());
             return dto;
         }
-
         if (account instanceof Admin admin) {
             AdminDTO dto = new AdminDTO(account);
             dto.setPermissions(admin.getPermissions());
             return dto;
         }
-
         return new AccountDTO(account);
     }
 

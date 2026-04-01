@@ -119,21 +119,9 @@ public class  PayCustomerServiceImpl implements PayCustomerService {
 
     @Override
     public PayCustomerDTO addOrUpdatePayCustomer(PayCustomerDTO dto) {
-        if (dto.getCustomerUuid() == null) {
-            throw new IllegalArgumentException("Customer không được để trống");
-        }
-        boolean customerExists = internalUserClient.existsByUuid(dto.getCustomerUuid());
-        if (!customerExists) {
-            throw new IllegalArgumentException("Customer không tồn tại");
-        }
-
-        if (dto.getPlanUuid() == null) {
-            throw new IllegalArgumentException("Plan không được để trống");
-        }
         if (!planRepository.existsById(dto.getPlanUuid())) {
             throw new IllegalArgumentException("Plan không tồn tại");
         }
-
         PayCustomer entity = toEntity(dto);
         if (entity.getUuid() == null) {
             if (entity.getStatus() == null) {
@@ -152,29 +140,15 @@ public class  PayCustomerServiceImpl implements PayCustomerService {
 
     @Override
     public PayCustomer createPayCustomer(PayCustomer entity) {
-
-        if (entity.getCustomerUuid() == null) {
-            throw new IllegalArgumentException("Customer không được để trống");
-        }
-
-        boolean customerExists = internalUserClient.existsByUuid(entity.getCustomerUuid());
-        if (!customerExists) {
-            throw new IllegalArgumentException("Customer không tồn tại");
-        }
-
         if (entity.getPlanUuid() == null) {
             throw new IllegalArgumentException("Plan không được để trống");
         }
-
         if (!planRepository.existsById(entity.getPlanUuid())) {
             throw new IllegalArgumentException("Plan không tồn tại");
         }
-
-        // tạo mới
         if (entity.getStatus() == null) {
             entity.setStatus(StatusType.PENDING);
         }
-
         return payCustomerRepository.save(entity);
     }
 

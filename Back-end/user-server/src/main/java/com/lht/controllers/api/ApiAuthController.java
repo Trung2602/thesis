@@ -1,7 +1,7 @@
 package com.lht.controllers.api;
 
 import com.lht.dto.*;
-import com.lht.jwt.JwtUtils;
+import com.lht.component.JwtUtils;
 import com.lht.pojo.Account;
 import com.lht.services.AccountService;
 import com.lht.services.CustomerService;
@@ -58,8 +58,7 @@ public class ApiAuthController {
 
     private final Map<String, VerifyCustomerDTO> pendingRegistrations = new ConcurrentHashMap<>();
     @PostMapping("/register")
-    public ResponseEntity<?> register(@ModelAttribute CustomerRequestDTO dto,
-                                      @RequestPart(value = "image", required = false) MultipartFile file) {
+    public ResponseEntity<?> register(@ModelAttribute CustomerRequestDTO dto, @RequestPart(value = "image", required = false) MultipartFile file) {
         // kiểm tra trùng mail
         String check = accountService.checkDuplicate(dto.getMail());
         if (!"OK".equals(check)) {
@@ -76,7 +75,6 @@ public class ApiAuthController {
 
     @PostMapping("/verify/otp")
     public ResponseEntity<?> verifyOtp(@RequestBody OtpRequest request) {
-
         VerifyCustomerDTO pending = pendingRegistrations.get(request.getMail());
         if (pending == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "Không tìm thấy yêu cầu đăng ký"));

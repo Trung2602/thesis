@@ -70,12 +70,8 @@ class CustomerSchedule {
       'date': date?.toIso8601String().split('T')[0],
       'checkin': _formatTime(checkin),
       'checkout': _formatTime(checkout),
-      'customerUuid': customerUuid,
       'staffUuid': staffUuid,
       'facilityUuid': facilityUuid,
-      'customerName': customerName,
-      'facilityName': facilityName,
-      'staffName': staffName,
     };
   }
 }

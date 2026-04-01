@@ -3,16 +3,18 @@ import 'package:flutter/material.dart';
 
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../cache/app_cache.dart';
 import '../services/auth_service.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../api.dart';
+import '../api/api.dart';
 // Import models
 import '../models/account.dart';
 import '../models/plan.dart';
 import 'package:gym/models/account_provider.dart';
 import 'package:gym/models/shift.dart';
 // Import các màn hình con
+import 'ai_chat.dart';
 import 'profile.dart';
 import 'day_off.dart';
 import 'pay_customer.dart';
@@ -75,7 +77,7 @@ class _HomeState extends State<Home> {
   List<BottomNavigationBarItem> _buildBottomNavItems() {
     if (savedAccount == null) return [];
 
-    if (savedAccount!.role == 'Customer') {
+    if (savedAccount!.role == 'CUSTOMER') {
       return const [
         BottomNavigationBarItem(
           icon: Icon(Icons.dashboard),
@@ -94,7 +96,7 @@ class _HomeState extends State<Home> {
           label: "Hồ Sơ",
         ),
       ];
-    } else if (savedAccount!.role == 'Staff') {
+    } else if (savedAccount!.role == 'STAFF') {
       return [
         const BottomNavigationBarItem(
           icon: Icon(Icons.dashboard),
@@ -105,7 +107,7 @@ class _HomeState extends State<Home> {
           label: "Lịch Trình",
         ),
         // Thêm "Xin nghỉ" hoặc "Ca làm" tuỳ type
-        if (savedAccount!.type == "Fulltime")
+        if (savedAccount!.type == "FULLTIME")
           const BottomNavigationBarItem(
             icon: Icon(Icons.beach_access),
             label: "Xin Nghỉ",
@@ -143,15 +145,15 @@ class _HomeState extends State<Home> {
       {'icon': Icons.calendar_today, 'title': 'Lịch Trình', 'index': 1},
     ];
 
-    if (savedAccount!.role == 'Customer') {
+    if (savedAccount!.role == 'CUSTOMER') {
       menuItems.addAll([
         {'icon': Icons.calendar_today, 'title': 'Lịch Trình', 'index': 1},
         {'icon': Icons.payment, 'title': 'Thanh Toán', 'index': 2},
         {'icon': Icons.person, 'title': 'Hồ Sơ Phi Hành Gia', 'index': 3},
       ]);
-    } else if (savedAccount!.role == 'Staff') {
+    } else if (savedAccount!.role == 'STAFF') {
       menuItems.addAll([
-        savedAccount!.type == "Fulltime"
+        savedAccount!.type == "FULLTIME"
           ? {'icon': Icons.beach_access, 'title': 'Xin Nghỉ', 'index': 2}
           : {'icon': Icons.access_time,  'title': 'Ca Làm',   'index': 2},
         {'icon': Icons.attach_money, 'title': 'Bảng Lương', 'index': 3},
@@ -169,8 +171,6 @@ class _HomeState extends State<Home> {
       return _buildDrawerItem(item['icon'], item['title'], item['index']);
     }).toList();
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -249,6 +249,19 @@ class _HomeState extends State<Home> {
         ),
       ),
 
+      floatingActionButton: (savedAccount?.role == 'CUSTOMER')
+          ? FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AIChatPage()),
+          );
+        },
+        backgroundColor: const Color(0xFFFFD740),
+        child: const Icon(Icons.smart_toy, color: Colors.black),
+        tooltip: 'AI Hỗ Trợ',
+      ) : null,
+
       body: _pages[_selectedIndex],
 
       bottomNavigationBar: _pages.length >= 2
@@ -281,12 +294,7 @@ class _HomeState extends State<Home> {
         } else {
           switch (title) {
             case 'Rời khỏi Trạm Vũ Trụ':
-              authService.logout(context).then((_) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const Login()),
-                );
-              });
+              authService.logout(context);
               break;
             case 'Liên Lạc':
               Navigator.push(
@@ -309,8 +317,90 @@ class _HomeState extends State<Home> {
 // ==========================================================
 // MÀN HÌNH DASHBOARD (TRUNG TÂM ĐIỀU KHIỂN VŨ TRỤ)
 // ==========================================================
-class _DashboardScreen extends StatelessWidget {
+class _DashboardScreen extends StatefulWidget {
   const _DashboardScreen({super.key});
+  @override
+  State<_DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<_DashboardScreen> {
+  Future<List<Plan>>? _plansFuture;
+  Future<List<Shift>>? _shiftsFuture;
+
+  bool isFirstLoad = true;
+  final planCache = AppCache().planCache;
+  final shiftCache = AppCache().shiftCache;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final account = Provider.of<AccountProvider>(context).account;
+
+    if (account != null && isFirstLoad) {
+      isFirstLoad = false;
+
+      if (account.role == "CUSTOMER") {
+        _plansFuture = _getPlans();
+      } else {
+        _shiftsFuture = _getShifts();
+      }
+    }
+  }
+
+  Future<List<Plan>> _getPlans() async {
+    const key = "plans";
+
+    // ✅ cache hit
+    if (planCache.containsKey(key)) {
+      return planCache[key]!;
+    }
+
+    final token = await AuthService().getToken();
+    final response = await http.get(
+      Uri.parse(Api.getPlans),
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+      final result = data.map((e) => Plan.fromJson(e)).toList();
+
+      planCache[key] = result; // ✅ lưu cache
+      return result;
+    } else {
+      throw Exception("Failed to load plans");
+    }
+  }
+
+  Future<List<Shift>> _getShifts() async {
+    const key = "shifts";
+
+    if (shiftCache.containsKey(key)) {
+      return shiftCache[key]!;
+    }
+
+    final token = await AuthService().getToken();
+    final response = await http.get(
+      Uri.parse(Api.getShifts),
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+      final result = data.map((e) => Shift.fromJson(e)).toList();
+
+      shiftCache[key] = result;
+      return result;
+    } else {
+      throw Exception("Failed to load shifts");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -428,7 +518,7 @@ class _DashboardScreen extends StatelessWidget {
 
                 // Phần "Gói tập" hoặc "Ca làm việc"
                 Text(
-                  account?.role == "Customer" ? "Gói tập" : "Ca làm việc",
+                  account?.role == "CUSTOMER" ? "Gói tập" : "Ca làm việc",
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -441,7 +531,7 @@ class _DashboardScreen extends StatelessWidget {
                 const SizedBox(height: 10),
 
                 FutureBuilder(
-                  future: account?.role == "Customer" ? fetchPlans() : fetchShifts(),
+                  future: account?.role == "CUSTOMER" ? _plansFuture : _shiftsFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -451,7 +541,7 @@ class _DashboardScreen extends StatelessWidget {
                       return const Center(child: Text("Không có dữ liệu"));
                     }
 
-                    if (account?.role == "Customer") {
+                    if (account?.role == "CUSTOMER") {
                       // Hiển thị danh sách gói tập
                       final plans = snapshot.data as List<Plan>;
                       return ListView.builder(
@@ -474,7 +564,7 @@ class _DashboardScreen extends StatelessWidget {
                           );
                         },
                       );
-                    } else if (account?.type == "Fulltime"){
+                    } else if (account?.type == "FULLTIME"){
                       return const Padding(
                         padding: EdgeInsets.all(12.0),
                         child: Text(
@@ -559,36 +649,6 @@ class _DashboardScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<List<Plan>> fetchPlans() async {
-    final token = await AuthService().getToken();
-    final response = await  http.get(Uri.parse(Api.getPlans),
-        headers: {"Content-Type": "application/json",
-          'Authorization': 'Bearer $token',
-        });
-
-    if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      return data.map((json) => Plan.fromJson(json)).toList();
-    } else {
-      throw Exception("Failed to load plans");
-    }
-  }
-
-  Future<List<Shift>> fetchShifts() async {
-    final token = await AuthService().getToken();
-    final response = await  http.get(Uri.parse(Api.getShifts),
-        headers: {"Content-Type": "application/json",
-          'Authorization': 'Bearer $token',
-        });
-
-    if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      return data.map((json) => Shift.fromJson(json)).toList();
-    } else {
-      throw Exception("Failed to load plans");
-    }
   }
 
   // Hàm tiện ích để tạo các thẻ lịch trình

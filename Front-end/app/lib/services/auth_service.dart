@@ -4,9 +4,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:gym/models/account_provider.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../api.dart';
+import '../api/api.dart';
+import '../cache/app_cache.dart';
+import '../components/login.dart';
 import '../models/account.dart';
 import 'package:provider/provider.dart';
 
@@ -15,22 +16,16 @@ import '../models/customer_request.dart';
 class AuthService {
   Future<Account?> login(BuildContext context, String mail, String password) async {
     final prefs = await SharedPreferences.getInstance();
-
     final response = await http.post(
       Uri.parse(Api.login),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"mail": mail, "password": password}),
     );
-
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final token = data["token"];
-
       if (token != null) {
-        // Lưu token
         await prefs.setString("token", token);
-
-        // Gọi API /account/me để lấy thông tin account
         final meResponse = await http.get(
           Uri.parse(Api.me),
           headers: {
@@ -38,29 +33,22 @@ class AuthService {
             "Authorization": "Bearer $token",
           },
         );
-
         if (meResponse.statusCode == 200) {
           final userData = jsonDecode(meResponse.body);
           final account = Account.fromJson(userData);
 
-          // Lưu account JSON để dùng lại
           await prefs.setString("account", jsonEncode(account.toJson()));
-
           final accountProvider = Provider.of<AccountProvider>(context, listen: false);
           accountProvider.setAccount(account);
-
           return account;
         }
       }
     } else if (response.statusCode == 401) {
-      // Sai mail hoặc password
-      print("Sai mail hoặc password");
+      debugPrint("Sai mail hoặc password");
       return null;
     } else {
-      // Có thể log error để debug
-      print("Login failed: ${response.statusCode} - ${response.body}");
+      debugPrint("Login failed: ${response.statusCode} - ${response.body}");
     }
-
     return null;
   }
 
@@ -123,7 +111,16 @@ class AuthService {
   Future<void> logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove("token");
-    await prefs.remove("account"); // xoá luôn account khi logout
-    context.read<AccountProvider>().clearAccount();
+    await prefs.remove("account");
+    AppCache().clearAll();
+    if (context.mounted) {
+      context.read<AccountProvider>().clearAccount();
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const Login()),
+            (route) => false,
+      );
+    }
   }
 }

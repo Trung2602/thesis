@@ -2,8 +2,7 @@ package com.lht.services.impl;
 
 import com.lht.client.InternalUserClient;
 import com.lht.configs.PaymentConfig;
-import com.lht.dto.InternalUserResponse;
-import com.lht.jwt.SecurityUtils;
+import com.lht.component.SecurityUtils;
 import com.lht.pojo.PayCustomer;
 import com.lht.pojo.Plan;
 import com.lht.pojo.StatusType;

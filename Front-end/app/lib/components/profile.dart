@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/account.dart';
 import '../models/account_provider.dart';
-import '../api.dart';
+import '../api/api.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -24,14 +24,14 @@ class _Profile extends State<Profile> {
   late TextEditingController passwordController;
 
   DateTime? birthday;
-  String gender = "male";
-  String role = "Customer";
+  String gender = "MALE";
+  String role = "CUSTOMER";
   bool isActive = true;
 
   File? _selectedImage;
   final picker = ImagePicker();
 
-  bool _isInit = true; // để init dữ liệu lần đầu
+  bool _isInit = true;
 
   @override
   void initState() {
@@ -163,7 +163,7 @@ class _Profile extends State<Profile> {
       request.fields['isActive'] = isActive.toString();
 
       if (birthday != null) {
-        request.fields['birthday'] = birthday!.toIso8601String();
+        request.fields['birthday'] = birthday!.toIso8601String().split('T')[0];
       }
 
       if (_selectedImage != null) {
@@ -260,7 +260,7 @@ class _Profile extends State<Profile> {
         return;
       }
 
-      final changeRes = await http.post(
+      final changeRes = await http.patch(
         Uri.parse(Api.changePassword),
         headers: {
           "Content-Type": "application/json",
@@ -359,7 +359,9 @@ class _Profile extends State<Profile> {
                   children: [
                     TextField(controller: nameController, decoration: const InputDecoration(labelText: "Tên", prefixIcon: Icon(Icons.person))),
                     const SizedBox(height: 10),
-                    TextField(controller: mailController, decoration: const InputDecoration(labelText: "Email", prefixIcon: Icon(Icons.mail))),
+                    TextField(controller: mailController,
+                        enabled: false,
+                        decoration: const InputDecoration(labelText: "Email", prefixIcon: Icon(Icons.mail))),
                     const SizedBox(height: 10),
                     ListTile(
                       title: Text("Ngày sinh: ${birthday != null ? birthday.toString().split(' ')[0] : 'Chưa chọn'}"),
@@ -380,7 +382,7 @@ class _Profile extends State<Profile> {
                       title: Text("Giới tính: ${gender == "MALE" ? "Nam" : "Nữ"}"),
                     ),
                     TextField(readOnly: true, controller: TextEditingController(text: role), decoration: const InputDecoration(labelText: "Vai trò", prefixIcon: Icon(Icons.security))),
-                    SwitchListTile(value: isActive, onChanged: null, title: const Text("Kích hoạt tài khoản")), //onChanged: (val) => setState(() => isActive = val)
+                    SwitchListTile(value: isActive, onChanged: null, title: const Text("Kích hoạt tài khoản")),
                     const SizedBox(height: 15),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,

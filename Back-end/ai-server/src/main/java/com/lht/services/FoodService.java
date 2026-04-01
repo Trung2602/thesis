@@ -5,5 +5,5 @@ import com.lht.pojo.Food;
 import java.util.List;
 
 public interface FoodService {
-    List<Food> findFoodsForDiet(String query);
+    List<Food> findTopSimilar(float[] queryVector, int k);
 }

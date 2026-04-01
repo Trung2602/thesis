@@ -18,7 +18,6 @@ public class StaffDTO extends AccountDTO {
     private String type;
     private BigDecimal baseSalary;
 
-    private UUID facilityUuid;
     private String facilityName;
 
     public StaffDTO(Account acc) {

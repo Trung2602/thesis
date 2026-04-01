@@ -1,6 +1,7 @@
 package com.lht.controllers.api;
 
 import com.lht.dto.StaffScheduleDTO;
+import com.lht.component.SecurityUtils;
 import com.lht.services.StaffScheduleService;
 import java.util.*;
 
@@ -24,9 +25,10 @@ public class ApiStaffScheduleController {
 
     private final StaffScheduleService staffScheduleService;
 
-    @GetMapping("/staff/{staffUuid}")
-    public ResponseEntity<List<StaffScheduleDTO>> getByStaffUuid(@PathVariable UUID staffUuid) {
-        return ResponseEntity.ok(staffScheduleService.getStaffScheduleByStaffUuid(staffUuid));
+    @GetMapping
+    public ResponseEntity<List<StaffScheduleDTO>> getByStaffUuid() {
+        UUID uuid = SecurityUtils.getCurrentUserUuid();
+        return ResponseEntity.ok(staffScheduleService.getStaffScheduleByStaffUuid(uuid));
     }
 
     @GetMapping("/filter")
@@ -44,6 +46,9 @@ public class ApiStaffScheduleController {
 
     @PostMapping
     public ResponseEntity<?> addOrUpdateStaffSchedule(@RequestBody StaffScheduleDTO dto) {
+        if (dto.getShiftUuid() == null) return ResponseEntity.badRequest().body("Shift UUID is required");
+        if (dto.getDate() == null) return ResponseEntity.badRequest().body("Date is required");
+
         try {
             StaffScheduleDTO saved = staffScheduleService.addOrUpdateStaffSchedule(dto);
             return ResponseEntity.ok(saved);

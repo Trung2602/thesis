@@ -177,7 +177,7 @@ public class CustomerServiceImpl implements CustomerService {
                 ex.printStackTrace();
             }
         } else {
-            c.setAvatar("https://res.cloudinary.com/dxgc9wwrd/image/upload/v1754928114/nzoi1xjxasxfvsut1azv.jpg");
+            c.setAvatar("https://res.cloudinary.com/dsagezboe/image/upload/v1775034161/logo_black_l0rv4p.png");
         }
 
         Customer saved = customerRepository.save(c);
@@ -279,6 +279,7 @@ public class CustomerServiceImpl implements CustomerService {
 
         CustomerBMIDTO dto = new CustomerBMIDTO();
         dto.setUuid(c.getUuid());
+        dto.setGender(c.getGender().toString());
         dto.setBirthday(c.getBirthday());
         dto.setHeight(c.getHeight());
         dto.setWeight(c.getWeight());

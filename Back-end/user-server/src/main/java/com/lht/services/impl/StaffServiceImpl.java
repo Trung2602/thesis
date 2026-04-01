@@ -3,10 +3,7 @@ package com.lht.services.impl;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.lht.client.InternalGymClient;
-import com.lht.dto.InternalUserResponse;
-import com.lht.dto.NameUUIDDTO;
-import com.lht.dto.StaffDTO;
-import com.lht.dto.StaffRequestDTO;
+import com.lht.dto.*;
 import com.lht.pojo.AccountRole;
 import com.lht.pojo.GenderType;
 import com.lht.pojo.Staff;
@@ -17,7 +14,6 @@ import jakarta.persistence.criteria.Predicate;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -55,7 +51,6 @@ public class StaffServiceImpl implements StaffService {
 
         dto.setType(s.getType() != null ? s.getType().name() : null);
         dto.setBaseSalary(s.getBaseSalary());
-        dto.setFacilityUuid(s.getFacilityUuid());
 
         dto.setFacilityName(internalGymClient.getFacilityNameByUuid(s.getFacilityUuid()));
         return dto;
@@ -83,7 +78,6 @@ public class StaffServiceImpl implements StaffService {
                         .isActive(s.getIsActive())
                         .type(s.getType() != null ? s.getType().name() : null)
                         .baseSalary(s.getBaseSalary())
-                        .facilityUuid(s.getFacilityUuid())
                         .facilityName(
                                 facilityMap.getOrDefault(s.getFacilityUuid(), "Unknown")
                         )
@@ -113,7 +107,6 @@ public class StaffServiceImpl implements StaffService {
 
         s.setType(StaffType.valueOf(dto.getType().toUpperCase()));
         s.setBaseSalary(dto.getBaseSalary());
-        s.setFacilityUuid(dto.getFacilityUuid());
 
         return s;
     }
@@ -191,7 +184,7 @@ public class StaffServiceImpl implements StaffService {
                 ex.printStackTrace();
             }
         } else {
-            staff.setAvatar("https://res.cloudinary.com/dxgc9wwrd/image/upload/v1754928114/nzoi1xjxasxfvsut1azv.jpg");
+            staff.setAvatar("https://res.cloudinary.com/dsagezboe/image/upload/v1775034161/logo_black_l0rv4p.png");
         }
 
         Staff saved = staffRepository.save(staff);
@@ -218,7 +211,6 @@ public class StaffServiceImpl implements StaffService {
 
         staff.setType(StaffType.valueOf(dto.getType().toUpperCase()));
         staff.setBaseSalary(dto.getBaseSalary());
-        staff.setFacilityUuid(dto.getFacilityUuid());
 
         // update avatar
         if (file != null && !file.isEmpty()) {
@@ -297,12 +289,16 @@ public class StaffServiceImpl implements StaffService {
     }
 
     @Override
-    public List<NameUUIDDTO> getAvailableStaff(LocalDate date, LocalTime checkin, LocalTime checkout) {
+    public List<AvailableStaffDTO> getAvailableStaff(LocalDate date, LocalTime checkin, LocalTime checkout) {
 
         Set<UUID> staffUuids = internalGymClient.getAvailableStaff(date, checkin, checkout);
-        return staffRepository.findAllById(staffUuids)
+        if (staffUuids == null || staffUuids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<UUID> uuidList = new ArrayList<>(staffUuids);
+        return staffRepository.findAllById(uuidList)
                 .stream()
-                .map(s -> new NameUUIDDTO(s.getUuid(), s.getName()))
+                .map(s -> new AvailableStaffDTO(s.getUuid(), s.getName(), s.getFacilityUuid()))
                 .toList();
     }
 }

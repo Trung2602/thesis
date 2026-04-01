@@ -15,6 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CustomerBMIDTO {
     private UUID uuid;
+    private String gender;
     private LocalDate birthday;
     private BigDecimal height;
     private BigDecimal weight;

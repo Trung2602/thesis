@@ -1,5 +1,6 @@
 package com.lht.pojo;
 
+import com.pgvector.PGvector;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -42,6 +43,6 @@ public class Exercise {
 
     private String category;
 
-    @Column(columnDefinition = "vector(768)")
-    private float[] embedding;
+    @Column(name = "embedding", columnDefinition = "vector(768)")
+    private PGvector embedding;
 }
