@@ -1,0 +1,23 @@
+Network Stack
+VPC
+Subnet (public + private)
+Route Table, IGW, NAT Gateway
+Security Group cơ bản (layered SG: DB, App, ALB)
+Database Stack
+RDS Multi-AZ (MySQL/Postgres)
+DB Subnet Group
+SG riêng cho DB
+Có thể export DBEndpoint, DBPort để các stack khác dùng
+ECS Stack
+ECS Cluster
+Fargate Service + TaskDefinition pattern (microservice)
+ALB + Target Group
+SG cho ECS Service
+Auto Scaling (optional)
+Service Discovery / Internal DNS Stack
+Route 53 Private Hosted Zone
+CloudMap Namespace + Service
+ECS Service dùng để register tự động
+Logging / Monitoring Stack
+CloudWatch Log Groups
+Log driver: awslogs cho ECS TaskDefinition

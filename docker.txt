@@ -1,0 +1,21 @@
+aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com
+
+mvnw clean package -DskipTests
+
+
+docker build -t gym-server .
+docker tag gym-server:latest 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com/gym-system/gym-server:latest
+aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com
+docker push 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com/gym-system/gym-server:latest
+
+
+docker build -t user-server .
+docker tag user-server:latest 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com/gym-system/user-server:latest
+aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com
+docker push 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com/gym-system/user-server:latest
+
+
+docker build -t ai-server .
+docker tag ai-server:latest 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com/gym-system/ai-server:latest
+aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com
+docker push 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com/gym-system/ai-server:latest
