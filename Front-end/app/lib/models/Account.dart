@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class Account {
   final String uuid;
   final String name;
@@ -79,10 +81,12 @@ class Account {
       'avatar': avatar,
       'isActive': isActive,
 
+      // STAFF
       'type': type,
       'baseSalary': baseSalary,
       'facilityName': facilityName,
 
+      // CUSTOMER
       'weight': weight,
       'height': height,
       'expiryDate': expiryDate?.toIso8601String(),

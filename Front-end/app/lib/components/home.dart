@@ -15,6 +15,7 @@ import 'package:gym/models/account_provider.dart';
 import 'package:gym/models/shift.dart';
 // Import các màn hình con
 import 'ai_chat.dart';
+import 'manager_user.dart';
 import 'profile.dart';
 import 'day_off.dart';
 import 'pay_customer.dart';
@@ -68,6 +69,13 @@ class _HomeState extends State<Home> {
         else
           const StaffScheduleScreen(),
         const SalaryScreen(),
+        const Profile(),
+      ];
+    } else if (savedAccount!.role == 'ADMIN') {
+      _pages = [
+        const _DashboardScreen(),
+        const ManagerUserPage(),
+        const ManagerFacilityPage(),
         const Profile(),
       ];
     }
