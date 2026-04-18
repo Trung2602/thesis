@@ -35,8 +35,8 @@ jobs:
       # BUILD GYM-SERVER
       # =========================
       - name: Build gym-server
+        working-directory: Back-end/gym-server
         run: |
-          cd gym-server
           mvn clean package -DskipTests
           docker build -t fitness-gym .
 
@@ -52,8 +52,8 @@ jobs:
       # BUILD USER-SERVER
       # =========================
       - name: Build user-server
+        working-directory: Back-end/user-server
         run: |
-          cd user-server
           mvn clean package -DskipTests
           docker build -t fitness-user .
 
@@ -69,8 +69,8 @@ jobs:
       # BUILD AI-SERVER
       # =========================
       - name: Build ai-server
+        working-directory: Back-end/ai-server
         run: |
-          cd ai-server
           mvn clean package -DskipTests
           docker build -t fitness-ai .
 
