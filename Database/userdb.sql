@@ -102,7 +102,7 @@ EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TABLE admin (
     account_uuid UUID PRIMARY KEY,
-    permissions JSONB, -- JSONB thay vì TEXT
+    permissions TEXT,
     CONSTRAINT fk_admin_account FOREIGN KEY (account_uuid) REFERENCES account(uuid) ON DELETE CASCADE
 );
 
@@ -133,8 +133,8 @@ VALUES
 ('00000000-0000-0000-0000-000000000005','ngvanduc@gmail.com','$2a$10$Okh2cGnAQ1jAGnUnxhEqluSm.FhhJn6JMMe7hOdGZjz2iaUjcdOMG','Nguyễn Văn Đức','1992-12-05','MALE','CUSTOMER','https://res.cloudinary.com/dxgc9wwrd/image/upload/v1754928114/nzoi1xjxasxfvsut1azv.jpg',true),
 ('00000000-0000-0000-0000-000000000006','tuankieu@gmail.com','$2a$10$Okh2cGnAQ1jAGnUnxhEqluSm.FhhJn6JMMe7hOdGZjz2iaUjcdOMG','Kiều Minh Tuấn','1992-12-05','FEMALE','CUSTOMER','https://res.cloudinary.com/dxgc9wwrd/image/upload/v1754928114/nzoi1xjxasxfvsut1azv.jpg',true);
 
-INSERT INTO admin (account_uuid)
-VALUES ('00000000-0000-0000-0000-000000000001');
+INSERT INTO admin (account_uuid, permissions)
+VALUES ('00000000-0000-0000-0000-000000000001','ALL');
 
 INSERT INTO staff (account_uuid, type, base_salary, facility_uuid)
 VALUES

@@ -9,21 +9,15 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 
 public interface SalaryService {
-
-    List<SalaryDTO> getAllSalaries();
-
     SalaryDTO getSalaryByUuid(UUID uuid);
 
     SalaryDTO addOrUpdateSalary(SalaryDTO dto);
 
     boolean deleteSalary(UUID uuid);
 
-    List<SalaryDTO> getSalaries(Map<String, String> params);
-
-    Page<SalaryDTO> getAllSort(String sortField, String sortDir, int page, int size);
+    Page<SalaryDTO> getSalariesFilter(Map<String, String> params, String sortField, String sortDir, int page, int size);
 
     List<SalaryDTO> getSalaryByStaffUuid(UUID uuid);
-
 
     void calculateMonthlySalaries(int month, int year);
     

@@ -1,9 +1,9 @@
-// customer_schedule.dart
 import 'dart:convert';
+import 'package:gym/api/gym_server_api.dart';
+import 'package:gym/api/user_server_api.dart';
 import 'package:gym/models/account.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:gym/api/api.dart';
 import 'package:gym/models/customer_schedule.dart';
 import 'package:gym/models/account_provider.dart';
 import 'package:provider/provider.dart';
@@ -115,7 +115,7 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
 
       print("New Schedule =${newSchedule.toJson()}, ");
 
-      final uri = Uri.parse(Api.postCustomerSchedule);
+      final uri = Uri.parse(GymServerApi.postCustomerSchedule);
 
       final res = await http.post(
         uri,
@@ -161,7 +161,7 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
     String checkOutStr = "${checkOut.hour.toString().padLeft(2,'0')}:${checkOut.minute.toString().padLeft(2,'0')}:00";
     String dateStr = _formatDate(date);
 
-    final uri = Uri.parse(Api.getWorkingStaff).replace(queryParameters: {
+    final uri = Uri.parse(UserServerApi.getWorkingStaff).replace(queryParameters: {
       "date": dateStr,
       "checkin": checkInStr,
       "checkout": checkOutStr,
@@ -182,7 +182,7 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
 
   Future<List<CustomerSchedule>> _getCustomerSchedulesFilter(String date) async {
     final token = await AuthService().getToken();
-    final uri = Uri.parse("${Api.getCustomerSchedulesFilter}?date=$date");
+    final uri = Uri.parse("${GymServerApi.getCustomerSchedulesFilter}?date=$date");
     final res = await http.get(uri, headers: {
       "Content-Type": "application/json",
       "Authorization": "Bearer $token",
@@ -199,7 +199,7 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
   Future<void> _deleteSchedule(String uuid) async {
     try {
       final token = await AuthService().getToken();
-      final uri = Uri.parse(Api.deleteCustomerSchedule(uuid));
+      final uri = Uri.parse(GymServerApi.deleteCustomerSchedule(uuid));
 
       final res = await http.delete(uri, headers: {
         "Authorization": "Bearer $token",
@@ -235,7 +235,6 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [
@@ -254,7 +253,6 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Calendar
           Card(
             color: Colors.white.withValues(alpha: 0.1),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -308,7 +306,6 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
 
           const SizedBox(height: 30),
 
-          // Buttons Row: Today + Add Schedule
           Row(
             children: [
               ElevatedButton(
@@ -326,7 +323,6 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
                 child: const Text("Today"),
               ),
               const SizedBox(width: 10),
-              // Add Schedule Button
               _selectedDay == null ||
                   _selectedDay!.isBefore(DateTime(
                       DateTime.now().year,
@@ -338,7 +334,6 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
                 style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.greenAccent),
                 onPressed: () async {
-                  // Chọn giờ checkin
                   final TimeOfDay? selectedCheckin =
                   await showTimePicker(
                     context: context,
@@ -346,28 +341,17 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
                   );
                   if (selectedCheckin == null) return;
 
-                  // Chọn giờ checkout
                   final TimeOfDay? selectedCheckout =
-                  await showTimePicker(
-                    context: context,
+                  await showTimePicker(context: context,
                     initialTime: TimeOfDay(
                         hour: selectedCheckin.hour + 1,
                         minute: selectedCheckin.minute),
                   );
                   if (selectedCheckout == null) return;
-
-                  // Fetch staff
-                  await fetchWorkingStaffForTime(
-                      _selectedDay!, selectedCheckin, selectedCheckout);
-
-                  // Chọn nhân viên từ danh sách
-                  AvailableStaff? selectedStaff =
-                  await _showStaffSelectionDialog();
+                  await fetchWorkingStaffForTime(_selectedDay!, selectedCheckin, selectedCheckout);
+                  AvailableStaff? selectedStaff = await _showStaffSelectionDialog();
                   if (selectedStaff == null) return;
-
-                  // Thêm lịch
-                  await addCustomerSchedule(
-                      _selectedDay!, selectedCheckin, selectedCheckout, selectedStaff);
+                  await addCustomerSchedule(_selectedDay!, selectedCheckin, selectedCheckout, selectedStaff);
                 },
                 child: const Text("Add Schedule"),
               ),
@@ -389,8 +373,7 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
           ),
           const SizedBox(height: 15),
 
-          _selectedDay == null
-              ? const Text(
+          _selectedDay == null ? const Text(
             "Hãy chọn một ngày trên lịch để xem lịch trình của bạn.",
             style: TextStyle(color: Colors.white70, fontSize: 16),
           )
@@ -400,7 +383,6 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
     );
   }
 
-// ====================== STAFF SELECTION DIALOG ======================
   Future<AvailableStaff?> _showStaffSelectionDialog() async {
     return showDialog<AvailableStaff>(
       context: context,
@@ -442,7 +424,6 @@ class _CustomerScheduleScreenState extends State<CustomerScheduleScreen> {
     );
   }
 
-  // Hàm giả lập để hiển thị danh sách sự kiện cho một ngày cụ thể
   Widget _buildEventListForSelectedDay(DateTime day) {
     if (isFirstLoad) {
       return const Center(child: CircularProgressIndicator(color: Colors.white));

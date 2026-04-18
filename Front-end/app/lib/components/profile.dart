@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gym/api/user_server_api.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -8,7 +9,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/account.dart';
 import '../models/account_provider.dart';
-import '../api/api.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -140,7 +140,7 @@ class _Profile extends State<Profile> {
       }
 
       final verifyRes = await http.post(
-        Uri.parse(Api.verifyPassword),
+        Uri.parse(UserServerApi.verifyPassword),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
@@ -154,7 +154,7 @@ class _Profile extends State<Profile> {
         setState(() => errorText = verifyRes.body);
         return;
       }
-      final request = http.MultipartRequest('PATCH', Uri.parse(Api.accountUpdate));
+      final request = http.MultipartRequest('PATCH', Uri.parse(UserServerApi.accountUpdate));
       request.headers['Authorization'] = "Bearer $token";
       request.fields['name'] = nameController.text;
       request.fields['mail'] = mailController.text;
@@ -261,7 +261,7 @@ class _Profile extends State<Profile> {
       }
 
       final changeRes = await http.patch(
-        Uri.parse(Api.changePassword),
+        Uri.parse(UserServerApi.changePassword),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",

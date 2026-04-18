@@ -1,0 +1,83 @@
+name: Build & Push Docker Images to ECR
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ACCOUNT_ID: 798974632310
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 3. Login ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # =========================
+      # BUILD GYM-SERVER
+      # =========================
+      - name: Build gym-server
+        run: |
+          cd gym-server
+          mvn clean package -DskipTests
+          docker build -t fitness-gym .
+
+      - name: Tag gym-server
+        run: |
+          docker tag fitness-gym:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/fitness-gym-images:latest
+
+      - name: Push gym-server
+        run: |
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/fitness-gym-images:latest
+
+      # =========================
+      # BUILD USER-SERVER
+      # =========================
+      - name: Build user-server
+        run: |
+          cd user-server
+          mvn clean package -DskipTests
+          docker build -t fitness-user .
+
+      - name: Tag user-server
+        run: |
+          docker tag fitness-user:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/fitness-user-images:latest
+
+      - name: Push user-server
+        run: |
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/fitness-user-images:latest
+
+      # =========================
+      # BUILD AI-SERVER
+      # =========================
+      - name: Build ai-server
+        run: |
+          cd ai-server
+          mvn clean package -DskipTests
+          docker build -t fitness-ai .
+
+      - name: Tag ai-server
+        run: |
+          docker tag fitness-ai:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/fitness-ai-images:latest
+
+      - name: Push ai-server
+        run: |
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/fitness-ai-images:latest

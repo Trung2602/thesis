@@ -1,16 +1,19 @@
 class StaffDayOff {
   final String uuid;
   final DateTime date;
+  final String? name;
 
   StaffDayOff({
     required this.uuid,
     required this.date,
+    this.name,
   });
 
   factory StaffDayOff.fromJson(Map<String, dynamic> json) {
     return StaffDayOff(
       uuid: json['uuid'],
       date: DateTime.parse(json['date']),
+      name: json['name'] ?? '',
     );
   }
 
@@ -18,6 +21,7 @@ class StaffDayOff {
     return {
       'uuid': uuid,
       'date': date.toIso8601String().split('T')[0],
+      'name': name,
     };
   }
 

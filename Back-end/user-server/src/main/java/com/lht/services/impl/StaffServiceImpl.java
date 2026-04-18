@@ -13,6 +13,7 @@ import com.lht.services.StaffService;
 import jakarta.persistence.criteria.Predicate;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -111,19 +112,29 @@ public class StaffServiceImpl implements StaffService {
         return s;
     }
 
+    private AccountLiteDTO mapToLiteDTO(Staff acc) {
+        if (acc == null) return null;
+
+        AccountLiteDTO dto = new AccountLiteDTO();
+        dto.setUuid(acc.getUuid());
+        dto.setName(acc.getName());
+        dto.setMail(acc.getMail());
+        dto.setRole(acc.getRole().name());
+
+        return dto;
+    }
+
     @Override
-    public List<StaffDTO> getAllStaffs() {
-        return mapToDTO(staffRepository.findAll());
+    public List<AccountLiteDTO> getStaffs() {
+        return staffRepository.findAll().stream()
+                .map(this::mapToLiteDTO)
+                .toList();
+
     }
 
     @Override
     public StaffDTO getStaffByUuid(UUID uuid) {
         return staffRepository.findById(uuid).map(this::mapToDTO).orElse(null);
-    }
-
-    @Override
-    public Staff getByUuid(UUID uuid) {
-        return staffRepository.findById(uuid).orElse(null);
     }
 
     @Override
@@ -167,7 +178,7 @@ public class StaffServiceImpl implements StaffService {
         staff.setType(StaffType.valueOf(dto.getType().toUpperCase()));
         staff.setBaseSalary(dto.getBaseSalary());
         staff.setFacilityUuid(dto.getFacilityUuid());
-
+        staff.setCreatedAt(LocalDateTime.now());
         // encode password
         staff.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
 
@@ -225,21 +236,12 @@ public class StaffServiceImpl implements StaffService {
                 ex.printStackTrace();
             }
         } else {
-            staff.setAvatar(dto.getAvatar());
+            staff.setAvatar(dto.getAvatar() != null ? dto.getAvatar() : staff.getAvatar());
         }
 
         Staff saved = staffRepository.save(staff);
 
         return mapToDTO(saved);
-    }
-
-    @Override
-    public boolean deleteStaff(UUID uuid) {
-        if (staffRepository.existsById(uuid)) {
-            staffRepository.deleteById(uuid);
-            return true;
-        }
-        return false;
     }
 
     @Override

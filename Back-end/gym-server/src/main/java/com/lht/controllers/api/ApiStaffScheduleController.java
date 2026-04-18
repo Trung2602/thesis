@@ -19,21 +19,30 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/staff-schedules")
+@RequestMapping("/api/v1/gym/staff-schedules")
 @RequiredArgsConstructor
 public class ApiStaffScheduleController {
 
     private final StaffScheduleService staffScheduleService;
 
     @GetMapping
+    public ResponseEntity<List<StaffScheduleDTO>> getStaffSchedule() {
+        return ResponseEntity.ok(staffScheduleService.getAllStaffSchedules());
+    }
+
+    @GetMapping("/staff")
     public ResponseEntity<List<StaffScheduleDTO>> getByStaffUuid() {
-        UUID uuid = SecurityUtils.getCurrentUserUuid();
-        return ResponseEntity.ok(staffScheduleService.getStaffScheduleByStaffUuid(uuid));
+        return ResponseEntity.ok(staffScheduleService.getStaffScheduleByStaffUuid());
     }
 
     @GetMapping("/filter")
     public ResponseEntity<List<StaffScheduleDTO>> filter(@RequestParam Map<String, String> params) {
         return ResponseEntity.ok(staffScheduleService.getStaffSchedules(params));
+    }
+
+    @GetMapping("/filter/staff")
+    public ResponseEntity<List<StaffScheduleDTO>> filterByStaffUuid(@RequestParam Map<String, String> params) {
+        return ResponseEntity.ok(staffScheduleService.getStaffSchedulesByStaffUuid(params));
     }
 
     @GetMapping("/{uuid}")
@@ -46,6 +55,7 @@ public class ApiStaffScheduleController {
 
     @PostMapping
     public ResponseEntity<?> addOrUpdateStaffSchedule(@RequestBody StaffScheduleDTO dto) {
+        if (dto.getStaffUuid() == null) return ResponseEntity.badRequest().body("Staff UUID is required");
         if (dto.getShiftUuid() == null) return ResponseEntity.badRequest().body("Shift UUID is required");
         if (dto.getDate() == null) return ResponseEntity.badRequest().body("Date is required");
 

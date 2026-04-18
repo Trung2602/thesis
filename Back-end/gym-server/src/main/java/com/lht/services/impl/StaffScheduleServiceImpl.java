@@ -35,13 +35,13 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
     private final StaffScheduleRepository staffScheduleRepository;
     private final InternalUserClient internalUserClient;
     private final ShiftRepository shiftRepository;
-    private final StaffDayOffRepository staffDayOffRepository;
 
     private StaffScheduleDTO mapToDTO(StaffSchedule s) {
         StaffScheduleDTO dto = new StaffScheduleDTO();
         dto.setUuid(s.getUuid());
         dto.setDate(s.getDate());
         dto.setShiftUuid(s.getShiftUuid());
+        dto.setStaffUuid(s.getStaffUuid());
         dto.setStaffName(internalUserClient.getStaffNameByUuid(s.getStaffUuid()));
 
         Shift shift = shiftRepository.findById(s.getShiftUuid()).orElse(null);
@@ -70,6 +70,7 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
                     return StaffScheduleDTO.builder()
                             .uuid(s.getUuid())
                             .date(s.getDate())
+                            .staffUuid(s.getStaffUuid())
                             .staffName(staffMap.getOrDefault(s.getStaffUuid(), "Unknown"))
                             .shiftUuid(s.getShiftUuid())
                             .shiftName(shift != null ? shift.getName() : null)
@@ -90,9 +91,8 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
 
     @Override
     public StaffScheduleDTO addOrUpdateStaffSchedule(StaffScheduleDTO dto) {
-        UUID uuid = SecurityUtils.getCurrentUserUuid();
         Shift shift = shiftRepository.findById(dto.getShiftUuid()).orElseThrow(() -> new IllegalArgumentException("Shift does not exist"));
-        boolean conflict = staffScheduleRepository.existsByStaffUuidAndDateAndShiftUuid(uuid, dto.getDate(), dto.getShiftUuid());
+        boolean conflict = staffScheduleRepository.existsByStaffUuidAndDateAndShiftUuid(dto.getStaffUuid(), dto.getDate(), dto.getShiftUuid());
         if (conflict) {
             throw new IllegalStateException("Staff already has this shift");
         }
@@ -105,7 +105,7 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
 
         entity.setDate(dto.getDate());
         entity.setShiftUuid(dto.getShiftUuid());
-        entity.setStaffUuid(SecurityUtils.getCurrentUserUuid());
+        entity.setStaffUuid(dto.getStaffUuid());
         StaffSchedule saved = staffScheduleRepository.save(entity);
         return mapToDTO(saved);
     }
@@ -121,6 +121,58 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
 
     @Override
     public List<StaffScheduleDTO> getStaffSchedules(Map<String, String> params) {
+        Specification<StaffSchedule> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            UUID staffUuid;
+            if (params.containsKey("staffUuid")) {
+                try {
+                    staffUuid = UUID.fromString(params.get("staffUuid"));
+                    predicates.add(cb.equal(root.get("staffUuid"), staffUuid));
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException("Invalid staffUuid format");
+                }
+            }
+
+            if (params.containsKey("shiftUuid")) {
+                try {
+                    UUID shiftUuid = UUID.fromString(params.get("shiftUuid"));
+                    predicates.add(cb.equal(root.get("shiftUuid"), shiftUuid));
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException("Invalid shiftUuid format");
+                }
+            }
+
+            if (params.containsKey("date")) {
+                try {
+                    LocalDate date = LocalDate.parse(params.get("date"));
+                    predicates.add(cb.equal(root.get("date"), date));
+                } catch (DateTimeParseException e) {
+                    throw new IllegalArgumentException("Invalid date format, expected yyyy-MM-dd");
+                }
+            }
+
+            if (params.containsKey("month") && params.containsKey("year")) {
+                try {
+                    int month = Integer.parseInt(params.get("month"));
+                    int year = Integer.parseInt(params.get("year"));
+
+                    LocalDate start = LocalDate.of(year, month, 1);
+                    LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+
+                    predicates.add(cb.between(root.get("date"), start, end));
+
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Invalid month/year");
+                }
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        List<StaffSchedule> schedules = staffScheduleRepository.findAll(spec);
+        return mapToDTO(schedules);
+    }
+
+    @Override
+    public List<StaffScheduleDTO> getStaffSchedulesByStaffUuid(Map<String, String> params) {
         UUID uuid = SecurityUtils.getCurrentUserUuid();
         Specification<StaffSchedule> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -185,7 +237,8 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
     }
 
     @Override
-    public List<StaffScheduleDTO> getStaffScheduleByStaffUuid(UUID uuid) {
+    public List<StaffScheduleDTO> getStaffScheduleByStaffUuid() {
+        UUID uuid = SecurityUtils.getCurrentUserUuid();
         List<StaffSchedule> schedules = staffScheduleRepository.findByStaffUuid(uuid);
         return mapToDTO(schedules);
     }

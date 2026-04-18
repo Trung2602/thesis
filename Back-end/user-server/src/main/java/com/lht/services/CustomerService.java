@@ -10,13 +10,11 @@ import java.util.*;
 
 public interface CustomerService {
 
-    List<CustomerDTO> getAllCustomers();
     CustomerDTO getCustomerByUuid(UUID uuid);
     Customer getByUuid(UUID uuid);
     List<CustomerDTO> getCustomers(Map<String, String> params);
     CustomerDTO createCustomer(CustomerRequestDTO dto, MultipartFile file);
     CustomerDTO updateCustomer(CustomerDTO dto, MultipartFile file);
-    boolean deleteCustomer(UUID uuid);
 
     String getCustomerNameByUuid(UUID uuid);
     Map<UUID, String> getCustomerNamesByUuids(Set<UUID> customerUuids);

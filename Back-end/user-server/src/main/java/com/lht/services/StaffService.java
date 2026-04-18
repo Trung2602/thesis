@@ -10,13 +10,12 @@ import java.util.*;
 
 public interface StaffService {
 
-    List<StaffDTO> getAllStaffs();
+    List<AccountLiteDTO> getStaffs();
     StaffDTO getStaffByUuid(UUID uuid);
-    Staff getByUuid(UUID uuid);
     List<StaffDTO> getStaffs(Map<String, String> params);
     StaffDTO createStaff(StaffRequestDTO dto, MultipartFile file);
     StaffDTO updateStaff(StaffDTO dto, MultipartFile file);
-    boolean deleteStaff(UUID uuid);
+
     List<InternalUserResponse> getStaffsAll();
     String getStaffNameByUuid(UUID uuid);
     Map<UUID, String> getStaffNamesByUuids(Set<UUID> staffUuids);

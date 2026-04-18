@@ -1,21 +1,19 @@
-aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 798974632310.dkr.ecr.us-east-1.amazonaws.com
 
+cd gym-server
 mvnw clean package -DskipTests
 
+docker build -t fitness-gym .
+aws ecr create-repository --repository-name fitness-gym-images --region us-east-1
+docker tag fitness-gym:latest 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-gym-images:latest
+docker push 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-gym-images:latest
 
-docker build -t gym-server .
-docker tag gym-server:latest 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com/gym-system/gym-server:latest
-aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com
-docker push 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com/gym-system/gym-server:latest
+docker build -t fitness-user .
+aws ecr create-repository --repository-name fitness-user-images --region us-east-1
+docker tag fitness-user:latest 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-user-images:latest
+docker push 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-user-images:latest
 
-
-docker build -t user-server .
-docker tag user-server:latest 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com/gym-system/user-server:latest
-aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com
-docker push 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com/gym-system/user-server:latest
-
-
-docker build -t ai-server .
-docker tag ai-server:latest 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com/gym-system/ai-server:latest
-aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com
-docker push 798974632310.dkr.ecr.ap-southeast-1.amazonaws.com/gym-system/ai-server:latest
+docker build -t fitness-ai .
+aws ecr create-repository --repository-name fitness-ai-images --region us-east-1
+docker tag fitness-ai:latest 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-ai-images:latest
+docker push 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-ai-images:latest

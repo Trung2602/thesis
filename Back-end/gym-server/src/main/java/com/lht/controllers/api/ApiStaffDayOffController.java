@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/day-offs")
+@RequestMapping("/api/v1/gym/day-offs")
 @RequiredArgsConstructor
 public class ApiStaffDayOffController {
 
@@ -53,5 +53,16 @@ public class ApiStaffDayOffController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<Page<StaffDayOffDTO>> getStaffDayOffsFilter(
+            @RequestParam Map<String, String> params,
+            @RequestParam(defaultValue = "dateOff") String sortField,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(staffDayOffService.getStaffDayOffsFilter(params, sortField, sortDir, page, size));
     }
 }

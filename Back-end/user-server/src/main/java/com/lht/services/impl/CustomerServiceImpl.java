@@ -13,6 +13,7 @@ import com.lht.repositories.CustomerRepository;
 import com.lht.services.CustomerService;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import jakarta.persistence.criteria.Predicate;
@@ -105,11 +106,6 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public List<CustomerDTO> getAllCustomers() {
-        return mapToDTO(customerRepository.findAll());
-    }
-
-    @Override
     public CustomerDTO getCustomerByUuid(UUID uuid) {
         return customerRepository.findById(uuid).map(this::mapToDTO).orElse(null);
     }
@@ -156,7 +152,7 @@ public class CustomerServiceImpl implements CustomerService {
         c.setIsActive(true);
         c.setWeight(dto.getWeight());
         c.setHeight(dto.getHeight());
-
+        c.setCreatedAt(LocalDateTime.now());
         if (dto.getExpiryDate() == null) {
             c.setExpiryDate(LocalDate.now().plusDays(1));
         } else {
@@ -216,21 +212,12 @@ public class CustomerServiceImpl implements CustomerService {
                 ex.printStackTrace();
             }
         } else {
-            c.setAvatar(dto.getAvatar());
+            c.setAvatar(dto.getAvatar() != null ? dto.getAvatar() : c.getAvatar());
         }
 
         Customer saved = customerRepository.save(c);
 
         return mapToDTO(saved);
-    }
-
-    @Override
-    public boolean deleteCustomer(UUID uuid) {
-        if (customerRepository.existsById(uuid)) {
-            customerRepository.deleteById(uuid);
-            return true;
-        }
-        return false;
     }
 
     @Override

@@ -22,13 +22,12 @@ public class SocketController {
     private final ChatHistoryService chatHistoryService;
     private final SimpMessagingTemplate messagingTemplate;
 
-    @MessageMapping("/api/v1/ai.ask")
+    @MessageMapping("/api/v1/ai/ai.ask")
     public void askAI(ChatMessage message, Principal principal) {
         if (!(principal instanceof UsernamePasswordAuthenticationToken authToken)) {
             System.out.println("Principal is not set!");
             return;
         }
-
         UserPrincipal userPrincipal = (UserPrincipal) authToken.getPrincipal();
         UUID userUuid = userPrincipal.getUuid();
 
@@ -36,7 +35,7 @@ public class SocketController {
                 .thenAccept(answer -> {
                     messagingTemplate.convertAndSend(
                             "/topic/ai",
-                            new ChatMessage(message.getQuestion(), answer)
+                            new ChatMessage(message.getQuestion(), answer, null)
                     );
                     chatHistoryService.saveChat(userUuid, message.getQuestion(), answer);
                 });

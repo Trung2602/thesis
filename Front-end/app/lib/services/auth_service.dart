@@ -1,11 +1,10 @@
-// lib/services/auth_service.dart
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:gym/api/user_server_api.dart';
 import 'package:gym/models/account_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../api/api.dart';
 import '../cache/app_cache.dart';
 import '../components/login.dart';
 import '../models/account.dart';
@@ -17,7 +16,7 @@ class AuthService {
   Future<Account?> login(BuildContext context, String mail, String password) async {
     final prefs = await SharedPreferences.getInstance();
     final response = await http.post(
-      Uri.parse(Api.login),
+      Uri.parse(UserServerApi.login),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"mail": mail, "password": password}),
     );
@@ -27,7 +26,7 @@ class AuthService {
       if (token != null) {
         await prefs.setString("token", token);
         final meResponse = await http.get(
-          Uri.parse(Api.me),
+          Uri.parse(UserServerApi.me),
           headers: {
             "Content-Type": "application/json",
             "Authorization": "Bearer $token",
@@ -69,7 +68,7 @@ class AuthService {
 
   Future<bool> registerCustomer(CustomerRequest request, File? image) async {
 
-    var uri = Uri.parse(Api.register);
+    var uri = Uri.parse(UserServerApi.register);
 
     var req = http.MultipartRequest("POST", uri);
 
@@ -90,7 +89,7 @@ class AuthService {
   // Xác thực OTP
   Future<bool> verifyOtp(String mail, int otp) async {
     final response = await http.post(
-      Uri.parse(Api.otpURL),
+      Uri.parse(UserServerApi.otpURL),
       headers: {
         "Content-Type": "application/json",
       },

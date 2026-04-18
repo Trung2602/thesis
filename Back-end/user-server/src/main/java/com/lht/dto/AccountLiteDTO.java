@@ -2,16 +2,16 @@ package com.lht.dto;
 
 import lombok.*;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
-public class StaffDayOffDTO {
+public class AccountLiteDTO {
     private UUID uuid;
-    private LocalDate date;
     private String name;
+    private String mail;
+    private String role;
 }

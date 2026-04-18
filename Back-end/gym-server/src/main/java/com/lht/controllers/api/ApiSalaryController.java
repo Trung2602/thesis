@@ -3,6 +3,8 @@ package com.lht.controllers.api;
 import com.lht.component.SecurityUtils;
 import com.lht.dto.SalaryDTO;
 import com.lht.services.SalaryService;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -20,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/salaries")
+@RequestMapping("/api/v1/gym/salaries")
 @RequiredArgsConstructor
 public class ApiSalaryController {
 
@@ -34,18 +36,16 @@ public class ApiSalaryController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<List<SalaryDTO>> getSalariesFilter(@RequestParam Map<String, String> params) {
-        return ResponseEntity.ok(salaryService.getSalaries(params));
-    }
-
-    @GetMapping("/sort")
-    public ResponseEntity<Page<SalaryDTO>> getSalariesSort(
+    public ResponseEntity<Page<SalaryDTO>> getSalariesFilter(
+            @RequestParam Map<String, String> params,
             @RequestParam(defaultValue = "date") String sortField,
             @RequestParam(defaultValue = "asc") String sortDir,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        return ResponseEntity.ok(salaryService.getAllSort(sortField, sortDir, page, size));
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(
+                salaryService.getSalariesFilter(params, sortField, sortDir, page, size)
+        );
     }
 
     @GetMapping("/{uuid}")
@@ -71,7 +71,9 @@ public class ApiSalaryController {
     }
 
     @PostMapping("/calculate-month")
-    public ResponseEntity<String> calculateMonthlySalary(@RequestParam int month, @RequestParam int year) {
+    public ResponseEntity<String> calculateMonthlySalary() {
+        int month = LocalDate.now().getMonthValue();
+        int year = LocalDate.now().getYear();
         if (salaryService.existsSalaryForMonth(month, year)) {
             return ResponseEntity.ok("Tháng " + month + "/" + year + " đã thanh toán lương.");
         }

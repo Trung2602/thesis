@@ -2,29 +2,231 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "Gym Microservices Architecture: VPC, RDS, ECS Fargate, ALB, Service Discovery, Logging",
   "Parameters": {
-    "Environment": { "Type": "String", "Default": "dev" },
-    "VpcCidr": { "Type": "String", "Default": "10.0.0.0/16" },
-    "PublicSubnet1Cidr": { "Type": "String", "Default": "10.0.1.0/24" },
-    "PublicSubnet2Cidr": { "Type": "String", "Default": "10.0.2.0/24" },
-    "PrivateSubnet1Cidr": { "Type": "String", "Default": "10.0.3.0/24" },
-    "PrivateSubnet2Cidr": { "Type": "String", "Default": "10.0.4.0/24" },
-    "DBUsername": { "Type": "String", "Default": "postgres" },
-    "DBPassword": { "Type": "String", "NoEcho": true, "Default": "Admin@123" }
+    "BootstrapMode": {
+      "Type": "String",
+      "AllowedValues": ["true","false"],
+      "Default": "true",
+      "Description": "Set to 'true' to use a lightweight bootstrap image for initial deployment. Set to 'false' to use your real ECR images after they are pushed."
+    }, 
+    "BootstrapImage": {
+      "Type": "String",
+      "Default": "springboot-health-bootstrap:latest",
+      "Description": "The public Docker Hub image used to bypass initial ECR pull failures."
+    },
+    "ProjectName": {
+      "Type": "String",
+      "Default": "fitness"
+    },
+    "ScanOnPush": {
+      "Type": "String",
+      "AllowedValues": ["true","false"],
+      "Default": "true",
+      "Description": "Enable scan on push to have each image automatically scanned after being pushed to a repository. If disabled, each image scan must be manually started to get scan results."
+    },
+    "ImageTagMutability": {
+      "Type": "String",
+      "AllowedValues": ["MUTABLE","IMMUTABLE"],
+      "Default": "MUTABLE"
+    },
+    "VpcCidr": {
+      "Type": "String",
+      "Default": "10.0.0.0/16"
+    },
+    "PublicSubnet1Cidr": {
+      "Type": "String",
+      "Default": "10.0.0.0/24"
+    },
+    "PublicSubnet2Cidr": {
+      "Type": "String",
+      "Default": "10.0.1.0/24"
+    },
+    "PrivateSubnet1Cidr": {
+      "Type": "String",
+      "Default": "10.0.10.0/24" 
+    },
+    "PrivateSubnet2Cidr": {
+      "Type": "String",
+      "Default": "10.0.11.0/24"
+    },
+    "MailHost": {
+      "Type": "String",
+      "Default": "smtp.gmail.com"
+    },
+    "MailUsername": {
+      "Type": "String",
+      "Default": "trunglu2602@gmail.com"
+    },
+    "MailPassword": {
+      "Type": "String",
+      "NoEcho": true,
+      "MinLength": 8,
+      "Description": "Email SMTP password / app password"
+    },
+    "GoogleApiKey": {
+      "Type": "String",
+      "NoEcho": true
+    },
+    "DbUsername": { 
+      "Type": "String",
+      "Default": "postgres"
+    },
+    "DbPassword": {
+      "Type": "String",
+      "NoEcho": true,
+      "MinLength": 8
+    },
+    "DbPort": {
+      "Type": "Number",
+      "Default": 5432
+    },
+    "DbInstanceClass": {
+      "Type": "String",
+      "Default": "db.t4g.small"
+    },
+    "DbAllocatedStorage": {
+      "Type": "Number",
+      "Default": 20
+    },
+    "DbMultiAZ": {
+      "Type": "String",
+      "AllowedValues": ["true","false"],
+      "Default": "false"
+    },
+    "ContainerPort": {
+      "Type": "Number",
+      "Default": 8080
+    },
+    "ServiceAName": {
+      "Type": "String",
+      "Default": "gym"
+    },
+    "ServiceBName": {
+      "Type": "String",
+      "Default": "user"
+    },
+    "ServiceCName": {
+      "Type": "String",
+      "Default": "ai"
+    },
+    "JWTSecret": {
+      "Type": "String",
+      "Default": "9fK3#pL8vX2q@W7mZrT5sYhD1eG6uN0bQ4cA8jHkLpRsUvWx"
+    },
+    "EcrRegion": {
+      "Type": "String",
+      "Default": "us-east-1",
+      "Description": "The AWS Region (Zone) where your ECR repositories are located."
+    },
+    "ImageTag": {
+      "Type": "String",
+      "Default": "latest",
+      "Description": "The tag of the docker image to deploy (e.g., latest, v1.0.0, sha-xyz)."
+    },
+    "ServiceAPaths": {
+      "Type": "CommaDelimitedList",
+      "Default": "/api/v1/gym/*,/api/v1/gym"
+    },
+    "ServiceBPaths": {
+      "Type": "CommaDelimitedList",
+      "Default": "/api/v1/user/*,/api/v1/user"
+    },
+    "ServiceCPaths": {
+      "Type": "CommaDelimitedList",
+      "Default": "/ws-chat/websocket/*,/api/v1/ai/*,/api/v1/ai"
+    },
+    "HealthCheckPath": {
+      "Type": "String",
+      "Default": "/actuator/health/liveness"
+    },
+    "DesiredCountA": {
+      "Type": "Number",
+      "Default": 1
+    },
+    "DesiredCountB": {
+      "Type": "Number",
+      "Default": 1
+    },
+    "DesiredCountC": {
+      "Type": "Number",
+      "Default": 1
+    },
+    "AutoScaleMin": {
+      "Type": "Number",
+      "Default": 1
+    },
+    "AutoScaleMax": {
+      "Type": "Number",
+      "Default": 3
+    },
+    "AutoScaleCpuTarget": {
+      "Type": "Number",
+      "Default": 60.0
+    }
+  },
+  "Conditions": {
+    "IsMultiAZ": {"Fn::Equals": [{"Ref": "DbMultiAZ"},"true"]},
+    "DoScanOnPush": {"Fn::Equals": [{"Ref": "ScanOnPush"},"true"]},
+    "IsBootstrapMode": {"Fn::Equals": [{"Ref": "BootstrapMode"},"true"]}
   },
   "Resources": {
+    "EcrRepoA": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": {"Fn::Sub": "${ProjectName}-${ServiceAName}-images"},
+        "ImageTagMutability": {"Ref": "ImageTagMutability"},
+        "ImageScanningConfiguration": {
+          "ScanOnPush": {
+            "Fn::If": ["DoScanOnPush",true,false]
+          }
+        },
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        }
+      }
+    },
+    "EcrRepoB": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": {"Fn::Sub": "${ProjectName}-${ServiceBName}-images"},
+        "ImageTagMutability": {"Ref": "ImageTagMutability"},
+        "ImageScanningConfiguration": {
+          "ScanOnPush": {
+            "Fn::If": ["DoScanOnPush", true,false]
+          }
+        },
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        }
+      }
+    },
+    "EcrRepoC": {
+      "Type": "AWS::ECR::Repository",
+      "Properties": {
+        "RepositoryName": {"Fn::Sub": "${ProjectName}-${ServiceCName}-images"},
+        "ImageTagMutability": {"Ref": "ImageTagMutability"},
+        "ImageScanningConfiguration": {
+          "ScanOnPush": {
+            "Fn::If": ["DoScanOnPush",true,false]
+          }
+        },
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        }
+      }
+    },
     "VPC": {
       "Type": "AWS::EC2::VPC",
       "Properties": {
         "CidrBlock": { "Ref": "VpcCidr" },
         "EnableDnsSupport": true,
         "EnableDnsHostnames": true,
-        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${Environment}-vpc" } }]
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-vpc" } }]
       }
     },
     "InternetGateway": {
       "Type": "AWS::EC2::InternetGateway",
       "Properties": {
-        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${Environment}-igw" } }]
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-igw" } }]
       }
     },
     "AttachGateway": {
@@ -38,7 +240,7 @@
         "CidrBlock": { "Ref": "PublicSubnet1Cidr" },
         "AvailabilityZone": { "Fn::Select": [0, { "Fn::GetAZs": "" }] },
         "MapPublicIpOnLaunch": true,
-        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${Environment}-public-1" } }]
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-public-a" } }]
       }
     },
     "PublicSubnet2": {
@@ -48,7 +250,7 @@
         "CidrBlock": { "Ref": "PublicSubnet2Cidr" },
         "AvailabilityZone": { "Fn::Select": [1, { "Fn::GetAZs": "" }] },
         "MapPublicIpOnLaunch": true,
-        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${Environment}-public-2" } }]
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-public-b" } }]
       }
     },
     "PrivateSubnet1": {
@@ -58,7 +260,7 @@
         "CidrBlock": { "Ref": "PrivateSubnet1Cidr" },
         "AvailabilityZone": { "Fn::Select": [0, { "Fn::GetAZs": "" }] },
         "MapPublicIpOnLaunch": false,
-        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${Environment}-private-1" } }]
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-private-a" } }]
       }
     },
     "PrivateSubnet2": {
@@ -68,14 +270,211 @@
         "CidrBlock": { "Ref": "PrivateSubnet2Cidr" },
         "AvailabilityZone": { "Fn::Select": [1, { "Fn::GetAZs": "" }] },
         "MapPublicIpOnLaunch": false,
-        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${Environment}-private-2" } }]
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-private-b" } }]
       }
     },
-
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {"VpcId": {"Ref": "VPC"}}
+    },
+    "PublicDefaultRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "AttachGateway",
+      "Properties": {
+        "RouteTableId": {"Ref": "PublicRouteTable"},
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {"Ref": "InternetGateway"}
+      }
+    },
+    "PublicSubnet1Assoc": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {"Ref": "PublicSubnet1"},
+        "RouteTableId": {"Ref": "PublicRouteTable"}
+      }
+    },
+    "PublicSubnet2Assoc": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {"Ref": "PublicSubnet2"},
+        "RouteTableId": {"Ref": "PublicRouteTable"}
+      }
+    },
+    "NatEip1": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {"Domain": "vpc"}
+    },
+    "NatGateway1": {
+      "Type": "AWS::EC2::NatGateway",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": ["NatEip1","AllocationId"]
+        },
+        "SubnetId": {"Ref": "PublicSubnet1"}
+      }
+    },
+    "PrivateRouteTable1": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {"VpcId": {"Ref": "VPC"}}
+    },
+    "PrivateDefaultRoute1": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {"Ref": "PrivateRouteTable1"},
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {"Ref": "NatGateway1"}
+      }
+    },
+    "PrivateSubnet1Assoc": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {"Ref": "PrivateSubnet1"},
+        "RouteTableId": {"Ref": "PrivateRouteTable1"}
+      }
+    },
+    "NatEip2": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {"Domain": "vpc"}
+    },
+    "NatGateway2": {
+      "Type": "AWS::EC2::NatGateway",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": ["NatEip2","AllocationId"]
+        },
+        "SubnetId": {"Ref": "PublicSubnet2"}
+      }
+    },
+    "PrivateRouteTable2": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {"VpcId": {"Ref": "VPC"}}
+    },
+    "PrivateDefaultRoute2": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {"Ref": "PrivateRouteTable2"},
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {"Ref": "NatGateway2"}
+      }
+    },
+    "PrivateSubnet2Assoc": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {"Ref": "PrivateSubnet2"},
+        "RouteTableId": {"Ref": "PrivateRouteTable2"}
+      }
+    },
+    "DbSubnetGroup": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "Private subnets for RDS",
+        "SubnetIds": [
+          {"Ref": "PrivateSubnet1"},
+          {"Ref": "PrivateSubnet2"}
+        ]
+      }
+    },
+    "DbSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {"Ref": "VPC"},
+        "GroupDescription": "RDS Postgres SG (ingress from ECS SG added later).",
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "Db": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "Engine": "postgres",
+        "DBInstanceIdentifier": { "Fn::Sub": "${ProjectName}-db" },
+        "DBInstanceClass": { "Ref": "DbInstanceClass" },
+        "AllocatedStorage": { "Ref": "DbAllocatedStorage" },
+        "DBSubnetGroupName": { "Ref": "DbSubnetGroup" },
+        "VPCSecurityGroups": [{ "Ref": "DbSecurityGroup" }],
+        "MasterUsername": { "Ref": "DbUsername" },
+        "MasterUserPassword": { "Ref": "DbPassword" },
+        "BackupRetentionPeriod": 7,
+        "MultiAZ": {"Fn::If": ["IsMultiAZ", true, false]},
+        "StorageEncrypted": true,
+        "PubliclyAccessible": true,
+        "DeletionProtection": false
+      }
+    },
+    "AlbSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {"Ref": "VPC"},
+        "GroupDescription": "ALB SG allow inbound HTTP (80) from internet.",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "EcsTaskRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": {"Fn::Sub": "${ProjectName}-ecs-task-role"},
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+              "Effect": "Allow",
+              "Principal": {"Service": "ecs-tasks.amazonaws.com"},
+              "Action": "sts:AssumeRole"
+          }]
+        }
+      }
+    },
+    "EcsSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {"Ref": "VPC"},
+        "GroupDescription": "ECS tasks SG allow inbound from ALB only.",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": {"Ref": "ContainerPort"},
+            "ToPort": {"Ref": "ContainerPort"},
+            "SourceSecurityGroupId": {"Ref": "AlbSecurityGroup"}
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "DbIngressFromEcs": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {"Ref": "DbSecurityGroup"},
+        "IpProtocol": "tcp",
+        "FromPort": {"Ref": "DbPort"},
+        "ToPort": {"Ref": "DbPort"},
+        "SourceSecurityGroupId": {"Ref": "EcsSecurityGroup"}
+      }
+    },
     "ALB": {
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Properties": {
-        "Name": { "Fn::Sub": "${Environment}-alb" },
+        "Name": { "Fn::Sub": "${ProjectName}-alb" },
         "Subnets": [ { "Ref": "PublicSubnet1" }, { "Ref": "PublicSubnet2" } ],
         "SecurityGroups": [ { "Ref": "AlbSecurityGroup" } ],
         "Scheme": "internet-facing",
@@ -91,147 +490,691 @@
         "DefaultActions": [
           {
             "Type": "fixed-response",
-            "FixedResponseConfig": { "StatusCode": "200", "ContentType": "text/plain", "MessageBody": "OK" }
+            "FixedResponseConfig": { 
+              "StatusCode": "200", 
+              "ContentType": "text/plain", 
+              "MessageBody": "OK" 
+            }
           }
         ]
       }
     },
-
+    "TargetGroupA": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "VpcId": { "Ref": "VPC"},
+        "TargetType": "ip",
+        "Port": {"Ref": "ContainerPort"},
+        "Protocol": "HTTP",
+        "HealthCheckPath": {"Ref": "HealthCheckPath"},
+        "Matcher": {"HttpCode": "200-399"}
+      }
+    },
+    "TargetGroupB": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "VpcId": { "Ref": "VPC"},
+        "TargetType": "ip",
+        "Port": {"Ref": "ContainerPort"},
+        "Protocol": "HTTP",
+        "HealthCheckPath": {"Ref": "HealthCheckPath"},
+        "Matcher": {"HttpCode": "200-399"}
+      }
+    },
+    "TargetGroupC": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "VpcId": { "Ref": "VPC"},
+        "TargetType": "ip",
+        "Port": {"Ref": "ContainerPort"},
+        "Protocol": "HTTP",
+        "HealthCheckPath": {"Ref": "HealthCheckPath"},
+        "Matcher": {"HttpCode": "200-399"}
+      }
+    },
+    "RuleA": {
+      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "Properties": {
+        "ListenerArn": {"Ref": "ALBListener"},
+        "Priority": 10,
+        "Conditions": [
+          {
+            "Field": "path-pattern",
+            "Values": {"Ref": "ServiceAPaths"}
+          }
+        ],
+        "Actions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {"Ref": "TargetGroupA"}
+          }
+        ]
+      }
+    },
+    "RuleB": {
+      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "Properties": {
+        "ListenerArn": {"Ref": "ALBListener"},
+        "Priority": 20,
+        "Conditions": [
+          {
+            "Field": "path-pattern",
+            "Values": {"Ref": "ServiceBPaths"}
+          }
+        ],
+        "Actions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {"Ref": "TargetGroupB"}
+          }
+        ]
+      }
+    },
+    "RuleC": {
+      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "Properties": {
+        "ListenerArn": {"Ref": "ALBListener"},
+        "Priority": 30,
+        "Conditions": [
+          {
+            "Field": "path-pattern",
+            "Values": {"Ref": "ServiceCPaths"}
+          }
+        ],
+        "Actions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {"Ref": "TargetGroupC"}
+          }
+        ]
+      }
+    },
+    "EcsCluster": { 
+      "Type": "AWS::ECS::Cluster", 
+      "Properties": { "ClusterName": { "Fn::Sub": "${ProjectName}-ecs-cluster" } } 
+    },
     "ServiceDiscoveryNamespace": {
       "Type": "AWS::ServiceDiscovery::PrivateDnsNamespace",
       "Properties": {
-        "Name": { "Fn::Sub": "${Environment}.internal" },
+        "Name": { "Fn::Sub": "${ProjectName}.internal" },
         "Vpc": { "Ref": "VPC" },
-        "Description": "Service discovery for internal microservices"
+        "Description": "Service for internal microservices"
       }
     },
-
-    "ECSCluster": { "Type": "AWS::ECS::Cluster", "Properties": { "ClusterName": { "Fn::Sub": "${Environment}-ecs-cluster" } } },
-
-    "ECSExecutionRole": {
+    "ServiceDiscoveryA": {
+      "Type": "AWS::ServiceDiscovery::Service",
+      "Properties": {
+        "Name": { "Ref": "ServiceAName" },
+        "NamespaceId": { "Ref": "ServiceDiscoveryNamespace" },
+        "DnsConfig": {"DnsRecords": [{"Type": "A","TTL": 60}]}
+      }
+    },
+    "ServiceDiscoveryB": {
+      "Type": "AWS::ServiceDiscovery::Service",
+      "Properties": {
+        "Name": { "Ref": "ServiceBName" },
+        "NamespaceId": { "Ref": "ServiceDiscoveryNamespace" },
+        "DnsConfig": {"DnsRecords": [{"Type": "A","TTL": 60}]}
+      }
+    },
+    "ServiceDiscoveryC": {
+      "Type": "AWS::ServiceDiscovery::Service",
+      "Properties": {
+        "Name": { "Ref": "ServiceCName" },
+        "NamespaceId": { "Ref": "ServiceDiscoveryNamespace" },
+        "DnsConfig": {"DnsRecords": [{"Type": "A","TTL": 60}]}
+      }
+    },
+    "EcsExecutionRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
-        "AssumeRolePolicyDocument": { "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Principal": { "Service": "ecs-tasks.amazonaws.com" }, "Action": "sts:AssumeRole" } ] },
+        "RoleName": {"Fn::Sub": "${ProjectName}-ecs-exec-role"},
+        "AssumeRolePolicyDocument": { 
+          "Version": "2012-10-17", 
+          "Statement": [ 
+            { 
+              "Effect": "Allow", 
+              "Principal": { "Service": "ecs-tasks.amazonaws.com" }, 
+              "Action": "sts:AssumeRole" 
+            } 
+          ] 
+        },
         "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy" ]
       }
     },
-
-    "ECSLogGroup": {
+    "EcsLogGroup": {
       "Type": "AWS::Logs::LogGroup",
-      "Properties": { "LogGroupName": { "Fn::Sub": "/ecs/${Environment}-services" }, "RetentionInDays": 14 }
+      "Properties": 
+      { 
+        "LogGroupName": { "Fn::Sub": "/ecs/${ProjectName}-services" }, 
+        "RetentionInDays": 14 
+      }
     },
-
-    "GymTaskDef": {
+    "TaskDefA": {
       "Type": "AWS::ECS::TaskDefinition",
       "Properties": {
-        "Family": { "Fn::Sub": "${Environment}-gym-server" },
-        "Cpu": "512",
-        "Memory": "1024",
+        "Family": { "Fn::Sub": "${ProjectName}-service-${ServiceAName}" },
+        "Cpu": "256",
+        "Memory": "512",
         "NetworkMode": "awsvpc",
         "RequiresCompatibilities": ["FARGATE"],
-        "ExecutionRoleArn": { "Fn::GetAtt": ["ECSExecutionRole", "Arn"] },
-        "ContainerDefinitions": [
-          {
-            "Name": "gym-server",
-            "Image": "<docker-image-gym-server>",
-            "PortMappings": [ { "ContainerPort": 8080 } ],
-            "LogConfiguration": { "LogDriver": "awslogs", "Options": { "awslogs-group": { "Ref": "ECSLogGroup" }, "awslogs-region": { "Ref": "AWS::Region" }, "awslogs-stream-prefix": "gym" } }
+        "ExecutionRoleArn": { "Fn::GetAtt": ["EcsExecutionRole", "Arn"] },
+        "TaskRoleArn": {"Fn::GetAtt": ["EcsTaskRole","Arn"]},
+        "ContainerDefinitions": [{
+            "Name": {"Ref": "ServiceAName"},
+            "Image": {"Fn::If": ["IsBootstrapMode",{"Ref": "BootstrapImage"},
+                {
+                  "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${EcrRegion}.amazonaws.com/${ProjectName}-${ServiceAName}-images:${ImageTag}"
+                }
+              ]},
+            "PortMappings": [{"ContainerPort": {"Ref": "ContainerPort"},"Protocol": "tcp"}],
+            "Environment": [
+              {
+                "Name": "DB_URL",
+                "Value": {
+                  "Fn::Sub": ["jdbc:postgresql://${DBHost}:${DBPort}/gymdb",
+                    {
+                      "DBHost": { "Fn::GetAtt": ["Db", "Endpoint.Address"] },
+                      "DBPort": { "Ref": "DbPort" }
+                    }
+                  ]
+                }
+              },
+              {
+                "Name": "DB_USERNAME",
+                "Value": { "Ref": "DbUsername" }
+              },
+              {
+                "Name": "DB_PASSWORD",
+                "Value": { "Ref": "DbPassword" }
+              },
+              {
+                "Name": "SERVER_PORT",
+                "Value": { "Ref": "ContainerPort" }
+              },
+              {
+                "Name": "JWT_SECRET",
+                "Value": { "Ref": "JWTSecret" }
+              },
+              {
+                "Name": "USER_SERVICE_URL",
+                "Value": {
+                  "Fn::Sub": "http://${ServiceBName}.${ProjectName}.internal:${ContainerPort}"
+                }
+              },
+              {
+                "Name": "VNP_TMN_CODE",
+                "Value": "9J2VIKEK"
+              },
+              {
+                "Name": "VNP_HASH_SECRET",
+                "Value": "XEQX3BXDCXTNJ6LF53UDYU8F88W3P13J"
+              },
+              {
+                "Name": "VNP_URL",
+                "Value": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+              },
+              {
+                "Name": "VNP_RETURN_URL",
+                "Value": "https://your-domain/api/payment/return"
+              }
+            ],
+            "LogConfiguration": { 
+              "LogDriver": "awslogs", 
+              "Options": 
+              { 
+                "awslogs-group": { "Ref": "EcsLogGroup" }, 
+                "awslogs-region": { "Ref": "AWS::Region" }, 
+                "awslogs-stream-prefix": "service-${ServiceAName}"
+              } 
+            }
           }
         ]
       }
     },
-
-    "UserTaskDef": {
+    "TaskDefB": {
       "Type": "AWS::ECS::TaskDefinition",
       "Properties": {
-        "Family": { "Fn::Sub": "${Environment}-user-server" },
-        "Cpu": "512",
-        "Memory": "1024",
+        "Family": { "Fn::Sub": "${ProjectName}-service-${ServiceBName}" },
+        "Cpu": "256",
+        "Memory": "512",
         "NetworkMode": "awsvpc",
         "RequiresCompatibilities": ["FARGATE"],
-        "ExecutionRoleArn": { "Fn::GetAtt": ["ECSExecutionRole", "Arn"] },
+        "ExecutionRoleArn": { "Fn::GetAtt": ["EcsExecutionRole", "Arn"] },
+        "TaskRoleArn": { "Fn::GetAtt": ["EcsTaskRole","Arn"] },
         "ContainerDefinitions": [
           {
-            "Name": "user-server",
-            "Image": "<docker-image-user-server>",
-            "PortMappings": [ { "ContainerPort": 8081 } ],
-            "LogConfiguration": { "LogDriver": "awslogs", "Options": { "awslogs-group": { "Ref": "ECSLogGroup" }, "awslogs-region": { "Ref": "AWS::Region" }, "awslogs-stream-prefix": "user" } }
+            "Name": {"Ref": "ServiceBName"},
+            "Image": {"Fn::If": ["IsBootstrapMode",{ "Ref": "BootstrapImage" },
+                {
+                  "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${EcrRegion}.amazonaws.com/${ProjectName}-${ServiceBName}-images:${ImageTag}"
+                }
+              ]
+            },
+            "PortMappings": [{"ContainerPort": { "Ref": "ContainerPort" },"Protocol": "tcp"}],
+            "Environment": [
+              {
+                "Name": "DB_URL",
+                "Value": {
+                  "Fn::Sub": [
+                    "jdbc:postgresql://${DBHost}:${DBPort}/userdb",
+                    {
+                      "DBHost": { "Fn::GetAtt": ["Db", "Endpoint.Address"] },
+                      "DBPort": { "Ref": "DbPort" }
+                    }
+                  ]
+                }
+              },
+              {
+                "Name": "DB_USERNAME",
+                "Value": { "Ref": "DbUsername" }
+              },
+              {
+                "Name": "DB_PASSWORD",
+                "Value": { "Ref": "DbPassword" }
+              },
+              {
+                "Name": "SERVER_PORT",
+                "Value": { "Ref": "ContainerPort" }
+              },
+              {
+                "Name": "JWT_SECRET",
+                "Value": { "Ref": "JWTSecret" }
+              },
+              {
+                "Name": "GYM_SERVICE_URL",
+                "Value": {
+                  "Fn::Sub": "http://${ServiceAName}.${ProjectName}.internal:${ContainerPort}"
+                }
+              },
+              {
+                "Name": "MAIL_HOST",
+                "Value": "smtp.gmail.com"
+              },
+              {
+                "Name": "MAIL_PORT",
+                "Value": "587"
+              },
+              {
+                "Name": "MAIL_USERNAME",
+                "Value": { "Ref": "MailUsername" }
+              },
+              {
+                "Name": "MAIL_PASSWORD",
+                "Value": { "Ref": "MailPassword" }
+              },
+
+              {
+                "Name": "MAIL_SMTP_AUTH",
+                "Value": "true"
+              },
+              {
+                "Name": "MAIL_STARTTLS_ENABLE",
+                "Value": "true"
+              },
+              {
+                "Name": "CLOUDINARY_CLOUD_NAME",
+                "Value": "dsagezboe"
+              },
+              {
+                "Name": "CLOUDINARY_API_KEY",
+                "Value": "118713819798876"
+              },
+              {
+                "Name": "CLOUDINARY_API_SECRET",
+                "Value": "XDDfAXu88BqLa21ISQWKzgCAwHM"
+              }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": { "Ref": "EcsLogGroup" },
+                "awslogs-region": { "Ref": "AWS::Region" },
+                "awslogs-stream-prefix": { "Fn::Sub": "service-${ServiceBName}" }
+              }
+            }
           }
         ]
       }
     },
-
-    "AiTaskDef": {
+    "TaskDefC": {
       "Type": "AWS::ECS::TaskDefinition",
       "Properties": {
-        "Family": { "Fn::Sub": "${Environment}-ai-server" },
-        "Cpu": "512",
-        "Memory": "1024",
+        "Family": { "Fn::Sub": "${ProjectName}-service-${ServiceCName}" },
+        "Cpu": "256",
+        "Memory": "512",
         "NetworkMode": "awsvpc",
         "RequiresCompatibilities": ["FARGATE"],
-        "ExecutionRoleArn": { "Fn::GetAtt": ["ECSExecutionRole", "Arn"] },
+        "ExecutionRoleArn": { "Fn::GetAtt": ["EcsExecutionRole", "Arn"] },
+        "TaskRoleArn": { "Fn::GetAtt": ["EcsTaskRole","Arn"] },
         "ContainerDefinitions": [
           {
-            "Name": "ai-server",
-            "Image": "<docker-image-ai-server>",
-            "PortMappings": [ { "ContainerPort": 8082 } ],
-            "LogConfiguration": { "LogDriver": "awslogs", "Options": { "awslogs-group": { "Ref": "ECSLogGroup" }, "awslogs-region": { "Ref": "AWS::Region" }, "awslogs-stream-prefix": "ai" } }
+            "Name": {"Ref": "ServiceCName"},
+            "Image": {"Fn::If": ["IsBootstrapMode",{ "Ref": "BootstrapImage" },
+                {
+                  "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${EcrRegion}.amazonaws.com/${ProjectName}-${ServiceCName}-images:${ImageTag}"
+                }
+              ]
+            },
+            "PortMappings": [{"ContainerPort": { "Ref": "ContainerPort" },"Protocol": "tcp"}],
+            "Environment": [
+              {
+                "Name": "DB_URL",
+                "Value": {
+                  "Fn::Sub": [
+                    "jdbc:postgresql://${DBHost}:${DBPort}/aidb",
+                    {
+                      "DBHost": { "Fn::GetAtt": ["Db", "Endpoint.Address"] },
+                      "DBPort": { "Ref": "DbPort" }
+                    }
+                  ]
+                }
+              },
+              {
+                "Name": "DB_USERNAME",
+                "Value": { "Ref": "DbUsername" }
+              },
+              {
+                "Name": "DB_PASSWORD",
+                "Value": { "Ref": "DbPassword" }
+              },
+              {
+                "Name": "SERVER_PORT",
+                "Value": { "Ref": "ContainerPort" }
+              },
+              {
+                "Name": "JWT_SECRET",
+                "Value": { "Ref": "JWTSecret" }
+              },
+              {
+                "Name": "USER_SERVICE_URL",
+                "Value": {
+                  "Fn::Sub": "http://${ServiceBName}.${ProjectName}.internal:${ContainerPort}"
+                }
+              },
+              {
+                "Name": "GOOGLE_API_KEY",
+                "Value": { "Ref": "GoogleApiKey" }
+              }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": { "Ref": "EcsLogGroup" },
+                "awslogs-region": { "Ref": "AWS::Region" },
+                "awslogs-stream-prefix": { "Fn::Sub": "service-${ServiceCName}" }
+              }
+            }
           }
         ]
       }
     },
-
-    "GymTargetGroup": {
-      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+    "ServiceA": {
+      "Type": "AWS::ECS::Service",
+      "DependsOn": ["ALBListener","RuleA","EcrRepoA"],
       "Properties": {
-        "TargetType": "ip",
-        "Port": 8080,
-        "Protocol": "HTTP",
-        "VpcId": { "Ref": "VPC" },
-        "HealthCheckPath": "/actuator/health"
+        "ServiceName": {"Fn::Sub": "${ProjectName}-service-${ServiceAName}"},
+        "Cluster": {"Ref": "EcsCluster"},
+        "LaunchType": "FARGATE",
+        "DesiredCount": {"Ref": "DesiredCountA"},
+        "TaskDefinition": {"Ref": "TaskDefA"},
+        "ServiceRegistries": 
+        [{
+          "RegistryArn": { "Fn::GetAtt": ["ServiceDiscoveryA", "Arn"] 
+        }}],
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "DISABLED",
+            "Subnets": [
+              {"Ref": "PrivateSubnet1"},
+              {"Ref": "PrivateSubnet2"}
+            ],
+            "SecurityGroups": [{"Ref": "EcsSecurityGroup"}]
+          }
+        },
+        "LoadBalancers": [
+          {
+            "TargetGroupArn": {"Ref": "TargetGroupA"},
+            "ContainerName": {"Ref": "ServiceAName"},
+            "ContainerPort": {"Ref": "ContainerPort"}
+          }
+        ]
       }
     },
-
-    "UserTargetGroup": {
-      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-      "Properties": { "TargetType": "ip", "Port": 8081, "Protocol": "HTTP", "VpcId": { "Ref": "VPC" }, "HealthCheckPath": "/actuator/health" }
-    },
-
-    "AiTargetGroup": {
-      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-      "Properties": { "TargetType": "ip", "Port": 8082, "Protocol": "HTTP", "VpcId": { "Ref": "VPC" }, "HealthCheckPath": "/actuator/health" }
-    },
-
-    "ALBListenerRuleGym": {
-      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+    "ServiceB": {
+      "Type": "AWS::ECS::Service",
+      "DependsOn": ["ALBListener","RuleB","EcrRepoB"],
       "Properties": {
-        "ListenerArn": { "Ref": "ALBListener" },
-        "Priority": 10,
-        "Conditions": [{ "Field": "path-pattern", "Values": ["/gym/*"] }],
-        "Actions": [{ "Type": "forward", "TargetGroupArn": { "Ref": "GymTargetGroup" } }]
+        "ServiceName": { "Fn::Sub": "${ProjectName}-service-${ServiceBName}" },
+        "Cluster": { "Ref": "EcsCluster" },
+        "LaunchType": "FARGATE",
+        "DesiredCount": { "Ref": "DesiredCountB" },
+        "TaskDefinition": { "Ref": "TaskDefB" },
+        "ServiceRegistries": 
+        [{
+          "RegistryArn": { "Fn::GetAtt": ["ServiceDiscoveryB", "Arn"] 
+        }}],
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "DISABLED",
+            "Subnets": [
+              { "Ref": "PrivateSubnet1" },
+              { "Ref": "PrivateSubnet2" }
+            ],
+            "SecurityGroups": [{ "Ref": "EcsSecurityGroup" }]
+          }
+        },
+        "LoadBalancers": [
+          {
+            "TargetGroupArn": { "Ref": "TargetGroupB" },
+            "ContainerName": { "Ref": "ServiceBName" },
+            "ContainerPort": { "Ref": "ContainerPort" }
+          }
+        ]
       }
     },
-    "ALBListenerRuleUser": {
-      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+    "ServiceC": {
+      "Type": "AWS::ECS::Service",
+      "DependsOn": ["ALBListener","RuleC","EcrRepoC"],
       "Properties": {
-        "ListenerArn": { "Ref": "ALBListener" },
-        "Priority": 20,
-        "Conditions": [{ "Field": "path-pattern", "Values": ["/user/*"] }],
-        "Actions": [{ "Type": "forward", "TargetGroupArn": { "Ref": "UserTargetGroup" } }]
+        "ServiceName": { "Fn::Sub": "${ProjectName}-service-${ServiceCName}" },
+        "Cluster": { "Ref": "EcsCluster" },
+        "LaunchType": "FARGATE",
+        "DesiredCount": { "Ref": "DesiredCountC" },
+        "TaskDefinition": { "Ref": "TaskDefC" },
+        "ServiceRegistries": 
+        [{
+          "RegistryArn": { "Fn::GetAtt": ["ServiceDiscoveryC", "Arn"] 
+        }}],
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "DISABLED",
+            "Subnets": [
+              { "Ref": "PrivateSubnet1" },
+              { "Ref": "PrivateSubnet2" }
+            ],
+            "SecurityGroups": [{ "Ref": "EcsSecurityGroup" }]
+          }
+        },
+        "LoadBalancers": [
+          {
+            "TargetGroupArn": { "Ref": "TargetGroupC" },
+            "ContainerName": { "Ref": "ServiceCName" },
+            "ContainerPort": { "Ref": "ContainerPort" }
+          }
+        ]
       }
     },
-    "ALBListenerRuleAi": {
-      "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+    "AutoScalingRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {"RoleName": {"Fn::Sub": "${ProjectName}-appautoscaling-role"},
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {"Service": "application-autoscaling.amazonaws.com"},
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole"
+        ]
+      }
+    },
+    "ScalableTargetA": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
       "Properties": {
-        "ListenerArn": { "Ref": "ALBListener" },
-        "Priority": 30,
-        "Conditions": [{ "Field": "path-pattern", "Values": ["/ai/*"] }],
-        "Actions": [{ "Type": "forward", "TargetGroupArn": { "Ref": "AiTargetGroup" } }]
+        "MaxCapacity": {"Ref": "AutoScaleMax"},
+        "MinCapacity": {"Ref": "AutoScaleMin"},
+        "ResourceId": {"Fn::Sub": "service/${EcsCluster}/${ProjectName}-service-${ServiceAName}"},
+        "RoleARN": {"Fn::GetAtt": ["AutoScalingRole","Arn"]},
+        "ScalableDimension": "ecs:service:DesiredCount",
+        "ServiceNamespace": "ecs"
+      }
+    },
+    "ScalingPolicyA": {
+      "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+      "Properties": {"PolicyName": {"Fn::Sub": "${ProjectName}-cpu-a"},
+        "PolicyType": "TargetTrackingScaling",
+        "ScalingTargetId": {"Ref": "ScalableTargetA"},
+        "TargetTrackingScalingPolicyConfiguration": {
+          "PredefinedMetricSpecification": {"PredefinedMetricType": "ECSServiceAverageCPUUtilization"},
+          "TargetValue": {"Ref": "AutoScaleCpuTarget"},
+          "ScaleInCooldown": 60,
+          "ScaleOutCooldown": 60
+        }
+      }
+    },
+    "ScalableTargetB": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Properties": {
+        "MaxCapacity": { "Ref": "AutoScaleMax" },
+        "MinCapacity": { "Ref": "AutoScaleMin" },
+        "ResourceId": {
+          "Fn::Sub": "service/${EcsCluster}/${ProjectName}-service-${ServiceBName}"
+        },
+        "RoleARN": { "Fn::GetAtt": ["AutoScalingRole","Arn"] },
+        "ScalableDimension": "ecs:service:DesiredCount",
+        "ServiceNamespace": "ecs"
+      }
+    },
+    "ScalingPolicyB": {
+      "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+      "Properties": {
+        "PolicyName": { "Fn::Sub": "${ProjectName}-cpu-b" },
+        "PolicyType": "TargetTrackingScaling",
+        "ScalingTargetId": { "Ref": "ScalableTargetB" },
+        "TargetTrackingScalingPolicyConfiguration": {
+          "PredefinedMetricSpecification": {
+            "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
+          },
+          "TargetValue": { "Ref": "AutoScaleCpuTarget" },
+          "ScaleInCooldown": 60,
+          "ScaleOutCooldown": 60
+        }
+      }
+    },
+    "ScalableTargetC": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Properties": {
+        "MaxCapacity": { "Ref": "AutoScaleMax" },
+        "MinCapacity": { "Ref": "AutoScaleMin" },
+        "ResourceId": {
+          "Fn::Sub": "service/${EcsCluster}/${ProjectName}-service-${ServiceCName}"
+        },
+        "RoleARN": { "Fn::GetAtt": ["AutoScalingRole","Arn"] },
+        "ScalableDimension": "ecs:service:DesiredCount",
+        "ServiceNamespace": "ecs"
+      }
+    },
+    "ScalingPolicyC": {
+      "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+      "Properties": {
+        "PolicyName": { "Fn::Sub": "${ProjectName}-cpu-c" },
+        "PolicyType": "TargetTrackingScaling",
+        "ScalingTargetId": { "Ref": "ScalableTargetC" },
+        "TargetTrackingScalingPolicyConfiguration": {
+          "PredefinedMetricSpecification": {
+            "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
+          },
+          "TargetValue": { "Ref": "AutoScaleCpuTarget" },
+          "ScaleInCooldown": 60,
+          "ScaleOutCooldown": 60
+        }
+      }
+    },
+    "ApiSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {"Ref": "VPC"},
+        "GroupDescription": "API Gateway VPC Link SG: allow egress, and ALB allows inbound from this SG.",
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "AlbIngressFromApiGw": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {"Ref": "AlbSecurityGroup" },
+        "IpProtocol": "tcp",
+        "FromPort": 80,
+        "ToPort": 80,
+        "SourceSecurityGroupId": {"Ref": "ApiSecurityGroup"}
+      }
+    },
+    "WebDistribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "Enabled": true,
+          "HttpVersion": "http2",
+          "Origins": [
+            {
+              "Id": "albOrigin",
+              "DomainName": { "Fn::GetAtt": ["ALB","DNSName"] },
+              "CustomOriginConfig": {
+                "OriginProtocolPolicy": "http-only",
+                "HTTPPort": 80,
+                "HTTPSPort": 443
+              }
+            }
+          ],
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "albOrigin",
+            "ViewerProtocolPolicy": "redirect-to-https",
+            "AllowedMethods": [
+              "GET","HEAD","OPTIONS","POST","PUT","DELETE","PATCH"
+            ],
+            "CachedMethods": [
+              "GET","HEAD","OPTIONS"
+            ],
+            "Compress": true,
+            "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+          }
+        }
       }
     }
   },
   "Outputs": {
     "ALBDNS": { "Value": { "Fn::GetAtt": ["ALB", "DNSName"] } },
-    "VPCId": { "Value": { "Ref": "VPC" } }
+    "VPCId": { "Value": { "Ref": "VPC" } },
+    "CloudFrontDomain": {
+      "Value": {
+        "Fn::GetAtt": ["WebDistribution","DomainName"]}
+    },
+    "CloudFrontDistributionId": {"Value": {"Ref": "WebDistribution"}},
+    "EcsClusterName": {"Value": {"Ref": "EcsCluster"}},
+    "EcsServiceAName": {"Value": {"Ref": "ServiceA"}},
+    "EcsServiceBName": {"Value": {"Ref": "ServiceB"}},
+    "EcsServiceCName": {"Value": {"Ref": "ServiceC"}},
+    "EcrRepoAName": {"Value": {"Ref": "EcrRepoA"}},
+    "EcrRepoBName": {"Value": {"Ref": "EcrRepoB"}},
+    "EcrRepoCName": {"Value": {"Ref": "EcrRepoC"}}
   }
 }

@@ -55,36 +55,39 @@ public class SecurityConfig {
                         .requestMatchers("/internal/**").permitAll()
 
                         // ===== FACILITY =====
-                        .requestMatchers(HttpMethod.GET, "/api/v1/facilities/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/gym/facilities/**").permitAll()
 
                         // ===== PLANS =====
-                        .requestMatchers(HttpMethod.GET, "/api/v1/plans/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/plans").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/plans/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/gym/plans/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/gym/plans").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/plans/**").hasRole("ADMIN")
 
                         // ===== CUSTOMER SCHEDULE =====
-                        .requestMatchers(HttpMethod.GET, "/api/v1/customer-schedules/**").hasAnyRole("CUSTOMER","STAFF")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/customer-schedules").hasRole("CUSTOMER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/customer-schedules/**").hasRole("CUSTOMER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/gym/customer-schedules/**").hasAnyRole("CUSTOMER","STAFF","ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/gym/customer-schedules").hasAnyRole("CUSTOMER","ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/customer-schedules/**").hasAnyRole("CUSTOMER","ADMIN")
 
                         // ===== PAY CUSTOMER =====
-                        .requestMatchers(HttpMethod.GET, "/api/v1/pay-customers/**").hasRole("CUSTOMER")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/pay-customers").hasRole("CUSTOMER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/gym/pay-customers/**").hasAnyRole("CUSTOMER","ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/gym/pay-customers").hasAnyRole("CUSTOMER","ADMIN")
 
                         // ===== PAYMENT =====
-                        .requestMatchers("/api/payment/**").hasRole("CUSTOMER")
+                        .requestMatchers("/api/v1/gym/payment/**").hasAnyRole("CUSTOMER")
 
                         // ===== SALARY =====
-                        .requestMatchers("/api/v1/salaries/**").hasAnyRole("ADMIN","STAFF")
+                        .requestMatchers("/api/v1/gym/salaries/**").hasAnyRole("ADMIN","STAFF")
 
                         // ===== SHIFT =====
-                        .requestMatchers("/api/v1/shifts/**").hasAnyRole("ADMIN","STAFF")
+                        .requestMatchers("/api/v1/gym/shifts/**").hasAnyRole("ADMIN","STAFF")
 
                         // ===== STAFF DAY OFF =====
-                        .requestMatchers("/api/v1/day-offs/**").hasAnyRole("ADMIN","STAFF")
+                        .requestMatchers("/api/v1/gym/day-offs/**").hasAnyRole("ADMIN","STAFF")
 
                         // ===== STAFF SCHEDULE =====
-                        .requestMatchers("/api/v1/staff-schedules/**").hasAnyRole("ADMIN","STAFF")
+                        .requestMatchers("/api/v1/gym/staff-schedules/**").hasAnyRole("ADMIN","STAFF")
+
+                        // ===== REPORT =====
+                        .requestMatchers("/api/v1/gym/report/**").hasRole("ADMIN")
 
                         // ===== DEFAULT =====
                         .anyRequest().authenticated()

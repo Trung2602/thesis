@@ -1,15 +1,14 @@
-// staff_schedule.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:table_calendar/table_calendar.dart';
 import 'package:provider/provider.dart';
 
-import 'package:gym/api/api.dart';
 import 'package:gym/models/staff_schedule.dart';
 import 'package:gym/models/account_provider.dart';
 import 'package:gym/models/account.dart';
 
+import '../api/gym_server_api.dart';
 import '../cache/app_cache.dart';
 import '../services/auth_service.dart';
 
@@ -44,7 +43,6 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
     }
   }
 
-  // ================= COMMON =================
   void showMsg(String message, {bool isError = false}) {
     if (!mounted) return;
 
@@ -71,7 +69,7 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
   Future<void> deleteStaffSchedule(String uuid) async {
     final token = await AuthService().getToken();
     final res = await http.delete(
-      Uri.parse(Api.deleteStaffSchedule(uuid)),
+      Uri.parse(GymServerApi.deleteStaffSchedule(uuid)),
       headers: {
         'Authorization': 'Bearer $token',
       },
@@ -82,7 +80,6 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
     }
   }
 
-  // ================= LOAD =================
   Future<void> _loadSchedulesForDay(DateTime day) async {
     final dateString = formatDate(day);
     if (cache.containsKey(dateString)) {
@@ -98,7 +95,7 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
     });
     final token = await AuthService().getToken();
     try {
-      final uri = Uri.parse(Api.getStaffSchedulesFilter)
+      final uri = Uri.parse(GymServerApi.getStaffSchedulesFilterByStaff)
           .replace(queryParameters: {'date': dateString});
 
       final response = await http.get(
@@ -137,7 +134,7 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
 
     try {
       final res = await http.get(
-        Uri.parse(Api.getShifts),
+        Uri.parse(GymServerApi.getShifts),
         headers: {
           "Content-Type": "application/json",
           'Authorization': 'Bearer $token',
@@ -168,7 +165,7 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
 
     try {
       final res = await http.post(
-        Uri.parse(Api.postStaffSchedule),
+        Uri.parse(GymServerApi.postStaffSchedule),
         headers: {
           "Content-Type": "application/json",
           'Authorization': 'Bearer $token',
@@ -194,7 +191,6 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
     }
   }
 
-  // ================= DELETE =================
   Future<void> _handleDelete(String uuid) async {
     try {
       await deleteStaffSchedule(uuid);
@@ -209,7 +205,6 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
     }
   }
 
-  // ================= DIALOG =================
   Future<Map<String, dynamic>?> _showShiftDialog(List<dynamic> shifts) async {
     if (shifts.isEmpty) {
       showMsg("Chưa có ca làm việc", isError: true);
@@ -240,7 +235,6 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
     );
   }
 
-  // ================= UI =================
   Widget _buildCalendar() {
     return Card(
       color: Colors.white.withValues(alpha: 0.1),
@@ -375,7 +369,6 @@ class _StaffScheduleScreenState extends State<StaffScheduleScreen> {
     );
   }
 
-  // ================= BUILD =================
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(

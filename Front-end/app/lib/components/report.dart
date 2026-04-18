@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:gym/api/gym_server_api.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
-import '../api/api.dart';
 
 class ReportDashboardPage extends StatefulWidget {
   const ReportDashboardPage({super.key});
@@ -15,14 +15,17 @@ class ReportDashboardPage extends StatefulWidget {
 
 class _ReportDashboardPageState extends State<ReportDashboardPage> {
   String type = "MONTH"; // MONTH | QUARTER | YEAR
+
   int month = DateTime.now().month;
   int year = DateTime.now().year;
+  int quarter = 1;
 
-  List<double> salaryData = [];
+  List<double> expenseData = [];
   List<double> revenueData = [];
 
-  double totalSalary = 0;
+  double totalExpense = 0;
   double totalRevenue = 0;
+  double profit = 0;
 
   bool isLoading = false;
 
@@ -38,24 +41,31 @@ class _ReportDashboardPageState extends State<ReportDashboardPage> {
 
     final token = await AuthService().getToken();
 
-    final res = await http.get(
-      Uri.parse(
-          "${Api.report}?type=$type&month=$month&year=$year"),
-      headers: {"Authorization": "Bearer $token"},
-    );
+    try {
+      final res = await http.get(
+        Uri.parse(
+          "${GymServerApi.getReport}?type=$type&month=$month&year=$year&quarter=$quarter",
+        ),
+        headers: {"Authorization": "Bearer $token"},
+      );
 
-    if (res.statusCode == 200) {
-      final data = jsonDecode(res.body);
-
-      setState(() {
-        salaryData = List<double>.from(data['salary']);
-        revenueData = List<double>.from(data['revenue']);
-        totalSalary = data['totalSalary'];
-        totalRevenue = data['totalRevenue'];
-      });
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        debugPrint("STATUS: ${res.statusCode}");
+        debugPrint("BODY: ${res.body}");
+        setState(() {
+          expenseData = List<double>.from(data['expense'] ?? []);
+          revenueData = List<double>.from(data['revenue'] ?? []);
+          totalExpense = (data['totalExpense'] ?? 0).toDouble();
+          totalRevenue = (data['totalRevenue'] ?? 0).toDouble();
+          profit = totalRevenue - totalExpense;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error: $e");
+    } finally {
+      setState(() => isLoading = false);
     }
-
-    setState(() => isLoading = false);
   }
 
   // ================= BAR CHART =================
@@ -64,12 +74,12 @@ class _ReportDashboardPageState extends State<ReportDashboardPage> {
       height: 250,
       child: BarChart(
         BarChartData(
-          barGroups: List.generate(salaryData.length, (i) {
+          barGroups: List.generate(expenseData.length, (i) {
             return BarChartGroupData(
               x: i,
               barRods: [
                 BarChartRodData(
-                  toY: salaryData[i],
+                  toY: expenseData[i],
                   color: Colors.red,
                   width: 8,
                 ),
@@ -88,7 +98,10 @@ class _ReportDashboardPageState extends State<ReportDashboardPage> {
 
   // ================= PIE CHART =================
   Widget buildPieChart() {
-    double profit = totalRevenue - totalSalary;
+    double total = totalRevenue + totalExpense;
+
+    double revenuePercent = total == 0 ? 0 : (totalRevenue / total) * 100;
+    double expensePercent = total == 0 ? 0 : (totalExpense / total) * 100;
 
     return SizedBox(
       height: 200,
@@ -96,19 +109,14 @@ class _ReportDashboardPageState extends State<ReportDashboardPage> {
         PieChartData(
           sections: [
             PieChartSectionData(
-              value: totalRevenue,
+              value: revenuePercent,
               color: Colors.blue,
-              title: "Thu",
+              title: "${revenuePercent.toStringAsFixed(1)}%",
             ),
             PieChartSectionData(
-              value: totalSalary,
+              value: expensePercent,
               color: Colors.red,
-              title: "Chi",
-            ),
-            PieChartSectionData(
-              value: profit > 0 ? profit : 0,
-              color: Colors.green,
-              title: "Lãi",
+              title: "${expensePercent.toStringAsFixed(1)}%",
             ),
           ],
         ),
@@ -128,49 +136,82 @@ class _ReportDashboardPageState extends State<ReportDashboardPage> {
             buildTypeButton("YEAR", "Năm"),
           ],
         ),
-
         const SizedBox(height: 10),
 
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (type == "MONTH")
-              DropdownButton<int>(
-                value: month,
-                items: List.generate(12, (i) => i + 1)
-                    .map((m) => DropdownMenuItem(
-                  value: m,
-                  child: Text("Tháng $m"),
-                ))
-                    .toList(),
-                onChanged: (val) {
-                  setState(() => month = val!);
+        // ===== MONTH =====
+        if (type == "MONTH")
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    month = month > 1 ? month - 1 : 12;
+                  });
+                  fetchReport();
                 },
+                icon: const Icon(Icons.arrow_left, color: Colors.white),
               ),
-
-            const SizedBox(width: 10),
-
-            SizedBox(
-              width: 80,
-              child: TextField(
-                controller:
-                TextEditingController(text: year.toString()),
-                keyboardType: TextInputType.number,
-                onChanged: (val) {
-                  year = int.tryParse(val) ?? year;
+              Text(
+                "Tháng $month/$year",
+                style: const TextStyle(color: Colors.white),
+              ),
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    month = month < 12 ? month + 1 : 1;
+                  });
+                  fetchReport();
                 },
-                decoration: const InputDecoration(hintText: "Năm"),
+                icon: const Icon(Icons.arrow_right, color: Colors.white),
               ),
-            ),
+            ],
+          ),
 
-            const SizedBox(width: 10),
+        // ===== QUARTER =====
+        if (type == "QUARTER")
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(4, (i) {
+              int q = i + 1;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() => quarter = q);
+                    fetchReport();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: quarter == q ? Colors.orange : Colors.grey,
+                  ),
+                  child: Text("Q$q"),
+                ),
+              );
+            }),
+          ),
 
-            ElevatedButton(
-              onPressed: fetchReport,
-              child: const Text("Xem"),
-            )
-          ],
-        )
+        // ===== YEAR =====
+        if (type == "YEAR")
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                onPressed: () {
+                  setState(() => year--);
+                  fetchReport();
+                },
+                icon: const Icon(Icons.arrow_left, color: Colors.white),
+              ),
+              Text("$year", style: const TextStyle(color: Colors.white)),
+              IconButton(
+                onPressed: () {
+                  setState(() => year++);
+                  fetchReport();
+                },
+                icon: const Icon(Icons.arrow_right, color: Colors.white),
+              ),
+            ],
+          ),
       ],
     );
   }
@@ -184,8 +225,7 @@ class _ReportDashboardPageState extends State<ReportDashboardPage> {
           fetchReport();
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-          type == t ? Colors.orange : Colors.grey,
+          backgroundColor: type == t ? Colors.orange : Colors.grey,
         ),
         child: Text(label),
       ),
@@ -205,34 +245,50 @@ class _ReportDashboardPageState extends State<ReportDashboardPage> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-        padding: const EdgeInsets.all(15),
-        child: Column(
-          children: [
-            buildFilter(),
+              padding: const EdgeInsets.all(15),
+              child: Column(
+                children: [
+                  buildFilter(),
 
-            const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-            const Text("So sánh dòng tiền",
-                style: TextStyle(color: Colors.white)),
+                  Text(
+                    "Doanh thu: $totalRevenue",
+                    style: const TextStyle(color: Colors.blue),
+                  ),
 
-            buildBarChart(),
+                  Text(
+                    "Chi tiêu: $totalExpense",
+                    style: const TextStyle(color: Colors.red),
+                  ),
 
-            const SizedBox(height: 20),
+                  Text(
+                    "Lợi nhuận: $profit",
+                    style: TextStyle(
+                      color: profit >= 0 ? Colors.green : Colors.red,
+                    ),
+                  ),
 
-            const Text("Lợi nhuận",
-                style: TextStyle(color: Colors.white)),
+                  const SizedBox(height: 20),
 
-            buildPieChart(),
+                  const Text(
+                    "Tỷ lệ thu / chi",
+                    style: TextStyle(color: Colors.white),
+                  ),
 
-            const SizedBox(height: 20),
+                  buildPieChart(),
 
-            Text(
-              "Tổng thu: $totalRevenue | Tổng chi: $totalSalary",
-              style: const TextStyle(color: Colors.white70),
+                  const SizedBox(height: 20),
+
+                  const Text(
+                    "Biểu đồ dòng tiền",
+                    style: TextStyle(color: Colors.white),
+                  ),
+
+                  buildBarChart(),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }

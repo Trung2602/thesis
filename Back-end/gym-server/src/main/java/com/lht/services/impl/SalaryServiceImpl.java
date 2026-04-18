@@ -12,16 +12,11 @@ import com.lht.services.StaffScheduleService;
 import jakarta.persistence.criteria.Predicate;
 
 import java.math.BigDecimal;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -87,12 +82,6 @@ public class SalaryServiceImpl implements SalaryService {
     }
 
     @Override
-    public List<SalaryDTO> getAllSalaries() {
-        List<Salary> salaries = salaryRepository.findAll();
-        return mapToDTO(salaries);
-    }
-
-    @Override
     public SalaryDTO getSalaryByUuid(UUID uuid) {
         Salary salary = salaryRepository.findById(uuid).orElse(null);
 
@@ -119,73 +108,39 @@ public class SalaryServiceImpl implements SalaryService {
     }
 
     @Override
-    public List<SalaryDTO> getSalaries(Map<String, String> params) {
+    public Page<SalaryDTO> getSalariesFilter(Map<String, String> params, String sortField, String sortDir, int page, int size) {
         Specification<Salary> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-
-            if (params.containsKey("uuid") && params.get("uuid") != null && !params.get("uuid").isBlank()) {
-                predicates.add(cb.equal(root.get("uuid"), UUID.fromString(params.get("uuid"))));
+            if (params.containsKey("uuid") && !params.get("uuid").isBlank()) {
+                predicates.add(cb.equal(root.get("uuid"),
+                        UUID.fromString(params.get("uuid"))));
             }
 
-            if (params.containsKey("date") && params.get("date") != null && !params.get("date").isBlank()) {
-                LocalDate date = LocalDate.parse(params.get("date"));
-                predicates.add(cb.equal(root.get("date"), date));
-            }
+            if (params.containsKey("month") && params.containsKey("year")
+                    && !params.get("month").isBlank()
+                    && !params.get("year").isBlank()) {
 
-            if (params.containsKey("startDate") && params.containsKey("endDate") && !params.get("startDate").isBlank() && !params.get("endDate").isBlank()) {
-                LocalDate start = LocalDate.parse(params.get("startDate"));
-                LocalDate end = LocalDate.parse(params.get("endDate"));
+                int month = Integer.parseInt(params.get("month"));
+                int year = Integer.parseInt(params.get("year"));
+
+                LocalDate start = LocalDate.of(year, month, 1);
+                LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+
                 predicates.add(cb.between(root.get("date"), start, end));
             }
 
-            if (params.containsKey("duration") && !params.get("duration").isBlank()) {
-                try {
-                    BigDecimal duration = new BigDecimal(params.get("duration"));
-                    predicates.add(cb.equal(root.get("duration"), duration));
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("Invalid duration format");
-                }
-            }
-
-            if (params.containsKey("dayOff") && !params.get("dayOff").isBlank()) {
-                try {
-                    Integer dayOff =
-                            Integer.parseInt(params.get("dayOff"));
-                    predicates.add(cb.equal(root.get("dayOff"), dayOff));
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("Invalid dayOff format");
-                }
-            }
-
-            if (params.containsKey("price") && !params.get("price").isBlank()) {
-                try {
-                    BigDecimal price = new BigDecimal(params.get("price"));
-                    predicates.add(cb.equal(root.get("price"), price));
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("Invalid price format");
-                }
-            }
-
             if (params.containsKey("staffUuid") && !params.get("staffUuid").isBlank()) {
-                predicates.add(cb.equal(root.get("staffUuid"), UUID.fromString(params.get("staffUuid"))));
+                predicates.add(cb.equal(root.get("staffUuid"),
+                        UUID.fromString(params.get("staffUuid"))));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-
-        List<Salary> salaries = salaryRepository.findAll(spec);
-        return mapToDTO(salaries);
-    }
-
-    @Override
-    public Page<SalaryDTO> getAllSort(String sortField, String sortDir, int page, int size) {
         Sort sort = sortDir.equalsIgnoreCase("asc")
                 ? Sort.by(sortField).ascending()
                 : Sort.by(sortField).descending();
-
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Salary> salaryPage = salaryRepository.findAll(pageable);
-
+        Page<Salary> salaryPage = salaryRepository.findAll(spec, pageable);
         List<SalaryDTO> dtoList = mapToDTO(salaryPage.getContent());
 
         return new PageImpl<>(dtoList, pageable, salaryPage.getTotalElements());

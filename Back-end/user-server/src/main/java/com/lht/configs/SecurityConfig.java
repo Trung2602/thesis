@@ -60,22 +60,36 @@ public class SecurityConfig {
                         .requestMatchers("/login", "/css/**", "/images/logo_transparent_white.png", "/js/**").permitAll()
                         .requestMatchers("/").hasRole("ADMIN")
                         // ===== PUBLIC API =====
-                        .requestMatchers("/api/v1/auth/login").permitAll()
-                        .requestMatchers("/api/v1/auth/register").permitAll()
-                        .requestMatchers("/api/v1/auth/verify/otp").permitAll()
+                        .requestMatchers("/api/v1/user/auth/login").permitAll()
+                        .requestMatchers("/api/v1/user/auth/register").permitAll()
+                        .requestMatchers("/api/v1/user/auth/verify/otp").permitAll()
 
                         // ===== INTERNAL MICROSERVICE =====
                         .requestMatchers("/internal/**").permitAll()
 
-                        // ===== STAFF =====
-                        .requestMatchers(HttpMethod.GET, "/api/v1/staffs").hasAnyRole("ADMIN","CUSTOMER")
-
                         // ===== ACCOUNT =====
-                        .requestMatchers("/api/v1/account/me").authenticated()
-                        .requestMatchers("/api/v1/account/update").authenticated()
-                        .requestMatchers("/api/v1/account/change-password").authenticated()
-                        .requestMatchers("/api/v1/account/verify-password").authenticated()
-                        .requestMatchers(HttpMethod.DELETE,"/api/v1/account/{uuid}").authenticated()
+                        .requestMatchers("/api/v1/user/accounts/me").authenticated()
+                        .requestMatchers("/api/v1/user/accounts/update").authenticated()
+                        .requestMatchers("/api/v1/user/accounts/change-password").authenticated()
+                        .requestMatchers("/api/v1/user/accounts/verify-password").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/user/accounts/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/user/accounts/*").hasRole("ADMIN")
+
+                        // ===== ADMIN =====
+                        .requestMatchers(HttpMethod.GET, "/api/v1/user/admins/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/user/admins").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/user/admins").hasRole("ADMIN")
+
+                        // ===== STAFF =====
+                        .requestMatchers(HttpMethod.POST, "/api/v1/user/staffs").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/user/staffs").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/user/staffs/**").hasAnyRole("ADMIN","STAFF")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/user/staffs").hasAnyRole("ADMIN","CUSTOMER")
+
+                        // ===== CUSTOMER =====
+                        .requestMatchers(HttpMethod.POST, "/api/v1/user/customers").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/user/customers").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/user/customers/**").hasAnyRole("ADMIN", "CUSTOMER")
 
                         // ===== DEFAULT =====
                         .anyRequest().authenticated())

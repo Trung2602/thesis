@@ -21,7 +21,6 @@ class AppCache {
   final Map<String, List<PayCustomer>> payCustomerCache = {};
   final Map<String, List<Shift>> shiftCache = {};
   final Map<String, List<Plan>> planCache = {};
-
   // ===== CLEAR ALL =====
   void clearAll() {
     salaryCache.clear();

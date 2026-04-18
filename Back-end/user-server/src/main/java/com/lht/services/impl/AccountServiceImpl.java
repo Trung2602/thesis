@@ -3,11 +3,14 @@ package com.lht.services.impl;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.lht.client.InternalGymClient;
+import com.lht.component.JwtUtils;
 import com.lht.dto.*;
 import com.lht.pojo.*;
 import com.lht.repositories.AccountRepository;
 import com.lht.services.AccountService;
+import com.lht.services.AdminService;
 import com.lht.services.CustomerService;
+import com.lht.services.StaffService;
 import jakarta.persistence.criteria.Predicate;
 
 import java.io.IOException;
@@ -16,10 +19,14 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -44,6 +51,9 @@ public class AccountServiceImpl implements AccountService {
 
     @Autowired
     private Cloudinary cloudinary;
+
+    @Autowired
+    private JwtUtils jwtUtils;
 
     private AccountDTO mapToDTO(Account acc) {
         if (acc == null)
@@ -71,24 +81,19 @@ public class AccountServiceImpl implements AccountService {
                 .toList();
     }
 
-
-
     @Override
-    public List<AccountDTO> getAllAccounts() {
-        return accountRepository.findAll()
-                .stream().map(this::mapToDTO).toList();
-    }
+    public List<AccountLiteDTO> getAcountsRole(String role) {
+        AccountRole accountRole = AccountRole.valueOf(role);
+        List<Account> accounts = accountRepository.findByRole(accountRole);
 
-    @Override
-    public AccountDTO getAccountById(UUID uuid) {
-        return accountRepository.findById(uuid)
-                .map(this::mapToDTO)
-                .orElse(null);
-    }
-
-    @Override
-    public Account getById(UUID uuid) {
-        return accountRepository.findById(uuid).orElse(null);
+        return accounts.stream()
+                .map(acc -> AccountLiteDTO.builder()
+                        .uuid(acc.getUuid())
+                        .name(acc.getName())
+                        .mail(acc.getMail())
+                        .role(acc.getRole().name())
+                        .build())
+                .toList();
     }
 
     @Override
@@ -177,20 +182,27 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public boolean changeIsActive(UUID uuid) {
-
-        Account acc = accountRepository.findById(uuid).orElse(null);
-
-        if (acc != null) {
-            acc.setIsActive(!acc.getIsActive());
-            accountRepository.save(acc);
-            return true;
+    public LoginResponseDTO login(LoginRequestDTO request) throws Exception {
+        if (request.getMail() == null || request.getPassword() == null) {
+            throw new IllegalArgumentException("Mail hoặc password không được để trống");
+        }
+        Account account = this.authenticate(request.getMail(), request.getPassword());
+        if (account == null) {
+            throw new RuntimeException("Sai thông tin đăng nhập");
         }
 
-        return false;
+        account.setLastLoginAt(LocalDateTime.now());
+        accountRepository.save(account);
+
+        String token = jwtUtils.generateToken(account.getMail(), account.getRole().name(), account.getUuid());
+        return LoginResponseDTO.builder()
+                .uuid(account.getUuid())
+                .mail(account.getMail())
+                .role(account.getRole().name())
+                .token(token)
+                .build();
     }
 
-    @Override
     public Account authenticate(String mail, String password) {
         Optional<Account> optional = accountRepository.findByMail(mail);
         if (optional.isEmpty()) {

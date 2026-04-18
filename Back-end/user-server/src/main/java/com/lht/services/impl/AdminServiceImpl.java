@@ -10,6 +10,8 @@ import com.lht.pojo.GenderType;
 import com.lht.repositories.AdminRepository;
 import com.lht.services.AdminService;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -36,7 +38,7 @@ public class AdminServiceImpl implements AdminService {
         if (a == null)
             return null;
 
-        return (AdminDTO) AdminDTO.builder()
+        return  AdminDTO.builder()
                 .uuid(a.getUuid())
                 .mail(a.getMail())
                 .name(a.getName())
@@ -44,6 +46,7 @@ public class AdminServiceImpl implements AdminService {
                 .birthday(a.getBirthday())
                 .gender(a.getGender().name())
                 .isActive(a.getIsActive())
+                .role(a.getRole().name())
                 .build();
     }
 
@@ -78,19 +81,9 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<AdminDTO> getAllAdmins() {
-        return mapToDTO(adminRepository.findAll());
-    }
-
-    @Override
     public AdminDTO getAdminById(UUID uuid) {
         return adminRepository.findById(uuid)
                 .map(this::mapToDTO).orElse(null);
-    }
-
-    @Override
-    public Admin getById(UUID uuid) {
-        return adminRepository.findById(uuid).orElse(null);
     }
 
     @Override
@@ -100,11 +93,11 @@ public class AdminServiceImpl implements AdminService {
         admin.setMail(dto.getMail());
         admin.setName(dto.getName());
         admin.setBirthday(dto.getBirthday());
-        admin.setGender(GenderType.valueOf(dto.getGender()));
+        admin.setGender(GenderType.valueOf(dto.getGender().toUpperCase()));
 
         admin.setIsActive(true);
         admin.setRole(AccountRole.ADMIN);
-
+        admin.setCreatedAt(LocalDateTime.now());
         // encode password
         admin.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
 
@@ -159,20 +152,11 @@ public class AdminServiceImpl implements AdminService {
                 ex.printStackTrace();
             }
         } else {
-            admin.setAvatar(dto.getAvatar());
+            admin.setAvatar(dto.getAvatar() != null ? dto.getAvatar() : admin.getAvatar());
         }
 
         Admin saved = adminRepository.save(admin);
 
         return mapToDTO(saved);
-    }
-
-    @Override
-    public boolean deleteAdmin(UUID uuid) {
-        if (adminRepository.existsById(uuid)) {
-            adminRepository.deleteById(uuid);
-            return true;
-        }
-        return false;
     }
 }

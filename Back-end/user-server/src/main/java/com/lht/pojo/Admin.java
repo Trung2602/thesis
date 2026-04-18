@@ -13,6 +13,6 @@ import lombok.*;
 @PrimaryKeyJoinColumn(name = "account_uuid")
 public class Admin extends Account {
 
-    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "text")
     private String permissions;
 }

@@ -1,5 +1,6 @@
-// home.dart
 import 'package:flutter/material.dart';
+import 'package:gym/api/gym_server_api.dart';
+import 'package:gym/components/report.dart';
 
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +8,6 @@ import '../cache/app_cache.dart';
 import '../services/auth_service.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../api/api.dart';
 // Import models
 import '../models/account.dart';
 import '../models/plan.dart';
@@ -15,13 +15,19 @@ import 'package:gym/models/account_provider.dart';
 import 'package:gym/models/shift.dart';
 // Import các màn hình con
 import 'ai_chat.dart';
+import 'manager_facility.dart';
+import 'manager_pay_customer.dart';
+import 'manager_plan.dart';
+import 'manager_salary.dart';
+import 'manager_shift.dart';
+import 'manager_staff_off.dart';
+import 'manager_staff_schedule.dart';
 import 'manager_user.dart';
 import 'profile.dart';
 import 'day_off.dart';
 import 'pay_customer.dart';
 import 'salary.dart';
 import 'staff_schedule.dart';
-import 'login.dart';
 import 'customer_schedule.dart';
 import 'chat_page.dart';
 
@@ -33,7 +39,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  int _selectedIndex = 0; // Index của item được chọn trên BottomNavigationBar
+  int _selectedIndex = 0;
   List<Widget> _pages = [];
   final AuthService authService = AuthService();
   Account? savedAccount;
@@ -74,12 +80,11 @@ class _HomeState extends State<Home> {
     } else if (savedAccount!.role == 'ADMIN') {
       _pages = [
         const _DashboardScreen(),
-        const ManagerUserPage(),
-        const ManagerFacilityPage(),
+        const ReportDashboardPage(),
         const Profile(),
       ];
     }
-    setState(() {}); // gọi lại build khi _pages thay đổi
+    setState(() {});
   }
 
   List<BottomNavigationBarItem> _buildBottomNavItems() {
@@ -114,7 +119,6 @@ class _HomeState extends State<Home> {
           icon: Icon(Icons.calendar_today),
           label: "Lịch Trình",
         ),
-        // Thêm "Xin nghỉ" hoặc "Ca làm" tuỳ type
         if (savedAccount!.type == "FULLTIME")
           const BottomNavigationBarItem(
             icon: Icon(Icons.beach_access),
@@ -128,6 +132,21 @@ class _HomeState extends State<Home> {
         const BottomNavigationBarItem(
           icon: Icon(Icons.attach_money),
           label: "Bảng Lương",
+        ),
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.person_pin),
+          label: "Hồ Sơ",
+        ),
+      ];
+    } else if (savedAccount!.role == 'ADMIN') {
+      return [
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.dashboard),
+          label: "Trang chủ",
+        ),
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.bar_chart),
+          label: "Thống kê",
         ),
         const BottomNavigationBarItem(
           icon: Icon(Icons.person_pin),
@@ -150,7 +169,6 @@ class _HomeState extends State<Home> {
 
     List<Map<String, dynamic>> menuItems = [
       {'icon': Icons.dashboard, 'title': 'Bảng Điều Khiển Thiên Hà', 'index': 0},
-      {'icon': Icons.calendar_today, 'title': 'Lịch Trình', 'index': 1},
     ];
 
     if (savedAccount!.role == 'CUSTOMER') {
@@ -161,15 +179,25 @@ class _HomeState extends State<Home> {
       ]);
     } else if (savedAccount!.role == 'STAFF') {
       menuItems.addAll([
+        {'icon': Icons.calendar_today, 'title': 'Lịch Trình', 'index': 1},
         savedAccount!.type == "FULLTIME"
           ? {'icon': Icons.beach_access, 'title': 'Xin Nghỉ', 'index': 2}
           : {'icon': Icons.access_time,  'title': 'Ca Làm',   'index': 2},
         {'icon': Icons.attach_money, 'title': 'Bảng Lương', 'index': 3},
         {'icon': Icons.person, 'title': 'Hồ Sơ Phi Hành Gia', 'index': 4},
       ]);
+    } else if (savedAccount!.role == 'ADMIN') {
+      menuItems.addAll([
+        {'icon': Icons.people, 'title': 'Quản lý người dùng', 'index': -2},
+        {'icon': Icons.fitness_center, 'title': 'Cơ sở', 'index': -3},
+        {'icon': Icons.payment, 'title': 'Thanh toán khách', 'index': -4},
+        {'icon': Icons.card_membership, 'title': 'Gói tập', 'index': -5},
+        {'icon': Icons.attach_money, 'title': 'Bảng lương', 'index': -6},
+        {'icon': Icons.schedule, 'title': 'Ca làm', 'index': -7},
+        {'icon': Icons.beach_access, 'title': 'Xin nghỉ', 'index': -8},
+        {'icon': Icons.calendar_month, 'title': 'Lịch nhân viên', 'index': -9},
+      ]);
     }
-
-    // Các mục chung
     menuItems.addAll([
       {'icon': Icons.message, 'title': 'Liên Lạc', 'index': -1},
       {'icon': Icons.logout, 'title': 'Rời khỏi Trạm Vũ Trụ', 'index': -1},
@@ -182,14 +210,12 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    // Nếu chưa có account hoặc chưa build xong pages
     if (savedAccount == null || _pages.isEmpty) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
     return Scaffold(
-      // Màu nền tổng thể cho các khu vực không có ảnh nền
       backgroundColor: const Color(0xFF0F123A),
 
       appBar: AppBar(
@@ -203,22 +229,21 @@ class _HomeState extends State<Home> {
         ),
         backgroundColor: const Color(0xFF1A237E),
         elevation: 8,
-        iconTheme: const IconThemeData(color: Colors.white), // Đặt màu icon Drawer/back button
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.notifications_none, color: Colors.white), // Thông báo
+            icon: const Icon(Icons.notifications_none, color: Colors.white),
             tooltip: 'Tin nhắn từ Trung Tâm Điều Khiển',
           ),
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.search, color: Colors.white), // Tìm kiếm
+            icon: const Icon(Icons.search, color: Colors.white),
             tooltip: 'Tìm kiếm trong Vũ Trụ',
           ),
         ],
       ),
 
-      // Sidebar điều hướng (Drawer)
       drawer:savedAccount == null
           ? null
           : Drawer(
@@ -252,7 +277,7 @@ class _HomeState extends State<Home> {
                 ],
               ),
             ),
-            ..._buildDrawerItems(), // hiển thị menu dựa role
+            ..._buildDrawerItems(),
           ],
         ),
       ),
@@ -266,8 +291,8 @@ class _HomeState extends State<Home> {
           );
         },
         backgroundColor: const Color(0xFFFFD740),
-        child: const Icon(Icons.smart_toy, color: Colors.black),
         tooltip: 'AI Hỗ Trợ',
+        child: const Icon(Icons.smart_toy, color: Colors.black),
       ) : null,
 
       body: _pages[_selectedIndex],
@@ -283,11 +308,9 @@ class _HomeState extends State<Home> {
         type: BottomNavigationBarType.fixed,
         elevation: 10,
       ): null,
-
     );
   }
 
-  // Hàm tiện ích để xây dựng các mục trong Drawer
   Widget _buildDrawerItem(IconData icon, String title, int index) {
     return ListTile(
       leading: Icon(icon, color: Colors.white70),
@@ -296,35 +319,61 @@ class _HomeState extends State<Home> {
         style: const TextStyle(color: Colors.white, fontSize: 16),
       ),
       onTap: () {
-        Navigator.pop(context); // Đóng Drawer
-        if (index >= 0) { // Nếu là một item có trong BottomNavigationBar, chuyển trang
+        Navigator.pop(context);
+
+        if (index >= 0) {
           _onItemTapped(index);
         } else {
-          switch (title) {
-            case 'Rời khỏi Trạm Vũ Trụ':
-              authService.logout(context);
+          switch (index) {
+            case -2:
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const ManagerUserPage()));
               break;
-            case 'Liên Lạc':
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ChatPage()),
-              );
+            case -3:
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const ManagerFacilityPage()));
               break;
-            default:
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Chức năng "$title" đang được phát triển...')),
-              );
+            case -4:
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const ManagerPayCustomerPage()));
+              break;
+            case -5:
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const ManagerPlanPage()));
+              break;
+            case -6:
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const ManagerSalaryPage()));
+              break;
+            case -7:
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const ManagerShiftPage()));
+              break;
+            case -8:
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const ManagerDayOffPage()));
+              break;
+            case -9:
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const ManagerStaffSchedulePage()));
+              break;
+            case -1:
+              if (title == 'Rời khỏi Trạm Vũ Trụ') {
+                authService.logout(context);
+              } else if (title == 'Liên Lạc') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ChatPage()),
+                );
+              }
+              break;
           }
-
         }
       },
     );
   }
 }
 
-// ==========================================================
-// MÀN HÌNH DASHBOARD (TRUNG TÂM ĐIỀU KHIỂN VŨ TRỤ)
-// ==========================================================
 class _DashboardScreen extends StatefulWidget {
   const _DashboardScreen({super.key});
   @override
@@ -357,26 +406,21 @@ class _DashboardScreenState extends State<_DashboardScreen> {
 
   Future<List<Plan>> _getPlans() async {
     const key = "plans";
-
-    // ✅ cache hit
     if (planCache.containsKey(key)) {
       return planCache[key]!;
     }
-
     final token = await AuthService().getToken();
     final response = await http.get(
-      Uri.parse(Api.getPlans),
+      Uri.parse(GymServerApi.getPlans),
       headers: {
         "Content-Type": "application/json",
         'Authorization': 'Bearer $token',
       },
     );
-
     if (response.statusCode == 200) {
       final List data = jsonDecode(response.body);
       final result = data.map((e) => Plan.fromJson(e)).toList();
-
-      planCache[key] = result; // ✅ lưu cache
+      planCache[key] = result;
       return result;
     } else {
       throw Exception("Failed to load plans");
@@ -385,24 +429,20 @@ class _DashboardScreenState extends State<_DashboardScreen> {
 
   Future<List<Shift>> _getShifts() async {
     const key = "shifts";
-
     if (shiftCache.containsKey(key)) {
       return shiftCache[key]!;
     }
-
     final token = await AuthService().getToken();
     final response = await http.get(
-      Uri.parse(Api.getShifts),
+      Uri.parse(GymServerApi.getShifts),
       headers: {
         "Content-Type": "application/json",
         'Authorization': 'Bearer $token',
       },
     );
-
     if (response.statusCode == 200) {
       final List data = jsonDecode(response.body);
       final result = data.map((e) => Shift.fromJson(e)).toList();
-
       shiftCache[key] = result;
       return result;
     } else {
@@ -417,9 +457,9 @@ class _DashboardScreenState extends State<_DashboardScreen> {
       decoration: const BoxDecoration(
         image: DecorationImage(
           image: AssetImage(
-              'assets/images/background.jpg'), // Ảnh nền vũ trụ cho Dashboard
+              'assets/images/background.jpg'),
           fit: BoxFit.cover,
-          opacity: 0.7, // Giảm độ trong suốt
+          opacity: 0.7,
         ),
       ),
       child: LayoutBuilder(
@@ -429,7 +469,6 @@ class _DashboardScreenState extends State<_DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Phần chào mừng
                 Text(
                   "Chào mừng ${account != null ? " ${account.name}" : ""} đến với",
                   style: TextStyle(
@@ -444,7 +483,7 @@ class _DashboardScreenState extends State<_DashboardScreen> {
                 Text(
                   "GALACTIC FITNESS!",
                   style: TextStyle(
-                      color: Color(0xFFFFAB40), // Màu cam mặt trời
+                      color: Color(0xFFFFAB40),
                       fontSize: 38,
                       fontWeight: FontWeight.bold,
                       shadows: [
@@ -452,28 +491,24 @@ class _DashboardScreenState extends State<_DashboardScreen> {
                       ]
                   ),
                 ),
-                const SizedBox(height: 15), // Giảm khoảng cách
-                // Phần ngày giờ
+                const SizedBox(height: 15),
                 Row(
                   children: [
                     Icon(Icons.calendar_today, color: Colors.white70, size: 20),
                     SizedBox(width: 8),
-                    Text(
-                      "Hôm nay: ${_getFormattedDate()}", // Ngày hiện tại
+                    Text("Hôm nay: ${_getFormattedDate()}",
                       style: TextStyle(color: Colors.white70, fontSize: 16),
                     ),
                     SizedBox(width: 20),
                     Icon(Icons.access_time, color: Colors.white70, size: 20),
                     SizedBox(width: 8),
-                    Text(
-                      " ${TimeOfDay.now().format(context)}", // Giờ hiện tại
+                    Text(" ${TimeOfDay.now().format(context)}",
                       style: TextStyle(color: Colors.white70, fontSize: 16),
                     ),
                   ],
                 ),
-                const SizedBox(height: 30), // Giảm khoảng cách
+                const SizedBox(height: 30),
 
-                // Phần giới thiệu phòng gym (tương tự như đoạn đầu video)
                 const Text(
                   "Về Galactic Fitness Center",
                   style: TextStyle(
@@ -485,20 +520,19 @@ class _DashboardScreenState extends State<_DashboardScreen> {
                       ]
                   ),
                 ),
-                const SizedBox(height: 10), // Giảm khoảng cách
+                const SizedBox(height: 10),
                 const Text(
                   "Trung tâm thể dục thể thao thể thao hàng đầu vũ trụ, trang bị bởi công nghệ tiên tiến nhất, và đội ngũ huấn luyện viên là những phi hành gia giàu kinh nghiệm.",
                   style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
-                const SizedBox(height: 20), // Giảm khoảng cách
+                const SizedBox(height: 20),
 
-                // Các thẻ thông tin dịch vụ
                 GridView.count(
-                  crossAxisCount: 2, // 2 cột
+                  crossAxisCount: 2,
                   crossAxisSpacing: 15,
                   mainAxisSpacing: 15,
-                  shrinkWrap: true, // Quan trọng để GridView không bị lỗi khi nằm trong SingleChildScrollView
-                  physics: const NeverScrollableScrollPhysics(), // Không cho GridView cuộn riêng
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   children: [
                     _buildInfoCard(
                       'Cơ Sở Vật Chất Hiện đại',
@@ -522,9 +556,8 @@ class _DashboardScreenState extends State<_DashboardScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 30), // Giảm khoảng cách
+                const SizedBox(height: 30),
 
-                // Phần "Gói tập" hoặc "Ca làm việc"
                 Text(
                   account?.role == "CUSTOMER" ? "Gói tập" : "Ca làm việc",
                   style: const TextStyle(
@@ -550,7 +583,6 @@ class _DashboardScreenState extends State<_DashboardScreen> {
                     }
 
                     if (account?.role == "CUSTOMER") {
-                      // Hiển thị danh sách gói tập
                       final plans = snapshot.data as List<Plan>;
                       return ListView.builder(
                         padding: const EdgeInsets.all(12),
@@ -581,7 +613,6 @@ class _DashboardScreenState extends State<_DashboardScreen> {
                         ),
                       );
                     } else {
-                      // Hiển thị lịch ca làm việc
                       final shifts = snapshot.data as List<Shift>;
                       return ListView.builder(
                         padding: const EdgeInsets.all(12),
@@ -606,9 +637,7 @@ class _DashboardScreenState extends State<_DashboardScreen> {
                     }
                   },
                 ),
-
-
-                const SizedBox(height: 30), // Giảm khoảng cách cuối cùng
+                const SizedBox(height: 30),
               ],
             ),
           );
@@ -617,39 +646,37 @@ class _DashboardScreenState extends State<_DashboardScreen> {
     );
   }
 
-  // Hàm tiện ích để lấy ngày hiện tại định dạng đẹp
   String _getFormattedDate() {
     final now = DateTime.now();
     final formatter = DateFormat('dd/MM/yyyy');
     return formatter.format(now);
   }
 
-  // Hàm tiện ích để tạo các thẻ thông tin
   Widget _buildInfoCard(String title, String description, IconData icon) {
     return Card(
       color: Colors.white.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       elevation: 5,
       child: Padding(
-        padding: const EdgeInsets.all(12.0), // Giảm padding
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 28, color: const Color(0xFFFFD740)), // Giảm kích thước icon
-            const SizedBox(height: 5), // Giảm khoảng cách
+            Icon(icon, size: 28, color: const Color(0xFFFFD740)),
+            const SizedBox(height: 5),
             Text(
               title,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 15, // Giảm kích thước font
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 3), // Giảm khoảng cách
+            const SizedBox(height: 3),
             Text(
               description,
-              style: const TextStyle(color: Colors.white70, fontSize: 12), // Giảm kích thước font
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -659,65 +686,43 @@ class _DashboardScreenState extends State<_DashboardScreen> {
     );
   }
 
-  // Hàm tiện ích để tạo các thẻ lịch trình
   Widget _buildScheduleCard(String title, String subtitle, String time, String description) {
     return Card(
       color: Colors.white.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       elevation: 7,
       child: Padding(
-        padding: const EdgeInsets.all(15.0), // Giảm padding
+        padding: const EdgeInsets.all(15.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               title,
               style: const TextStyle(
-                color: Color(0xFFFFAB40), // Màu cam mặt trời
-                fontSize: 18, // Giảm kích thước font
+                color: Color(0xFFFFAB40),
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 4), // Giảm khoảng cách
+            const SizedBox(height: 4),
             Text(
               subtitle,
-              style: const TextStyle(color: Colors.white, fontSize: 14), // Giảm kích thước font
+              style: const TextStyle(color: Colors.white, fontSize: 14),
             ),
-            const SizedBox(height: 4), // Giảm khoảng cách
+            const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.access_time, color: Colors.white60, size: 16), // Giảm kích thước icon
+                Icon(Icons.access_time, color: Colors.white60, size: 16),
                 SizedBox(width: 5),
-                Text(
-                  time,
-                  style: const TextStyle(color: Colors.white60, fontSize: 13), // Giảm kích thước font
+                Text(time,
+                  style: const TextStyle(color: Colors.white60, fontSize: 13),
                 ),
               ],
             ),
-            const SizedBox(height: 8), // Giảm khoảng cách
+            const SizedBox(height: 8),
             Text(
               description,
-              style: const TextStyle(color: Colors.white70, fontSize: 13), // Giảm kích thước font
-            ),
-            const SizedBox(height: 10), // Giảm khoảng cách
-            Align(
-              alignment: Alignment.bottomRight,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Xử lý thanh toán gói tập
-
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2C318F), // Màu xanh tím nhạt hơn
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8), // Giảm padding nút
-                  textStyle: const TextStyle(fontSize: 13), // Giảm kích thước font nút
-                ),
-                child: const Text("Đăng ký ngày"),
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
             ),
           ],
         ),

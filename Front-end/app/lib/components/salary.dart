@@ -3,10 +3,10 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import '../api/gym_server_api.dart';
 import '../models/account.dart';
 import '../models/account_provider.dart';
 import '../models/salary.dart';
-import '../api/api.dart';
 import '../services/auth_service.dart';
 import '../cache/app_cache.dart';
 
@@ -50,7 +50,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
     try {
       final token = await AuthService().getToken();
       final response = await http.get(
-        Uri.parse(Api.getSalaries),
+        Uri.parse(GymServerApi.getSalaries),
         headers: {
           'Authorization': 'Bearer $token',
         },

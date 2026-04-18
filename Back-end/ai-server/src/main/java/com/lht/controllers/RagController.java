@@ -17,16 +17,11 @@ public class RagController {
 
     @PostMapping("/fitness")
     public String askAI(@RequestBody Map<String, String> body) {
-        // Lấy câu hỏi từ body JSON
         String question = body.get("question");
         if (question == null || question.isEmpty()) {
             return "Question is required!";
         }
-
-        // Lấy user UUID hiện tại
         UUID uuid = SecurityUtils.getCurrentUserUuid();
-
-        // Gọi RagService trả kết quả
         return ragService.askFitnessAI(uuid, question);
     }
 }

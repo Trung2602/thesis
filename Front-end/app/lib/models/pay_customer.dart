@@ -37,7 +37,7 @@ class PayCustomer {
       customerName: json['customerName'],
       planUuid: json['planUuid'],
       planName: json['planName'],
-      price: json['price'] != null ? int.parse(json['price'].toString()) : null,
+      price: json['price'] is int ? json['price'] : int.tryParse(json['price']?.toString() ?? ""),
       txnRef: json['txnRef'],
       status: json['status'],
       bankCode: json['bankCode'],

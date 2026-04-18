@@ -25,9 +25,11 @@ public interface StaffScheduleService {
 
     List<StaffScheduleDTO> getStaffSchedules(Map<String, String> params);
 
+    List<StaffScheduleDTO> getStaffSchedulesByStaffUuid(Map<String, String> params);
+
     Page<StaffScheduleDTO> getAllSort(String sortField, String sortDir, int page, int size);
 
-    List<StaffScheduleDTO> getStaffScheduleByStaffUuid(UUID uuid);
+    List<StaffScheduleDTO> getStaffScheduleByStaffUuid();
 
     BigDecimal sumDurationByStaffUuidAndMonthYear(UUID staffUuid, int month, int year);
 

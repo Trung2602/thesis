@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:gym/api/ai_server_api.dart';
 import 'package:http/http.dart' as http;
 import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_config.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
-import '../api/api.dart';
 import '../services/auth_service.dart';
 import 'package:intl/intl.dart';
 
@@ -28,9 +28,7 @@ class _AIChatPageState extends State<AIChatPage> {
   void initState() {
     super.initState();
     connectWebSocket();
-
     loadChatHistory();
-
     _scrollController.addListener(() {
       if (_scrollController.position.pixels <= 100) {
         loadChatHistory();
@@ -45,13 +43,11 @@ class _AIChatPageState extends State<AIChatPage> {
     super.dispose();
   }
 
-  // ================== CONNECT ==================
   void connectWebSocket() async {
     final token = await AuthService().getToken();
-
     stompClient = StompClient(
       config: StompConfig.SockJS(
-        url: 'http://10.0.2.2:8082/ws',
+        url: AiServerApi.wsEndpoint,
         onConnect: onConnect,
         beforeConnect: () async {
           await Future.delayed(const Duration(milliseconds: 200));
@@ -74,12 +70,10 @@ class _AIChatPageState extends State<AIChatPage> {
     stompClient!.activate();
   }
 
-  // ================== SUBSCRIBE ==================
   void onConnect(StompFrame frame) {
     print("Connected to WebSocket");
-
     stompClient!.subscribe(
-      destination: '/topic/ai',
+      destination: AiServerApi.aiTopic,
       callback: (frame) {
         if (frame.body != null) {
           final data = jsonDecode(frame.body!);
@@ -103,20 +97,16 @@ class _AIChatPageState extends State<AIChatPage> {
     );
   }
 
-  // ================== SEND ==================
   void sendMessage() {
     final text = _controller.text.trim();
     if (text.isEmpty || stompClient == null) return;
-
     setState(() {
       messages.add({"role": "user", "text": text});
       isLoading = true;
     });
-
     _controller.clear();
-
     stompClient!.send(
-      destination: '/app/api/v1/ai.ask',
+      destination: AiServerApi.aiSend,
       body: jsonEncode({
         "question": text,
       }),
@@ -129,7 +119,7 @@ class _AIChatPageState extends State<AIChatPage> {
     try {
       final token = await AuthService().getToken();
       final before = messages.isNotEmpty ? messages.first['createdAt'] : null;
-      String url = "${Api.getChatHistory}?pageSize=20";
+      String url = "${AiServerApi.getChatHistory}?pageSize=10";
       if (before != null) {
         url += "&before=$before";
       }
@@ -148,12 +138,12 @@ class _AIChatPageState extends State<AIChatPage> {
           for (var e in data) {
             newMessages.add({
               'role': 'ai',
-              'text': e['aiReply'] ?? '',
+              'text': e['answer'] ?? '',
               'createdAt': e['createdAt'],
             });
             newMessages.add({
               'role': 'user',
-              'text': e['message'] ?? '',
+              'text': e['question'] ?? '',
               'createdAt': e['createdAt'],
             });
           }
@@ -168,7 +158,6 @@ class _AIChatPageState extends State<AIChatPage> {
     setState(() => isLoadingHistory = false);
   }
 
-  // ================== UI ==================
   String formatTime(String? isoTime) {
     if (isoTime == null) return "";
     final date = DateTime.parse(isoTime).toLocal();
@@ -226,8 +215,7 @@ class _AIChatPageState extends State<AIChatPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text(
-          "AI Fitness Coach",
+        title: const Text("AI Fitness Coach",
           style: TextStyle(color: Colors.amber),
         ),
         backgroundColor: const Color(0xFF1A237E),

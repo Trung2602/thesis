@@ -18,7 +18,7 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/api/v1/user/auth")
 @RequiredArgsConstructor
 public class ApiAuthController {
 
@@ -30,30 +30,9 @@ public class ApiAuthController {
     private JwtUtils jwtUtils;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequestDTO request) {
-
-        if (request.getMail() == null || request.getPassword() == null) {
-            return ResponseEntity.badRequest().body("Mail hoặc password không được để trống");
-        }
-
-        Account account = accountService.authenticate(request.getMail(), request.getPassword());
-        if (account == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Sai thông tin đăng nhập");
-        }
-
-        try {
-            String token = jwtUtils.generateToken(account.getMail(), account.getRole().name(), account.getUuid());
-            LoginResponseDTO response = LoginResponseDTO.builder()
-                    .uuid(account.getUuid())
-                    .mail(account.getMail())
-                    .role(account.getRole().name())
-                    .token(token)
-                    .build();
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi khi tạo JWT");
-        }
+    public ResponseEntity<?> login(@RequestBody LoginRequestDTO request) throws Exception {
+        LoginResponseDTO response = accountService.login(request);
+        return ResponseEntity.ok(response);
     }
 
     private final Map<String, VerifyCustomerDTO> pendingRegistrations = new ConcurrentHashMap<>();

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:gym/api/gym_server_api.dart';
+import 'package:gym/api/user_server_api.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../cache/app_cache.dart';
 import '../models/account_provider.dart';
 import '../models/pay_customer.dart';
 import '../models/account.dart';
-import '../api/api.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
@@ -74,7 +75,7 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
       final token = await AuthService().getToken();
 
       final response = await http.get(
-        Uri.parse(Api.getPayCustomersAll),
+        Uri.parse(GymServerApi.getPayCustomers),
         headers: {
           "Content-Type": "application/json",
           'Authorization': 'Bearer $token',
@@ -128,7 +129,7 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
   Future<void> _showPlanDialogAndPay() async {
     List<dynamic> plans = [];
     try {
-      final res = await http.get(Uri.parse(Api.getPlans));
+      final res = await http.get(Uri.parse(GymServerApi.getPlans));
       if (!mounted) return;
       if (res.statusCode == 200) {
         plans = jsonDecode(res.body);
@@ -184,7 +185,7 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString("token") ?? "";
       final res = await http.post(
-        Uri.parse(Api.createPayment),
+        Uri.parse(GymServerApi.createPayment),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
@@ -194,13 +195,12 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
         }),
       );
 
-
       if (!mounted) return;
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         final paymentUrl = data['paymentUrl'];
 
-        //Mở WebView trong app
+        //Mở WebView
         final resultUrl = await Navigator.push(
           context,
           MaterialPageRoute(
@@ -216,7 +216,7 @@ class _PayCustomerScreenState extends State<PayCustomerScreen> {
           final prefs = await SharedPreferences.getInstance();
           final token = prefs.getString("token") ?? "";
           final accRes = await http.get(
-            Uri.parse(Api.me),
+            Uri.parse(UserServerApi.me),
             headers: {
               'Authorization': 'Bearer $token',
             },

@@ -2,6 +2,8 @@ package com.lht.dto;
 
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Data
 @Getter
 @Setter
@@ -10,4 +12,5 @@ import lombok.*;
 public class ChatMessage {
     private String question;
     private String answer;
+    private LocalDateTime createdAt;
 }

@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:gym/api/user_server_api.dart';
 import 'package:http/http.dart' as http;
 
+import '../models/account_lite.dart';
 import '../services/auth_service.dart';
-import '../api/api.dart';
 import '../models/account.dart';
 
 class ManagerUserPage extends StatefulWidget {
@@ -15,7 +16,7 @@ class ManagerUserPage extends StatefulWidget {
 
 class _ManagerUserPageState extends State<ManagerUserPage>
     with SingleTickerProviderStateMixin {
-  List<Account> users = [];
+  List<AccountLite> users = [];
   bool isLoading = true;
 
   late TabController _tabController;
@@ -44,27 +45,32 @@ class _ManagerUserPageState extends State<ManagerUserPage>
     final token = await AuthService().getToken();
 
     final res = await http.get(
-      Uri.parse("${Api.getUsers}?role=$role"),
+      Uri.parse("${UserServerApi.loadAccount}?role=$role"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
       },
     );
 
+    debugPrint("STATUS: ${res.statusCode}");
+    debugPrint("BODY: ${res.body}");
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body) as List;
-      users = data.map((e) => Account.fromJson(e)).toList();
+
+      setState(() {
+        users = data.map((e) => AccountLite.fromJson(e)).toList();
+      });
     }
 
     setState(() => isLoading = false);
   }
 
   // ================= DELETE =================
-  Future<void> deleteUser(String id) async {
+  Future<void> deleteUser(String uuid) async {
     final token = await AuthService().getToken();
 
     await http.delete(
-      Uri.parse("${Api.deleteUser}/$id"),
+      Uri.parse(UserServerApi.deleteAccount(uuid)),
       headers: {"Authorization": "Bearer $token"},
     );
 
@@ -72,33 +78,80 @@ class _ManagerUserPageState extends State<ManagerUserPage>
   }
 
   // ================= FORM =================
-  void openForm({Account? user}) {
-    final nameCtrl = TextEditingController(text: user?.name ?? "");
-    final emailCtrl = TextEditingController(text: user?.mail ?? "");
-    String role = user?.role ?? "CUSTOMER";
+  String getDetailApi(String role, String uuid) {
+    switch (role) {
+      case "ADMIN":
+        return UserServerApi.getAdminByUuid(uuid);
+      case "STAFF":
+        return UserServerApi.getStaffByUuid(uuid);
+      case "CUSTOMER":
+        return UserServerApi.getCustomerByUuid(uuid);
+      default:
+        throw Exception("Invalid role");
+    }
+  }
+
+  String getCreateApi(String role) {
+    switch (role) {
+      case "ADMIN":
+        return UserServerApi.postAdmin;
+      case "STAFF":
+        return UserServerApi.postStaff;
+      case "CUSTOMER":
+        return UserServerApi.postCustomer;
+      default:
+        throw Exception("Invalid role");
+    }
+  }
+
+  String getUpdateApi(String role) {
+    switch (role) {
+      case "ADMIN":
+        return UserServerApi.patchAdmin;
+      case "STAFF":
+        return UserServerApi.patchStaff;
+      case "CUSTOMER":
+        return UserServerApi.patchCustomer;
+      default:
+        throw Exception("Invalid role");
+    }
+  }
+
+  Future<Account> fetchDetail(String uuid, String role) async {
+    final token = await AuthService().getToken();
+
+    final res = await http.get(
+      Uri.parse(getDetailApi(role, uuid)),
+      headers: {"Authorization": "Bearer $token"},
+    );
+
+    if (res.statusCode == 200) {
+      return Account.fromJson(jsonDecode(res.body));
+    } else {
+      throw Exception("Load detail failed");
+    }
+  }
+
+  void openForm({String? uuid, required String role}) {
+    final nameCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
 
     showDialog(
       context: context,
       builder: (_) {
         return AlertDialog(
-          title: Text(user == null ? "Thêm User" : "Sửa User"),
+          title: Text(uuid == null ? "Thêm User" : "Sửa User"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: "Tên")),
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: "Tên"),
+              ),
               TextField(
-                  controller: emailCtrl,
-                  decoration: const InputDecoration(labelText: "Email")),
-              DropdownButton<String>(
-                value: role,
-                items: ["CUSTOMER", "STAFF", "ADMIN"]
-                    .map((e) =>
-                    DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (val) => role = val!,
-              )
+                controller: emailCtrl,
+                decoration: const InputDecoration(labelText: "Email"),
+              ),
             ],
           ),
           actions: [
@@ -112,12 +165,11 @@ class _ManagerUserPageState extends State<ManagerUserPage>
                 final body = jsonEncode({
                   "name": nameCtrl.text,
                   "mail": emailCtrl.text,
-                  "role": role,
                 });
 
-                if (user == null) {
+                if (uuid == null) {
                   await http.post(
-                    Uri.parse(Api.createUser),
+                    Uri.parse(getCreateApi(role)),
                     headers: {
                       "Content-Type": "application/json",
                       "Authorization": "Bearer $token",
@@ -125,8 +177,8 @@ class _ManagerUserPageState extends State<ManagerUserPage>
                     body: body,
                   );
                 } else {
-                  await http.put(
-                    Uri.parse("${Api.updateUser}/${user.uuid}"),
+                  await http.patch(
+                    Uri.parse(getUpdateApi(role)),
                     headers: {
                       "Content-Type": "application/json",
                       "Authorization": "Bearer $token",
@@ -147,44 +199,44 @@ class _ManagerUserPageState extends State<ManagerUserPage>
   }
 
   // ================= CARD =================
-  Widget buildUserCard(Account u) {
+  Widget buildUserCard(AccountLite u, int index) {
     return Card(
       color: Colors.white.withValues(alpha: 0.08),
       margin: const EdgeInsets.all(10),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundImage:
-          u.avatar.isNotEmpty ? NetworkImage(u.avatar) : null,
-          child: u.avatar.isEmpty
-              ? const Icon(Icons.person)
-              : null,
+          child: Text("${index + 1}"),
         ),
         title: Text(
           u.name,
           style: const TextStyle(color: Colors.white),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(u.mail, style: const TextStyle(color: Colors.white70)),
-            Text("Role: ${u.role}",
-                style: const TextStyle(color: Colors.white54)),
-
-            if (u.role == "STAFF")
-              Text("Cơ sở: ${u.facilityName ?? ''}",
-                  style: const TextStyle(color: Colors.white54)),
-
-            if (u.role == "CUSTOMER")
-              Text("Hết hạn: ${u.expiryDate?.toString().split(' ')[0] ?? ''}",
-                  style: const TextStyle(color: Colors.white54)),
-          ],
+        subtitle: Text(
+          u.mail,
+          style: const TextStyle(color: Colors.white70),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
+              icon: const Icon(Icons.visibility, color: Colors.blue),
+              onPressed: () async {
+                final detail = await fetchDetail(u.uuid, u.role);
+
+                showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text("Chi tiết"),
+                    content: Text(detail.toJson().toString()),
+                  ),
+                );
+              },
+            ),
+            IconButton(
               icon: const Icon(Icons.edit, color: Colors.orange),
-              onPressed: () => openForm(user: u),
+              onPressed: () {
+                openForm(uuid: u.uuid, role: u.role);
+              },
             ),
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
@@ -203,8 +255,12 @@ class _ManagerUserPageState extends State<ManagerUserPage>
       appBar: AppBar(
         title: const Text("Quản lý User"),
         backgroundColor: const Color(0xFF1A237E),
+        foregroundColor: const Color(0xFFFFD740),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: const Color(0xFFFFD740),
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: const Color(0xFFFFD740),
           tabs: const [
             Tab(text: "ADMIN"),
             Tab(text: "CUSTOMER"),
@@ -214,18 +270,29 @@ class _ManagerUserPageState extends State<ManagerUserPage>
       ),
       backgroundColor: const Color(0xFF0F123A),
 
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => openForm(),
-        child: const Icon(Icons.add),
-      ),
-
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-        itemCount: users.length,
-        itemBuilder: (context, index) {
-          return buildUserCard(users[index]);
-        },
+          : Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: ElevatedButton(
+              onPressed: () {
+                final role = roles[_tabController.index];
+                openForm(role: role);
+              },
+              child: Text("Thêm ${roles[_tabController.index]}"),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: users.length,
+              itemBuilder: (context, index) {
+                return buildUserCard(users[index], index);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

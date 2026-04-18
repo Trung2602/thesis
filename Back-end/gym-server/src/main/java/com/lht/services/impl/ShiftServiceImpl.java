@@ -7,6 +7,7 @@ import com.lht.services.ShiftService;
 import jakarta.persistence.criteria.Predicate;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -64,7 +65,15 @@ public class ShiftServiceImpl implements ShiftService {
 
     @Override
     public ShiftDTO addOrUpdateShift(ShiftDTO dto) {
-        Shift shift = this.toEntity(dto);
+        Shift shift = toEntity(dto);
+        if (shift.getDuration() == null) {
+            Duration duration = Duration.between(
+                    shift.getCheckin(),
+                    shift.getCheckout()
+            );
+            double hours = duration.toMinutes() / 60.0;
+            shift.setDuration(BigDecimal.valueOf(hours));
+        }
         Shift saved = shiftRepository.save(shift);
         return this.mapToDTO(saved);
     }

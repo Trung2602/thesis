@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import static com.lht.component.SecurityUtils.getCurrentUserMail;
 
 @RestController
-@RequestMapping("/api/v1/account")
+@RequestMapping("/api/v1/user/accounts")
 @RequiredArgsConstructor
 public class ApiAccountController {
 
@@ -67,5 +67,10 @@ public class ApiAccountController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getAccounts(@RequestParam String role) {
+        return ResponseEntity.ok(accountService.getAcountsRole(role));
     }
 }

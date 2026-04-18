@@ -12,8 +12,10 @@ import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,7 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
         StaffDayOffDTO dto = new StaffDayOffDTO();
         dto.setUuid(s.getUuid());
         dto.setDate(s.getDateOff());
+        dto.setName(internalUserClient.getStaffNameByUuid(s.getStaffUuid()));
         return dto;
     }
 
@@ -44,15 +47,9 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
                 .map(d -> StaffDayOffDTO.builder()
                         .uuid(d.getUuid())
                         .date(d.getDateOff())
+                        .name(staffMap.get(d.getStaffUuid()))
                         .build())
                 .toList();
-    }
-
-    private StaffDayOff toEntity(StaffDayOffDTO dto) {
-        StaffDayOff s = new StaffDayOff();
-        s.setUuid(dto.getUuid());
-        s.setDateOff(dto.getDate());
-        return s;
     }
 
     @Override
@@ -118,12 +115,46 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
     }
 
     @Override
-    public Page<StaffDayOffDTO> getAllSort(String sortField, String sortDir, int page, int size) {
+    public Page<StaffDayOffDTO> getStaffDayOffsFilter(Map<String, String> params, String sortField, String sortDir, int page, int size) {
+        Specification<StaffDayOff> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (params.containsKey("uuid") && !params.get("uuid").isBlank()) {
+                predicates.add(cb.equal(
+                        root.get("uuid"),
+                        UUID.fromString(params.get("uuid"))
+                ));
+            }
+            if (params.containsKey("staffUuid") && !params.get("staffUuid").isBlank()) {
+                predicates.add(cb.equal(
+                        root.get("staffUuid"),
+                        UUID.fromString(params.get("staffUuid"))
+                ));
+            }
+            if (params.containsKey("month") && params.containsKey("year")
+                    && !params.get("month").isBlank()
+                    && !params.get("year").isBlank()) {
+
+                int month = Integer.parseInt(params.get("month"));
+                int year = Integer.parseInt(params.get("year"));
+
+                LocalDate start = LocalDate.of(year, month, 1);
+                LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+
+                predicates.add(cb.between(root.get("dateOff"), start, end));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        if (sortField == null || sortField.isBlank()) {
+            sortField = "dateOff";
+        }
+        if (sortDir == null || sortDir.isBlank()) {
+            sortDir = "desc";
+        }
         Sort sort = sortDir.equalsIgnoreCase("asc")
                 ? Sort.by(sortField).ascending()
                 : Sort.by(sortField).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<StaffDayOff> entityPage = staffDayOffRepository.findAll(pageable);
+        Page<StaffDayOff> entityPage = staffDayOffRepository.findAll(spec, pageable);
         List<StaffDayOffDTO> dtoList = mapToDTO(entityPage.getContent());
         return new PageImpl<>(dtoList, pageable, entityPage.getTotalElements());
     }

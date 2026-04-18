@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:gym/api/gym_server_api.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../api/api.dart';
 import '../cache/app_cache.dart';
 import '../models/account.dart';
 import '../models/account_provider.dart';
@@ -52,7 +51,7 @@ class _DayOffState extends State<DayOff> {
     }
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString("token") ?? "";
-    final url = Uri.parse(Api.getStaffDayOffs).replace(
+    final url = Uri.parse(GymServerApi.getStaffDayOffs).replace(
       queryParameters: {
         "month": month.toString(),
         "year": year.toString(),
@@ -126,7 +125,7 @@ class _DayOffState extends State<DayOff> {
 
     try {
       final res = await http.post(
-        Uri.parse(Api.postStaffDayOff),
+        Uri.parse(GymServerApi.postStaffDayOff),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
@@ -153,7 +152,7 @@ class _DayOffState extends State<DayOff> {
 
   Future<void> _deleteDayOff(String uuid) async {
     try {
-      final res = await http.delete(Uri.parse(Api.deleteStaffDayOff(uuid)));
+      final res = await http.delete(Uri.parse(GymServerApi.deleteStaffDayOff(uuid)));
 
       if (!mounted) return;
 
@@ -182,7 +181,6 @@ class _DayOffState extends State<DayOff> {
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            // ================== Bộ lọc tháng năm ==================
             Row(
               children: [
                 Expanded(
@@ -249,8 +247,6 @@ class _DayOffState extends State<DayOff> {
               ],
             ),
             const SizedBox(height: 20),
-
-            // Nút xin nghỉ
             ElevatedButton(
               onPressed: _registerDayOff,
               style: ElevatedButton.styleFrom(
@@ -296,11 +292,9 @@ class _DayOffState extends State<DayOff> {
                 itemBuilder: (context, index) {
                   final day = _registeredDaysOff[index].date;
 
-                  // Lấy ngày hôm nay
                   final now = DateTime.now();
                   final today = DateTime(now.year, now.month, now.day);
 
-                  // Điều kiện hiện nút xoá: chỉ khi ngày > hôm nay + 1
                   final showDelete = day.isAfter(today.add(const Duration(days: 1)));
 
                   return Card(
@@ -313,16 +307,14 @@ class _DayOffState extends State<DayOff> {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
 
                       leading: const Icon(Icons.event_available, color: Colors.white70),
-                      title: Text(
-                        '${day.day}/${day.month}/${day.year}',
+                      title: Text('${day.day}/${day.month}/${day.year}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      subtitle: Text(
-                        "Ngày nghỉ đã đăng ký",
+                      subtitle: Text("Ngày nghỉ đã đăng ký",
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 12,
@@ -346,15 +338,13 @@ class _DayOffState extends State<DayOff> {
                                 ),
                                 TextButton(
                                   onPressed: () => Navigator.pop(context, true),
-                                  child: const Text(
-                                    "Xoá",
+                                  child: const Text("Xoá",
                                     style: TextStyle(color: Colors.redAccent),
                                   ),
                                 ),
                               ],
                             ),
                           );
-
                           if (confirm == true) {
                             await _deleteDayOff(_registeredDaysOff[index].uuid);
                           }
