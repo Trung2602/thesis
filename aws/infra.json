@@ -551,7 +551,11 @@
         "Port": {"Ref": "ContainerPort"},
         "Protocol": "HTTP",
         "HealthCheckPath": {"Ref": "HealthCheckPath"},
-        "Matcher": {"HttpCode": "200-399"}
+        "Matcher": {"HttpCode": "200-399"},
+        "HealthCheckIntervalSeconds": 60,
+        "HealthCheckTimeoutSeconds": 10,
+        "UnhealthyThresholdCount": 5,
+        "HealthyThresholdCount": 5
       }
     },
     "TargetGroupB": {
@@ -562,7 +566,11 @@
         "Port": {"Ref": "ContainerPort"},
         "Protocol": "HTTP",
         "HealthCheckPath": {"Ref": "HealthCheckPath"},
-        "Matcher": {"HttpCode": "200-399"}
+        "Matcher": {"HttpCode": "200-399"},
+        "HealthCheckIntervalSeconds": 60,
+        "HealthCheckTimeoutSeconds": 10,
+        "UnhealthyThresholdCount": 5,
+        "HealthyThresholdCount": 5
       }
     },
     "TargetGroupC": {
@@ -573,7 +581,11 @@
         "Port": {"Ref": "ContainerPort"},
         "Protocol": "HTTP",
         "HealthCheckPath": {"Ref": "HealthCheckPath"},
-        "Matcher": {"HttpCode": "200-399"}
+        "Matcher": {"HttpCode": "200-399"},
+        "HealthCheckIntervalSeconds": 60,
+        "HealthCheckTimeoutSeconds": 10,
+        "UnhealthyThresholdCount": 5,
+        "HealthyThresholdCount": 5
       }
     },
     "RuleA": {
