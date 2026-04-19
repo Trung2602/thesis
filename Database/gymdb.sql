@@ -117,7 +117,7 @@ INSERT INTO plan (name, price, duration_days, description) VALUES
 ('Gói sinh viên',269000,30,'Điều kiện và học sinh và sinh viên dưới 22 tuổi'),
 ('Gói tháng',299000,30,'Gói tập 1 tháng, không giới hạn lượt tập'),
 ('Gói 3 tháng',829000,91,'Gói tập 3 tháng, tặng 1 lần xông hơi'),
-('Gói 6 tháng',1499000,186,'Gói tập 3 tháng, tặng 10 lần xông hơi'),
+('Gói 6 tháng',1499000,186,'Gói tập 6 tháng, tặng 10 lần xông hơi'),
 ('Gói năm',2399000,365,'Gói tập 1 năm, tặng 30 lần xông hơi');
 
 INSERT INTO staff_day_off (date_off, staff_uuid) VALUES

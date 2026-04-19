@@ -1,6 +1,6 @@
 class AiServerApi {
-  static const String baseUrl = "http://192.168.1.2:8082/api/v1/ai";
-  static const String wsBaseUrl = "http://192.168.1.2:8082";
+  static const String baseUrl = "http://fitness-alb-1289679733.us-east-1.elb.amazonaws.com/api/v1/ai";
+  static const String wsBaseUrl = "http://fitness-alb-1289679733.us-east-1.elb.amazonaws.com";
 
   // CHAT
   static const String getChatHistory = "$baseUrl/chat/history";

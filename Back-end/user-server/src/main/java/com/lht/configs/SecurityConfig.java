@@ -57,6 +57,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(requests -> requests
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/login", "/css/**", "/images/logo_transparent_white.png", "/js/**").permitAll()
                         .requestMatchers("/").hasRole("ADMIN")
                         // ===== PUBLIC API =====

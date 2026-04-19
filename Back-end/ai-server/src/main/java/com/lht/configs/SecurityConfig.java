@@ -43,6 +43,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/v1/ai/ai.ask/**").hasRole("CUSTOMER")
                         .requestMatchers("/api/v1/ai/embedding/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/ai/chat/**").hasRole("CUSTOMER")

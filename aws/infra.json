@@ -2,17 +2,6 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "Gym Microservices Architecture: VPC, RDS, ECS Fargate, ALB, Service Discovery, Logging",
   "Parameters": {
-    "BootstrapMode": {
-      "Type": "String",
-      "AllowedValues": ["true","false"],
-      "Default": "true",
-      "Description": "Set to 'true' to use a lightweight bootstrap image for initial deployment. Set to 'false' to use your real ECR images after they are pushed."
-    }, 
-    "BootstrapImage": {
-      "Type": "String",
-      "Default": "springboot-health-bootstrap:latest",
-      "Description": "The public Docker Hub image used to bypass initial ECR pull failures."
-    },
     "ProjectName": {
       "Type": "String",
       "Default": "fitness"
@@ -48,6 +37,14 @@
       "Type": "String",
       "Default": "10.0.11.0/24"
     },
+    "MyCidr": {
+      "Type": "String",
+      "Default": "171.250.213.115/32"
+    },
+    "KeyPairName": {
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access"
+    },
     "MailHost": {
       "Type": "String",
       "Default": "smtp.gmail.com"
@@ -81,7 +78,7 @@
     },
     "DbInstanceClass": {
       "Type": "String",
-      "Default": "db.t4g.small"
+      "Default": "db.t3.micro"
     },
     "DbAllocatedStorage": {
       "Type": "Number",
@@ -165,8 +162,7 @@
   },
   "Conditions": {
     "IsMultiAZ": {"Fn::Equals": [{"Ref": "DbMultiAZ"},"true"]},
-    "DoScanOnPush": {"Fn::Equals": [{"Ref": "ScanOnPush"},"true"]},
-    "IsBootstrapMode": {"Fn::Equals": [{"Ref": "BootstrapMode"},"true"]}
+    "DoScanOnPush": {"Fn::Equals": [{"Ref": "ScanOnPush"},"true"]}
   },
   "Resources": {
     "EcrRepoA": {
@@ -398,10 +394,10 @@
         "VPCSecurityGroups": [{ "Ref": "DbSecurityGroup" }],
         "MasterUsername": { "Ref": "DbUsername" },
         "MasterUserPassword": { "Ref": "DbPassword" },
-        "BackupRetentionPeriod": 7,
+        "BackupRetentionPeriod": 0,
         "MultiAZ": {"Fn::If": ["IsMultiAZ", true, false]},
         "StorageEncrypted": true,
-        "PubliclyAccessible": true,
+        "PubliclyAccessible": false,
         "DeletionProtection": false
       }
     },
@@ -461,6 +457,43 @@
         ]
       }
     },
+    "Ec2SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "GroupDescription": "Allow SSH from local machine",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 22,
+            "ToPort": 22,
+            "CidrIp": { "Ref": "MyCidr" }
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "EC2": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": "t3.micro",
+        "SubnetId": { "Ref": "PublicSubnet1" },
+        "ImageId": {"Fn::Sub": "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}"},
+        "KeyName": { "Ref": "KeyPairName" },
+        "SecurityGroupIds": [{ "Ref": "Ec2SecurityGroup" }],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${ProjectName}-ec2" }
+          }
+        ]
+      }
+    },
     "DbIngressFromEcs": {
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Properties": {
@@ -469,6 +502,16 @@
         "FromPort": {"Ref": "DbPort"},
         "ToPort": {"Ref": "DbPort"},
         "SourceSecurityGroupId": {"Ref": "EcsSecurityGroup"}
+      }
+    },
+    "DbIngressFromEc2": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": { "Ref": "DbSecurityGroup" },
+        "IpProtocol": "tcp",
+        "FromPort": { "Ref": "DbPort" },
+        "ToPort": { "Ref": "DbPort" },
+        "SourceSecurityGroupId": { "Ref": "Ec2SecurityGroup" }
       }
     },
     "ALB": {
@@ -481,6 +524,7 @@
         "Type": "application"
       }
     },
+
     "ALBListener": {
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
       "Properties": {
@@ -662,11 +706,7 @@
         "TaskRoleArn": {"Fn::GetAtt": ["EcsTaskRole","Arn"]},
         "ContainerDefinitions": [{
             "Name": {"Ref": "ServiceAName"},
-            "Image": {"Fn::If": ["IsBootstrapMode",{"Ref": "BootstrapImage"},
-                {
-                  "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${EcrRegion}.amazonaws.com/${ProjectName}-${ServiceAName}-images:${ImageTag}"
-                }
-              ]},
+            "Image": {"Fn::Sub": "${AWS::AccountId}.dkr.ecr.${EcrRegion}.amazonaws.com/${ProjectName}-${ServiceAName}-images:${ImageTag}"},
             "PortMappings": [{"ContainerPort": {"Ref": "ContainerPort"},"Protocol": "tcp"}],
             "Environment": [
               {
@@ -745,12 +785,7 @@
         "ContainerDefinitions": [
           {
             "Name": {"Ref": "ServiceBName"},
-            "Image": {"Fn::If": ["IsBootstrapMode",{ "Ref": "BootstrapImage" },
-                {
-                  "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${EcrRegion}.amazonaws.com/${ProjectName}-${ServiceBName}-images:${ImageTag}"
-                }
-              ]
-            },
+            "Image": {"Fn::Sub": "${AWS::AccountId}.dkr.ecr.${EcrRegion}.amazonaws.com/${ProjectName}-${ServiceBName}-images:${ImageTag}"},
             "PortMappings": [{"ContainerPort": { "Ref": "ContainerPort" },"Protocol": "tcp"}],
             "Environment": [
               {
@@ -850,12 +885,7 @@
         "ContainerDefinitions": [
           {
             "Name": {"Ref": "ServiceCName"},
-            "Image": {"Fn::If": ["IsBootstrapMode",{ "Ref": "BootstrapImage" },
-                {
-                  "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${EcrRegion}.amazonaws.com/${ProjectName}-${ServiceCName}-images:${ImageTag}"
-                }
-              ]
-            },
+            "Image": {"Fn::Sub": "${AWS::AccountId}.dkr.ecr.${EcrRegion}.amazonaws.com/${ProjectName}-${ServiceCName}-images:${ImageTag}"},
             "PortMappings": [{"ContainerPort": { "Ref": "ContainerPort" },"Protocol": "tcp"}],
             "Environment": [
               {
@@ -1025,6 +1055,7 @@
     },
     "ScalableTargetA": {
       "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "DependsOn": ["ServiceA"],
       "Properties": {
         "MaxCapacity": {"Ref": "AutoScaleMax"},
         "MinCapacity": {"Ref": "AutoScaleMin"},
@@ -1036,6 +1067,7 @@
     },
     "ScalingPolicyA": {
       "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+      "DependsOn": ["ScalableTargetA"],
       "Properties": {"PolicyName": {"Fn::Sub": "${ProjectName}-cpu-a"},
         "PolicyType": "TargetTrackingScaling",
         "ScalingTargetId": {"Ref": "ScalableTargetA"},
@@ -1049,6 +1081,7 @@
     },
     "ScalableTargetB": {
       "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "DependsOn": ["ServiceB"],
       "Properties": {
         "MaxCapacity": { "Ref": "AutoScaleMax" },
         "MinCapacity": { "Ref": "AutoScaleMin" },
@@ -1062,6 +1095,7 @@
     },
     "ScalingPolicyB": {
       "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+      "DependsOn": ["ScalableTargetB"],
       "Properties": {
         "PolicyName": { "Fn::Sub": "${ProjectName}-cpu-b" },
         "PolicyType": "TargetTrackingScaling",
@@ -1078,6 +1112,7 @@
     },
     "ScalableTargetC": {
       "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "DependsOn": ["ServiceC"],
       "Properties": {
         "MaxCapacity": { "Ref": "AutoScaleMax" },
         "MinCapacity": { "Ref": "AutoScaleMin" },
@@ -1091,6 +1126,7 @@
     },
     "ScalingPolicyC": {
       "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+      "DependsOn": ["ScalableTargetC"],
       "Properties": {
         "PolicyName": { "Fn::Sub": "${ProjectName}-cpu-c" },
         "PolicyType": "TargetTrackingScaling",
@@ -1127,48 +1163,11 @@
         "ToPort": 80,
         "SourceSecurityGroupId": {"Ref": "ApiSecurityGroup"}
       }
-    },
-    "WebDistribution": {
-      "Type": "AWS::CloudFront::Distribution",
-      "Properties": {
-        "DistributionConfig": {
-          "Enabled": true,
-          "HttpVersion": "http2",
-          "Origins": [
-            {
-              "Id": "albOrigin",
-              "DomainName": { "Fn::GetAtt": ["ALB","DNSName"] },
-              "CustomOriginConfig": {
-                "OriginProtocolPolicy": "http-only",
-                "HTTPPort": 80,
-                "HTTPSPort": 443
-              }
-            }
-          ],
-          "DefaultCacheBehavior": {
-            "TargetOriginId": "albOrigin",
-            "ViewerProtocolPolicy": "redirect-to-https",
-            "AllowedMethods": [
-              "GET","HEAD","OPTIONS","POST","PUT","DELETE","PATCH"
-            ],
-            "CachedMethods": [
-              "GET","HEAD","OPTIONS"
-            ],
-            "Compress": true,
-            "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
-          }
-        }
-      }
     }
   },
   "Outputs": {
     "ALBDNS": { "Value": { "Fn::GetAtt": ["ALB", "DNSName"] } },
     "VPCId": { "Value": { "Ref": "VPC" } },
-    "CloudFrontDomain": {
-      "Value": {
-        "Fn::GetAtt": ["WebDistribution","DomainName"]}
-    },
-    "CloudFrontDistributionId": {"Value": {"Ref": "WebDistribution"}},
     "EcsClusterName": {"Value": {"Ref": "EcsCluster"}},
     "EcsServiceAName": {"Value": {"Ref": "ServiceA"}},
     "EcsServiceBName": {"Value": {"Ref": "ServiceB"}},

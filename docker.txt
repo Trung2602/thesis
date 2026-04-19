@@ -4,16 +4,36 @@ cd gym-server
 mvnw clean package -DskipTests
 
 docker build -t fitness-gym .
-aws ecr create-repository --repository-name fitness-gym-images --region us-east-1
 docker tag fitness-gym:latest 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-gym-images:latest
 docker push 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-gym-images:latest
 
 docker build -t fitness-user .
-aws ecr create-repository --repository-name fitness-user-images --region us-east-1
 docker tag fitness-user:latest 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-user-images:latest
 docker push 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-user-images:latest
 
 docker build -t fitness-ai .
-aws ecr create-repository --repository-name fitness-ai-images --region us-east-1
 docker tag fitness-ai:latest 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-ai-images:latest
 docker push 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-ai-images:latest
+
+
+
+docker push 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-gym-images:latest
+docker push 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-user-images:latest
+docker push 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-ai-images:latest
+
+
+
+
+
+ssh -i "C:\Users\ADMIN\Downloads\fitness-key.pem" ^
+-L 5433:fitness-db.ca3cs8aesik8.us-east-1.rds.amazonaws.com:5432 ^
+ec2-user@100.52.181.248
+
+sudo dnf install postgresql15 -y
+
+psql -h fitness-db.ca3cs8aesik8.us-east-1.rds.amazonaws.com \
+     -U postgres \
+     -p 5432 \
+     -d postgres
+
+SELECT datname FROM pg_database;
