@@ -121,15 +121,15 @@
     },
     "ServiceAPaths": {
       "Type": "CommaDelimitedList",
-      "Default": "/api/v1/gym/*,/api/v1/gym"
+      "Default": "/api/v1/gym/**"
     },
     "ServiceBPaths": {
       "Type": "CommaDelimitedList",
-      "Default": "/api/v1/user/*,/api/v1/user"
+      "Default": "/api/v1/user/**"
     },
     "ServiceCPaths": {
       "Type": "CommaDelimitedList",
-      "Default": "/ws-chat/websocket/*,/api/v1/ai/*,/api/v1/ai"
+      "Default": "/ws-chat/**,/ws-chat,/api/v1/ai/**"
     },
     "HealthCheckPath": {
       "Type": "String",

@@ -31,13 +31,33 @@ public class SocketController {
         UserPrincipal userPrincipal = (UserPrincipal) authToken.getPrincipal();
         UUID userUuid = userPrincipal.getUuid();
 
-        CompletableFuture.supplyAsync(() -> ragService.askFitnessAI(userUuid, message.getQuestion()))
-                .thenAccept(answer -> {
-                    messagingTemplate.convertAndSend(
-                            "/topic/ai",
-                            new ChatMessage(message.getQuestion(), answer, null)
-                    );
-                    chatHistoryService.saveChat(userUuid, message.getQuestion(), answer);
-                });
+//        CompletableFuture.supplyAsync(() -> ragService.askFitnessAI(userUuid, message.getQuestion()))
+//                .thenAccept(answer -> {
+//                    messagingTemplate.convertAndSend(
+//                            "/topic/ai",
+//                            new ChatMessage(message.getQuestion(), answer, null)
+//                    );
+//                    chatHistoryService.saveChat(userUuid, message.getQuestion(), answer);
+//                });
+
+        CompletableFuture.supplyAsync(() -> {
+            return ragService.askFitnessAI(userUuid, message.getQuestion());
+        }).whenComplete((answer, ex) -> {
+
+            if (ex != null) {
+                messagingTemplate.convertAndSend(
+                        "/topic/ai",
+                        new ChatMessage(message.getQuestion(), "Error: " + ex.getMessage(), null)
+                );
+                return;
+            }
+
+            messagingTemplate.convertAndSend(
+                    "/topic/ai",
+                    new ChatMessage(message.getQuestion(), answer, null)
+            );
+
+            chatHistoryService.saveChat(userUuid, message.getQuestion(), answer);
+        });
     }
 }
