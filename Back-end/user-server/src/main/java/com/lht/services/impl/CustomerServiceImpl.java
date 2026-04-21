@@ -142,7 +142,7 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public CustomerDTO createCustomer(CustomerRequestDTO dto, MultipartFile file) {
+    public CustomerDTO createCustomerAndAvatar(CustomerRequestDTO dto, MultipartFile file) {
         Customer c = new Customer();
         c.setMail(dto.getMail());
         c.setName(dto.getName());
@@ -182,10 +182,33 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public CustomerDTO updateCustomer(CustomerDTO dto, MultipartFile file) {
+    public CustomerDTO createCustomer(CustomerRequestDTO dto) {
+        Customer customer = new Customer();
+        customer.setMail(dto.getMail());
+        customer.setName(dto.getName());
+        customer.setBirthday(dto.getBirthday());
+        customer.setGender(GenderType.valueOf(dto.getGender()));
+        customer.setIsActive(true);
+        customer.setRole(AccountRole.CUSTOMER);
+        if (dto.getExpiryDate() == null) {
+            customer.setExpiryDate(LocalDate.now().plusDays(1));
+        } else {
+            customer.setExpiryDate(dto.getExpiryDate());
+        }
+        customer.setWeight(dto.getWeight());
+        customer.setHeight(dto.getHeight());
+        customer.setCreatedAt(LocalDateTime.now());
+        customer.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        customer.setAvatar("https://res.cloudinary.com/dsagezboe/image/upload/v1775034161/logo_black_l0rv4p.png");
 
+        Customer saved = customerRepository.save(customer);
+        return mapToDTO(saved);
+    }
+
+
+    @Override
+    public CustomerDTO updateCustomer(CustomerRequestDTO dto) {
         Customer c = customerRepository.findById(dto.getUuid()).orElseThrow(() -> new RuntimeException("Customer không tồn tại"));
-
         c.setMail(dto.getMail());
         c.setName(dto.getName());
         c.setBirthday(dto.getBirthday());
@@ -197,26 +220,11 @@ public class CustomerServiceImpl implements CustomerService {
         if (dto.getIsActive() != null) {
             c.setIsActive(dto.getIsActive());
         }
-        c.setExpiryDate(dto.getExpiryDate());
-
-        if (file != null && !file.isEmpty()) {
-            try {
-                Map res = cloudinary.uploader().upload(
-                        file.getBytes(),
-                        ObjectUtils.asMap("resource_type", "auto")
-                );
-
-                c.setAvatar(res.get("secure_url").toString());
-
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        } else {
-            c.setAvatar(dto.getAvatar() != null ? dto.getAvatar() : c.getAvatar());
+        if (dto.getPassword() != null) {
+            c.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         }
-
+        c.setExpiryDate(dto.getExpiryDate());
         Customer saved = customerRepository.save(c);
-
         return mapToDTO(saved);
     }
 

@@ -87,76 +87,44 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public AdminDTO createAdmin(AdminRequestDTO dto, MultipartFile file) {
-
+    public AdminDTO createAdmin(AdminRequestDTO dto) {
         Admin admin = new Admin();
         admin.setMail(dto.getMail());
         admin.setName(dto.getName());
         admin.setBirthday(dto.getBirthday());
         admin.setGender(GenderType.valueOf(dto.getGender().toUpperCase()));
-
         admin.setIsActive(true);
         admin.setRole(AccountRole.ADMIN);
         admin.setCreatedAt(LocalDateTime.now());
-        // encode password
-        admin.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
-
-        // upload avatar
-        if (file != null && !file.isEmpty()) {
-            try {
-                Map res = cloudinary.uploader().upload(
-                        file.getBytes(),
-                        ObjectUtils.asMap("resource_type", "auto"));
-
-                admin.setAvatar(res.get("secure_url").toString());
-
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        } else {
-            admin.setAvatar("https://res.cloudinary.com/dxgc9wwrd/image/upload/v1754928114/nzoi1xjxasxfvsut1azv.jpg");
+        if (dto.getPermissions() != null) {
+            admin.setPermissions("All");
         }
+        admin.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        admin.setAvatar("https://res.cloudinary.com/dxgc9wwrd/image/upload/v1754928114/nzoi1xjxasxfvsut1azv.jpg");
 
         Admin saved = adminRepository.save(admin);
-
         return mapToDTO(saved);
     }
 
     @Override
-    public AdminDTO updateAdmin(AdminDTO dto, MultipartFile file) {
-
+    public AdminDTO updateAdmin(AdminRequestDTO dto) {
         Admin admin = adminRepository.findById(dto.getUuid()).orElseThrow(() -> new RuntimeException("Admin không tồn tại"));
-
         admin.setMail(dto.getMail());
         admin.setName(dto.getName());
         admin.setBirthday(dto.getBirthday());
-
         if (dto.getGender() != null) {
             admin.setGender(GenderType.valueOf(dto.getGender()));
         }
-
         if (dto.getIsActive() != null) {
             admin.setIsActive(dto.getIsActive());
         }
-
-        // update avatar
-        if (file != null && !file.isEmpty()) {
-            try {
-                Map res = cloudinary.uploader().upload(
-                        file.getBytes(),
-                        ObjectUtils.asMap("resource_type", "auto"));
-
-                admin.setAvatar(res.get("secure_url").toString());
-
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        } else {
-            admin.setAvatar(dto.getAvatar() != null ? dto.getAvatar() : admin.getAvatar());
+        if (dto.getPassword() != null) {
+            admin.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         }
-
+        if (dto.getPermissions() != null) {
+            admin.setPermissions(dto.getPermissions());
+        }
         Admin saved = adminRepository.save(admin);
-
         return mapToDTO(saved);
     }
 }

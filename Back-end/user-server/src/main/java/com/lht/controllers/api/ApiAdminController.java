@@ -24,17 +24,11 @@ public class ApiAdminController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createAdmin(@ModelAttribute AdminRequestDTO dto,
-                                         @RequestPart(value = "image", required = false) MultipartFile file)
-    {
-        return ResponseEntity.ok(adminService.createAdmin(dto, file));
+    public ResponseEntity<?> createAdmin(@RequestBody AdminRequestDTO dto) {
+        return ResponseEntity.ok(adminService.createAdmin(dto));
     }
-
     @PatchMapping
-    public ResponseEntity<?> updateAdmin(
-            @ModelAttribute AdminDTO dto,
-            @RequestPart(value = "image", required = false) MultipartFile file)
-    {
-        return ResponseEntity.ok(adminService.updateAdmin(dto, file));
+    public ResponseEntity<?> updateAdmin(@RequestBody AdminRequestDTO dto) {
+        return ResponseEntity.ok(adminService.updateAdmin(dto));
     }
 }

@@ -13,8 +13,8 @@ public interface StaffService {
     List<AccountLiteDTO> getStaffs();
     StaffDTO getStaffByUuid(UUID uuid);
     List<StaffDTO> getStaffs(Map<String, String> params);
-    StaffDTO createStaff(StaffRequestDTO dto, MultipartFile file);
-    StaffDTO updateStaff(StaffDTO dto, MultipartFile file);
+    StaffDTO createStaff(StaffRequestDTO dto);
+    StaffDTO updateStaff(StaffRequestDTO dto);
 
     List<InternalUserResponse> getStaffsAll();
     String getStaffNameByUuid(UUID uuid);

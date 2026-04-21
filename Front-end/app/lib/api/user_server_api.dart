@@ -1,6 +1,6 @@
 class UserServerApi {
   // static const String baseUrl = "http://fitness-alb-1289679733.us-east-1.elb.amazonaws.com/api/v1/user";
-  static const String baseUrl = "http://192.168.1.7:8081/api/v1/user";
+  static const String baseUrl = "http://192.168.1.10:8081/api/v1/user";
 
   // ================= AUTH =================
   static const String login = "$baseUrl/auth/login";

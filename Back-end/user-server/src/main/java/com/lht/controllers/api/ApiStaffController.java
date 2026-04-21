@@ -33,16 +33,13 @@ public class ApiStaffController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createStaff(@ModelAttribute StaffRequestDTO dto,
-                                         @RequestPart(value = "image", required = false) MultipartFile file) {
-        return ResponseEntity.ok(staffService.createStaff(dto, file));
+    public ResponseEntity<?> createStaff(@RequestBody StaffRequestDTO dto) {
+        return ResponseEntity.ok(staffService.createStaff(dto));
     }
 
     @PatchMapping
-    public ResponseEntity<?> updateStaff(@ModelAttribute StaffDTO dto,
-                                         @RequestPart(value = "image", required = false) MultipartFile file
-    ) {
-        return ResponseEntity.ok(staffService.updateStaff(dto, file));
+    public ResponseEntity<?> updateStaff(@RequestBody StaffRequestDTO dto) {
+        return ResponseEntity.ok(staffService.updateStaff(dto));
     }
 
 

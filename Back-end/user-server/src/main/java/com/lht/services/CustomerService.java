@@ -13,8 +13,9 @@ public interface CustomerService {
     CustomerDTO getCustomerByUuid(UUID uuid);
     Customer getByUuid(UUID uuid);
     List<CustomerDTO> getCustomers(Map<String, String> params);
-    CustomerDTO createCustomer(CustomerRequestDTO dto, MultipartFile file);
-    CustomerDTO updateCustomer(CustomerDTO dto, MultipartFile file);
+    CustomerDTO createCustomerAndAvatar(CustomerRequestDTO dto, MultipartFile file);
+    CustomerDTO createCustomer(CustomerRequestDTO dto);
+    CustomerDTO updateCustomer(CustomerRequestDTO dto);
 
     String getCustomerNameByUuid(UUID uuid);
     Map<UUID, String> getCustomerNamesByUuids(Set<UUID> customerUuids);

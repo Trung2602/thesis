@@ -1,6 +1,5 @@
 package com.lht.controllers.api;
 
-import com.lht.dto.CustomerDTO;
 import com.lht.dto.CustomerRequestDTO;
 import com.lht.services.CustomerService;
 
@@ -9,7 +8,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/user/customers")
@@ -23,15 +21,12 @@ public class ApiCustomerController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createCustomer(@ModelAttribute CustomerRequestDTO dto,
-                                            @RequestPart(value = "image", required = false) MultipartFile file) {
-        return ResponseEntity.ok(customerService.createCustomer(dto, file));
+    public ResponseEntity<?> createCustomer(@RequestBody CustomerRequestDTO dto) {
+        return ResponseEntity.ok(customerService.createCustomer(dto));
     }
 
     @PatchMapping
-    public ResponseEntity<?> updateCustomer(@ModelAttribute CustomerDTO dto,
-                                            @RequestPart(value = "image", required = false) MultipartFile file)
-    {
-        return ResponseEntity.ok(customerService.updateCustomer(dto, file));
+    public ResponseEntity<?> updateCustomer(@RequestBody CustomerRequestDTO dto) {
+        return ResponseEntity.ok(customerService.updateCustomer(dto));
     }
 }

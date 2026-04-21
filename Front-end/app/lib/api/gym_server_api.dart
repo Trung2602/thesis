@@ -1,6 +1,6 @@
 class GymServerApi {
   // static const String baseUrl = "http://fitness-alb-1289679733.us-east-1.elb.amazonaws.com/api/v1/gym";
-  static const String baseUrl = "http://192.168.1.7:8080/api/v1/gym";
+  static const String baseUrl = "http://192.168.1.10:8080/api/v1/gym";
 
   // ================== PLAN ==================
   static const String getPlans = "$baseUrl/plans";

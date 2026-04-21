@@ -13,6 +13,7 @@ class Account {
   // STAFF
   final String? type;
   final double? baseSalary;
+  final String? facilityUuid;
   final String? facilityName;
 
   // CUSTOMER
@@ -31,6 +32,7 @@ class Account {
     required this.isActive,
     this.type,
     this.baseSalary,
+    this.facilityUuid,
     this.facilityName,
     this.weight,
     this.height,
@@ -52,6 +54,7 @@ class Account {
 
       // STAFF
       type: json['type'],
+      facilityUuid: json['facilityUuid'],
       facilityName: json['facilityName'],
       baseSalary: json['baseSalary'] != null
           ? double.parse(json['baseSalary'].toString())
@@ -84,6 +87,7 @@ class Account {
       // STAFF
       'type': type,
       'baseSalary': baseSalary,
+      'facilityUuid': facilityUuid,
       'facilityName': facilityName,
 
       // CUSTOMER

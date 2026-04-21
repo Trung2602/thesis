@@ -53,6 +53,7 @@ public class StaffServiceImpl implements StaffService {
         dto.setType(s.getType() != null ? s.getType().name() : null);
         dto.setBaseSalary(s.getBaseSalary());
 
+        dto.setFacilityUuid(s.getFacilityUuid().toString());
         dto.setFacilityName(internalGymClient.getFacilityNameByUuid(s.getFacilityUuid()));
         return dto;
     }
@@ -79,6 +80,7 @@ public class StaffServiceImpl implements StaffService {
                         .isActive(s.getIsActive())
                         .type(s.getType() != null ? s.getType().name() : null)
                         .baseSalary(s.getBaseSalary())
+                        .facilityUuid(s.getFacilityUuid().toString())
                         .facilityName(
                                 facilityMap.getOrDefault(s.getFacilityUuid(), "Unknown")
                         )
@@ -164,83 +166,44 @@ public class StaffServiceImpl implements StaffService {
     }
 
     @Override
-    public StaffDTO createStaff(StaffRequestDTO dto, MultipartFile file) {
-
+    public StaffDTO createStaff(StaffRequestDTO dto) {
         Staff staff = new Staff();
         staff.setMail(dto.getMail());
         staff.setName(dto.getName());
         staff.setBirthday(dto.getBirthday());
         staff.setGender(GenderType.valueOf(dto.getGender()));
-
         staff.setIsActive(true);
         staff.setRole(AccountRole.STAFF);
-
         staff.setType(StaffType.valueOf(dto.getType().toUpperCase()));
         staff.setBaseSalary(dto.getBaseSalary());
         staff.setFacilityUuid(dto.getFacilityUuid());
         staff.setCreatedAt(LocalDateTime.now());
-        // encode password
         staff.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
-
-        // upload avatar
-        if (file != null && !file.isEmpty()) {
-            try {
-                Map res = cloudinary.uploader().upload(
-                        file.getBytes(),
-                        ObjectUtils.asMap("resource_type", "auto"));
-
-                staff.setAvatar(res.get("secure_url").toString());
-
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        } else {
-            staff.setAvatar("https://res.cloudinary.com/dsagezboe/image/upload/v1775034161/logo_black_l0rv4p.png");
-        }
+        staff.setAvatar("https://res.cloudinary.com/dsagezboe/image/upload/v1775034161/logo_black_l0rv4p.png");
 
         Staff saved = staffRepository.save(staff);
-
         return mapToDTO(saved);
     }
 
     @Override
-    public StaffDTO updateStaff(StaffDTO dto, MultipartFile file) {
-
+    public StaffDTO updateStaff(StaffRequestDTO dto) {
         Staff staff = staffRepository.findById(dto.getUuid()).orElseThrow(() -> new RuntimeException("Staff không tồn tại"));
-
         staff.setMail(dto.getMail());
         staff.setName(dto.getName());
         staff.setBirthday(dto.getBirthday());
-
         if (dto.getGender() != null) {
             staff.setGender(GenderType.valueOf(dto.getGender()));
         }
-
         if (dto.getIsActive() != null) {
             staff.setIsActive(dto.getIsActive());
         }
-
-        staff.setType(StaffType.valueOf(dto.getType().toUpperCase()));
-        staff.setBaseSalary(dto.getBaseSalary());
-
-        // update avatar
-        if (file != null && !file.isEmpty()) {
-            try {
-                Map res = cloudinary.uploader().upload(
-                        file.getBytes(),
-                        ObjectUtils.asMap("resource_type", "auto"));
-
-                staff.setAvatar(res.get("secure_url").toString());
-
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        } else {
-            staff.setAvatar(dto.getAvatar() != null ? dto.getAvatar() : staff.getAvatar());
+        if (dto.getPassword() != null) {
+            staff.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         }
-
+        staff.setType(StaffType.valueOf(dto.getType().toUpperCase()));
+        staff.setFacilityUuid(dto.getFacilityUuid());
+        staff.setBaseSalary(dto.getBaseSalary());
         Staff saved = staffRepository.save(staff);
-
         return mapToDTO(saved);
     }
 

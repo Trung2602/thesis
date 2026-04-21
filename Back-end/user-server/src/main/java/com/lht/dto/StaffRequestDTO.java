@@ -12,6 +12,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class StaffRequestDTO {
 
+    private UUID uuid;
     private String mail;
     private String password;
     private String name;
@@ -20,4 +21,5 @@ public class StaffRequestDTO {
     private BigDecimal baseSalary;
     private String type;
     private UUID facilityUuid;
+    private Boolean isActive;
 }

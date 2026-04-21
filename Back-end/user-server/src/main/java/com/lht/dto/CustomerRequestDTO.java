@@ -12,6 +12,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CustomerRequestDTO {
 
+    private UUID uuid;
     private String mail;
     private String password;
     private String name;
@@ -20,4 +21,5 @@ public class CustomerRequestDTO {
     private BigDecimal weight;
     private BigDecimal height;
     private LocalDate expiryDate;
+    private Boolean isActive;
 }

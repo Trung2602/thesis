@@ -1,7 +1,7 @@
 package com.lht.services.impl;
 
 import com.lht.client.InternalUserClient;
-import com.lht.configs.PaymentConfig;
+import com.lht.component.PaymentConfig;
 import com.lht.component.SecurityUtils;
 import com.lht.pojo.PayCustomer;
 import com.lht.pojo.Plan;

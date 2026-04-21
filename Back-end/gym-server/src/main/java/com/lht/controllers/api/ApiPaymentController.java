@@ -1,28 +1,12 @@
 package com.lht.controllers.api;
 
-import com.lht.client.InternalUserClient;
-import com.lht.configs.PaymentConfig;
-import com.lht.dto.InternalUserResponse;
-import com.lht.pojo.PayCustomer;
-import com.lht.pojo.Plan;
 import com.lht.pojo.StatusType;
-import com.lht.services.PayCustomerService;
 import com.lht.services.PaymentService;
-import com.lht.services.PlanService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
+
 import java.util.*;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;

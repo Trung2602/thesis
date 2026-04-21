@@ -54,19 +54,32 @@ class _ChatViewState extends State<ChatView> {
 
   Future<void> _sendMessage() async {
     if (_controller.text.trim().isEmpty) return;
+    if (account == null) return;
 
     try {
       await _messagesRef.push().set({
         'text': _controller.text.trim(),
-        'sender': account!.name,
+        'senderUuid': account!.uuid,        // ← dùng uuid thay name
+        'senderName': account!.name,
         'avatar': account!.avatar ?? '',
         'createdAt': ServerValue.timestamp,
       });
       _controller.clear();
       _scrollToBottom();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Gửi thất bại: $e")));
+    }
+  }
+
+  Future<void> _deleteMessage(String messageKey) async {
+    try {
+      await _messagesRef.child(messageKey).remove();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Xóa thất bại: $e")));
     }
   }
 
@@ -88,10 +101,50 @@ class _ChatViewState extends State<ChatView> {
     return DateFormat('HH:mm').format(date);
   }
 
+  void _showMessageOptions(String messageKey) {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: ListTile(
+          leading: const Icon(Icons.delete, color: Colors.red),
+          title: const Text("Xóa tin nhắn", style: TextStyle(color: Colors.red)),
+          onTap: () async {
+            Navigator.pop(context);
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (_) => AlertDialog(
+                title: const Text("Xác nhận xóa"),
+                content: const Text("Bạn có chắc muốn xóa tin nhắn này?"),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text("Hủy"),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text("Xóa", style: TextStyle(color: Colors.red)),
+                  ),
+                ],
+              ),
+            );
+            if (confirmed == true) {
+              await _deleteMessage(messageKey);
+            }
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Chat cùng huấn luyện viên")),
+      backgroundColor: const Color(0xFF0F123A),
+      appBar: AppBar(
+        title: const Text("Chat cùng huấn luyện viên"),
+        backgroundColor: const Color(0xFF1A237E),
+        foregroundColor: const Color(0xFFFFD740),
+      ),
       body: Column(
         children: [
           Expanded(
@@ -102,97 +155,147 @@ class _ChatViewState extends State<ChatView> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final messagesMap = snapshot.data!.snapshot.value as Map?;
-                final messagesList = messagesMap != null
-                    ? messagesMap.entries
-                    .map((e) => Map<String, dynamic>.from(e.value))
-                    .toList()
-                    : [];
+                final messagesMap =
+                snapshot.data!.snapshot.value as Map?;
 
-                // Sắp xếp theo thời gian tăng dần
+                if (messagesMap == null || messagesMap.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "Chưa có tin nhắn nào",
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  );
+                }
+
+                // Giữ key để xóa sau này
+                final messagesList = messagesMap.entries
+                    .map((e) => {
+                  'key': e.key,
+                  ...Map<String, dynamic>.from(e.value as Map),
+                })
+                    .toList();
+
                 messagesList.sort((a, b) {
-                  final aTime = a['createdAt'] ?? 0;
-                  final bTime = b['createdAt'] ?? 0;
+                  final aTime = (a['createdAt'] ?? 0) as num;
+                  final bTime = (b['createdAt'] ?? 0) as num;
                   return aTime.compareTo(bTime);
+                });
+
+                // Auto scroll khi có tin mới
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _scrollToBottom();
                 });
 
                 return ListView.builder(
                   controller: _scrollController,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   itemCount: messagesList.length,
                   itemBuilder: (context, index) {
                     final data = messagesList[index];
-                    final isMe = data['sender'] == account?.name;
+                    // ← so sánh uuid thay vì name
+                    final isMe = data['senderUuid'] == account?.uuid;
+                    final messageKey = data['key'] as String;
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: Row(
-                        mainAxisAlignment:
-                        isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (!isMe)
-                            CircleAvatar(
-                              backgroundImage: data['avatar'] != null && data['avatar'] != ''
-                                  ? NetworkImage(data['avatar'])
-                                  : null,
-                              child: data['avatar'] == null || data['avatar'] == ''
-                                  ? Text(data['sender'][0])
-                                  : null,
-                            ),
-                          if (!isMe) const SizedBox(width: 8),
-                          Flexible(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 10, horizontal: 14),
-                              decoration: BoxDecoration(
-                                color: isMe
-                                    ? Color(0x64F11175)
-                                    : Colors.grey.shade200,
-                                borderRadius: BorderRadius.only(
-                                  topLeft: const Radius.circular(12),
-                                  topRight: const Radius.circular(12),
-                                  bottomLeft: Radius.circular(isMe ? 12 : 0),
-                                  bottomRight: Radius.circular(isMe ? 0 : 12),
+                    return GestureDetector(
+                      onLongPress: isMe
+                          ? () => _showMessageOptions(messageKey)
+                          : null,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: isMe
+                              ? MainAxisAlignment.end
+                              : MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            // Avatar người khác
+                            if (!isMe) ...[
+                              CircleAvatar(
+                                backgroundImage: (data['avatar'] != null &&
+                                    data['avatar'] != '')
+                                    ? NetworkImage(data['avatar'])
+                                    : null,
+                                child: (data['avatar'] == null ||
+                                    data['avatar'] == '')
+                                    ? Text(
+                                  (data['senderName'] ?? '?')[0]
+                                      .toUpperCase(),
+                                )
+                                    : null,
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+
+                            // Bubble
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: 14),
+                                decoration: BoxDecoration(
+                                  color: isMe
+                                      ? const Color(0x64F11175)
+                                      : Colors.white.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: const Radius.circular(12),
+                                    topRight: const Radius.circular(12),
+                                    bottomLeft:
+                                    Radius.circular(isMe ? 12 : 0),
+                                    bottomRight:
+                                    Radius.circular(isMe ? 0 : 12),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                                  children: [
+                                    if (!isMe)
+                                      Text(
+                                        data['senderName'] ?? 'Unknown',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFFFD740),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    Text(
+                                      data['text'] ?? '',
+                                      style: const TextStyle(
+                                          color: Colors.white),
+                                    ),
+                                    Align(
+                                      alignment: Alignment.bottomRight,
+                                      child: Text(
+                                        _formatTime(data['createdAt'] as int?),
+                                        style: const TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.white54),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (!isMe)
-                                    Text(
-                                      data['sender'] ?? 'Unknown',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                  Text(
-                                    data['text'] ?? '',
-                                    style: TextStyle(
-                                        color: isMe ? Colors.white : Colors.black),
-                                  ),
-                                  Align(
-                                    alignment: Alignment.bottomRight,
-                                    child: Text(
-                                      _formatTime(data['createdAt']),
-                                      style: TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.grey.shade600),
-                                    ),
-                                  ),
-                                ],
+                            ),
+
+                            // Avatar mình
+                            if (isMe) ...[
+                              const SizedBox(width: 8),
+                              CircleAvatar(
+                                backgroundImage: (account?.avatar != null &&
+                                    account!.avatar!.isNotEmpty)
+                                    ? NetworkImage(account!.avatar!)
+                                    : null,
+                                child: (account?.avatar == null ||
+                                    account!.avatar!.isEmpty)
+                                    ? Text(
+                                  (account?.name ?? 'U')[0]
+                                      .toUpperCase(),
+                                )
+                                    : null,
                               ),
-                            ),
-                          ),
-                          if (isMe) const SizedBox(width: 8),
-                          if (isMe)
-                            CircleAvatar(
-                              backgroundImage: account?.avatar != null
-                                  ? NetworkImage(account!.avatar!)
-                                  : null,
-                              child: account?.avatar == null
-                                  ? Text(account?.name[0] ?? 'U')
-                                  : null,
-                            ),
-                        ],
+                            ],
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -200,23 +303,39 @@ class _ChatViewState extends State<ChatView> {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8),
+
+          // Input
+          Container(
+            color: const Color(0xFF1A237E).withValues(alpha: 0.5),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    decoration: const InputDecoration(
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
                       hintText: "Nhập tin nhắn...",
-                      border: OutlineInputBorder(),
+                      hintStyle: const TextStyle(color: Colors.white54),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.1),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
                     ),
+                    onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: _sendMessage,
-                  color: Colors.deepPurple,
+                const SizedBox(width: 8),
+                CircleAvatar(
+                  backgroundColor: const Color(0xFFFFD740),
+                  child: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.black),
+                    onPressed: _sendMessage,
+                  ),
                 ),
               ],
             ),

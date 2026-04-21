@@ -11,6 +11,6 @@ import org.springframework.web.multipart.MultipartFile;
 public interface AdminService {
 
     AdminDTO getAdminById(UUID uuid);
-    AdminDTO createAdmin(AdminRequestDTO dto, MultipartFile file);
-    AdminDTO updateAdmin(AdminDTO dto, MultipartFile file);
+    AdminDTO createAdmin(AdminRequestDTO dto);
+    AdminDTO updateAdmin(AdminRequestDTO dto);
 }

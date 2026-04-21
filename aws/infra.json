@@ -524,7 +524,6 @@
         "Type": "application"
       }
     },
-
     "ALBListener": {
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
       "Properties": {
