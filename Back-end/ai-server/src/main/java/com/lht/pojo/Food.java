@@ -3,6 +3,7 @@ package com.lht.pojo;
 import com.pgvector.PGvector;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Type;
 
 import java.util.UUID;
 
@@ -18,6 +19,8 @@ public class Food {
     @Id
     private UUID uuid;
 
+    private int code;
+
     private String name;
 
     private String category;
@@ -25,15 +28,7 @@ public class Food {
     @Column(name = "calories_100g")
     private Float calories100g;
 
-    @Column(name = "protein_100g")
-    private Float protein100g;
-
-    @Column(name = "carbs_100g")
-    private Float carbs100g;
-
-    @Column(name = "fat_100g")
-    private Float fat100g;
-
     @Column(name = "embedding", columnDefinition = "vector(768)")
+    @Type(PGvectorType.class)
     private PGvector embedding;
 }

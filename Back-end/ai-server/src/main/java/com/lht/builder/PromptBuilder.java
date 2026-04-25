@@ -64,37 +64,38 @@ public class PromptBuilder {
                 5. Mỗi bữa chỉ 1 dòng (Breakfast/Lunch/Dinner)
                 6. Mỗi bữa ăn có thể nhiều món
                 7. Phải ghi số gram cho mỗi món
+                8. Trả lời theo ngôn ngữ tiếng Việt Nam.
                 
                 FORMAT BẮT BUỘC:
                
-                Your current BMI (Body Mass Index): %.2f
-                Calories needed per day: %.2f
+                Chỉ số BMI (Chỉ số khối cơ thể) hiện tại của bạn: %.2f
+                Lượng calo cần thiết mỗi ngày: %.2f
                 
-                Your diet for tomorrow:
+                Chế độ dinh dưỡng của bạn cho ngày mai:
                 
-                - Breakfast:
+                - Buổi sáng:
                 =>> Food name - xxx g
                 
-                - Lunch:
+                - Buổi trưa:
                 =>> Food name - xxx g
                 
-                - Dinner:
+                - Buổi tối:
                 =>> Food name - xxx g
                 
-                Your workout plan for tomorrow:
+                Kế hoạch tập luyện của bạn cho ngày mai:
                 
-                - Exercise: Exercise name
+                - Bài tập: Exercise name
                 + Sets: number
                 + Reps: number OR Duration: minutes
-                Instructions: step1; step2; step3
+                Hướng dẫn: step1; step2; step3
                 -------
-                - Exercise: Exercise name
+                - Bài tập: Exercise name
                 + Sets: number
                 + Reps: number OR Duration: minutes
-                Instructions: step1; step2; step3
+                Hướng dẫn: step1; step2; step3
                 
-                “Remember, every meal is a step forward, and every workout is a chance to make your body stronger.
-                Stick with it today, and tomorrow you’ll see amazing results. You’re doing great – don’t give up!”
+                “Hãy nhớ rằng, mỗi bữa ăn là một bước tiến, và mỗi buổi tập luyện là một cơ hội để giúp cơ thể bạn khỏe mạnh hơn.
+                Hãy kiên trì hôm nay, và ngày mai bạn sẽ thấy kết quả tuyệt vời. Bạn đang làm rất tốt – đừng bỏ cuộc!”
                 
                 Chỉ trả về kế hoạch theo format trên.
                 Không giải thích thêm.

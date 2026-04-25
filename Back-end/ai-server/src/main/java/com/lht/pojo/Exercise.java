@@ -3,6 +3,7 @@ package com.lht.pojo;
 import com.pgvector.PGvector;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Type;
 
 import java.util.List;
 import java.util.UUID;
@@ -44,5 +45,6 @@ public class Exercise {
     private String category;
 
     @Column(name = "embedding", columnDefinition = "vector(768)")
+    @Type(PGvectorType.class)
     private PGvector embedding;
 }

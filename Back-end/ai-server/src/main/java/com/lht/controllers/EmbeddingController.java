@@ -16,13 +16,14 @@ public class EmbeddingController {
 
     @PostMapping("/food")
     public String initFood() {
-        embeddingInitializerService.initFoodEmbedding();
+        embeddingInitializerService.initAllFoodEmbeddings();
         return "done";
     }
 
     @PostMapping("/exercise")
     public String initExercise() {
-        embeddingInitializerService.initExerciseEmbedding();
+        embeddingInitializerService.initAllExerciseEmbeddings();
         return "done";
     }
+
 }
