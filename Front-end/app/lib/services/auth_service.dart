@@ -2,11 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:gym/api/user_server_api.dart';
+import 'package:gym/cache/manager_cache.dart';
+import 'package:gym/features/auth/views/login_view.dart';
 import 'package:gym/models/account_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../cache/app_cache.dart';
-import '../components/login.dart';
 import '../models/account.dart';
 import 'package:provider/provider.dart';
 
@@ -112,14 +113,46 @@ class AuthService {
     await prefs.remove("token");
     await prefs.remove("account");
     AppCache().clearAll();
+    ManagerCache().clearAll();
     if (context.mounted) {
       context.read<AccountProvider>().clearAccount();
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const Login()),
+        MaterialPageRoute(builder: (_) => const LoginView()),
             (route) => false,
       );
     }
   }
+
+  Future<bool> forgotPassword(String mail) async {
+    final response = await http.post(
+      Uri.parse(UserServerApi.forgotPassword),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'mail': mail}),
+    );
+    return response.statusCode == 200;
+  }
+
+  Future<bool> verifyForgotOtp(String mail, int otp) async {
+    final response = await http.post(
+      Uri.parse(UserServerApi.forgotPasswordVerifyOtp),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'mail': mail, 'otp': otp}),
+    );
+    return response.statusCode == 200;
+  }
+
+  Future<bool> resetPassword(String mail, String newPassword) async {
+    final response = await http.post(
+      Uri.parse(UserServerApi.resetPassword),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'mail': mail,
+        'newPassword': newPassword
+      }),
+    );
+    return response.statusCode == 200;
+  }
+
 }

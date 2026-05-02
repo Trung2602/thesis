@@ -3,6 +3,8 @@ package com.lht.pojo;
 import com.pgvector.PGvector;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Generated;
+import org.hibernate.annotations.GenerationTime;
 import org.hibernate.annotations.Type;
 
 import java.util.UUID;
@@ -17,6 +19,8 @@ import java.util.UUID;
 public class Food {
 
     @Id
+    @Column(name = "uuid", updatable = false, nullable = false)
+    @Generated(GenerationTime.INSERT)
     private UUID uuid;
 
     private int code;

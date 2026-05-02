@@ -12,6 +12,8 @@ import java.util.UUID;
 @Repository
 public interface ExerciseRepository extends JpaRepository<Exercise, UUID> {
 
+    boolean existsByName(String name);
+
     @Query(value = """
         SELECT * FROM exercises
         ORDER BY embedding <=> CAST(:vector AS vector)

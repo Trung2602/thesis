@@ -42,18 +42,5 @@ SELECT datname FROM pg_database;
 
 
 
-
-dữ liệu việc food
-.. lưu embedding
-
 xây dựng kịch bản vd từ 80kg xuống 60.
 
-report huấn luyện ai tyruy vấn -> nhận rep
-
-khảo sát một số hệ thông tư tương.
-
-tại sao các có các chức năng này?
-
-thêm xóa sửa food và exe
-
-tuần sau gửi thầy  

@@ -1,14 +1,29 @@
+import '../config/app_config.dart';
+
 class AiServerApi {
-  // static const String baseUrl = "http://fitness-alb-1289679733.us-east-1.elb.amazonaws.com/api/v1/ai";
-  // static const String wsBaseUrl = "wss://fitness-alb-1289679733.us-east-1.elb.amazonaws.com";
-  static const String baseUrl = "http://192.168.1.7:8082/api/v1/ai";
-  static const String wsBaseUrl = "http://192.168.1.7:8082";
+  static final String baseUrl = AppConfig.buildUrl("ai");
+  static final String wsBaseUrl = AppConfig.isProduction
+      ? AppConfig.prodHost : AppConfig.localHost + ":" + AppConfig.aiPort;
+
+  // ===== EXERCISE =====
+  static final String getExercises = "$baseUrl/exercises";
+  static final String postExercise = "$baseUrl/exercises";
+  static final String patchExercise = "$baseUrl/exercises";
+  static String deleteExercise(String uuid) => "$baseUrl/exercises/$uuid";
+  static String getExerciseById(String uuid) => "$baseUrl/exercises/$uuid";
+
+// ===== FOOD =====
+  static final String getFoods = "$baseUrl/foods";
+  static final String postFood = "$baseUrl/foods";
+  static final String patchFood = "$baseUrl/foods";
+  static String deleteFood(String uuid) => "$baseUrl/foods/$uuid";
+  static String getFoodById(String uuid) => "$baseUrl/foods/$uuid";
 
   // CHAT
-  static const String getChatHistory = "$baseUrl/chat/history";
+  static final String getChatHistory = "$baseUrl/chat/history";
 
   // WEBSOCKET
-  static const String wsEndpoint = "$wsBaseUrl/ws-chat";
-  static const String aiTopic = "/topic/ai";
-  static const String aiSend = "/app/api/v1/ai/ai.ask";
+  static final String wsEndpoint = "$wsBaseUrl/ws-chat";
+  static String aiTopic = "/topic/ai";
+  static String aiSend = "/app/api/v1/ai/ai.ask";
 }

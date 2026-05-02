@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
@@ -20,7 +21,7 @@ public class EmbeddingServiceImpl implements EmbeddingService {
     private String apiKey;
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private static final int MAX_RETRIES = 5;
+    private static final int MAX_RETRIES = 10;
 
     @Override
     public float[] createEmbedding(String text) {
@@ -41,6 +42,7 @@ public class EmbeddingServiceImpl implements EmbeddingService {
                 List<Double> values = (List<Double>) embedding.get("values");
                 float[] arr = new float[values.size()];
                 for (int i = 0; i < values.size(); i++) arr[i] = values.get(i).floatValue();
+                System.out.println("Embedding size: " + arr.length);
                 return arr;
             } catch (HttpClientErrorException e) {
                 if (e.getStatusCode().value() == 429 && attempt < MAX_RETRIES) {
@@ -50,6 +52,16 @@ public class EmbeddingServiceImpl implements EmbeddingService {
                     catch (InterruptedException ie) { Thread.currentThread().interrupt(); throw new RuntimeException(ie); }
                 } else {
                     throw new RuntimeException("Embedding failed after " + attempt + " retries", e);
+                }
+            } catch (HttpServerErrorException e) {
+                if (e.getStatusCode().value() == 503 && attempt < MAX_RETRIES) {
+                    attempt++;
+                    long base = (long) Math.pow(2, attempt) * 1000; // 2s, 4s, 8s, 16s...
+                    long jitter = (long) (Math.random() * 1000);    // tránh nhiều request cùng lúc
+                    try { Thread.sleep(base + jitter); }
+                    catch (InterruptedException ie) { Thread.currentThread().interrupt(); throw new RuntimeException(ie); }
+                } else {
+                    throw new RuntimeException("Gemini unavailable after " + attempt + " retries", e);
                 }
             }
         }

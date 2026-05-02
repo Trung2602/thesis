@@ -9,6 +9,7 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.security.Principal;
 import java.util.UUID;
@@ -30,33 +31,29 @@ public class SocketController {
         }
         UserPrincipal userPrincipal = (UserPrincipal) authToken.getPrincipal();
         UUID userUuid = userPrincipal.getUuid();
-
-//        CompletableFuture.supplyAsync(() -> ragService.askFitnessAI(userUuid, message.getQuestion()))
-//                .thenAccept(answer -> {
-//                    messagingTemplate.convertAndSend(
-//                            "/topic/ai",
-//                            new ChatMessage(message.getQuestion(), answer, null)
-//                    );
-//                    chatHistoryService.saveChat(userUuid, message.getQuestion(), answer);
-//                });
-
         CompletableFuture.supplyAsync(() -> {
             return ragService.askFitnessAI(userUuid, message.getQuestion());
         }).whenComplete((answer, ex) -> {
-
             if (ex != null) {
-                messagingTemplate.convertAndSend(
-                        "/topic/ai",
-                        new ChatMessage(message.getQuestion(), "Error: " + ex.getMessage(), null)
+                Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+
+                String errorMsg;
+                if (cause instanceof HttpServerErrorException e && e.getStatusCode().value() == 503) {
+                    System.out.println("Mã lỗi 503");
+                    errorMsg = "AI đang bận, vui lòng thử lại sau ít phút ⏳";
+                } else {
+                    errorMsg = "Đã xảy ra lỗi: " + cause.getMessage();
+                }
+
+                messagingTemplate.convertAndSend("/topic/ai",
+                        new ChatMessage(message.getQuestion(), errorMsg, null)
                 );
                 return;
             }
 
-            messagingTemplate.convertAndSend(
-                    "/topic/ai",
+            messagingTemplate.convertAndSend("/topic/ai",
                     new ChatMessage(message.getQuestion(), answer, null)
             );
-
             chatHistoryService.saveChat(userUuid, message.getQuestion(), answer);
         });
     }

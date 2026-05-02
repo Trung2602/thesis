@@ -20,6 +20,7 @@ public interface AccountService extends UserDetailsService{
     Account getAccountByMail(String mail);
     String checkDuplicate(String mail);
     void changePassword(String mail, PasswordDTO request);
+    void resetPassword(String mail, String newPassword);
     String getRoleByUuid(UUID uuid);
     boolean existsByUuid(UUID uuid);
     InternalUserResponse getInternalUserByMail(String mail);

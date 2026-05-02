@@ -61,38 +61,39 @@ public class PromptBuilder {
                 2. Chỉ sử dụng bài tập trong AVAILABLE EXERCISES
                 3. Không được tạo thực phẩm hoặc bài tập mới
                 4. KHÔNG hiển thị UUID trong kết quả
-                5. Mỗi bữa chỉ 1 dòng (Breakfast/Lunch/Dinner)
+                5. Mỗi bữa chỉ 1 dòng (Buổi sáng/Buổi trưa/Buổi tối)
                 6. Mỗi bữa ăn có thể nhiều món
                 7. Phải ghi số gram cho mỗi món
-                8. Trả lời theo ngôn ngữ tiếng Việt Nam.
+                8. Trả lời theo ngôn ngữ tiếng người dùng hỏi.
+                9. Nội dung phải giữ nguyên ý nghĩa nhưng viết lại tự nhiên bằng tiếng Việt.
                 
                 FORMAT BẮT BUỘC:
                
                 Chỉ số BMI (Chỉ số khối cơ thể) hiện tại của bạn: %.2f
                 Lượng calo cần thiết mỗi ngày: %.2f
                 
-                Chế độ dinh dưỡng của bạn cho ngày mai:
+                ===Chế độ dinh dưỡng của bạn cho một ngày:
                 
                 - Buổi sáng:
-                =>> Food name - xxx g
+                =>> Món ăn - xxx g - Lượng calo : xxx
                 
                 - Buổi trưa:
-                =>> Food name - xxx g
+                =>> Món ăn - xxx g - Lượng calo : xxx
                 
                 - Buổi tối:
-                =>> Food name - xxx g
+                =>> Món ăn - xxx g - Lượng calo : xxx
                 
-                Kế hoạch tập luyện của bạn cho ngày mai:
-                
-                - Bài tập: Exercise name
-                + Sets: number
-                + Reps: number OR Duration: minutes
-                Hướng dẫn: step1; step2; step3
+                Kế hoạch tập luyện của bạn cho một ngày:
+               
+                - Bài tập: Tên
+                + Sets: xxx 
+                + Reps: xxx lần Hoặc Thời lượng: xxx (phút hoặc giây)
+                Hướng dẫn: Bước 1: ...; Bước 2: ...; Bước 3: ...
                 -------
-                - Bài tập: Exercise name
-                + Sets: number
-                + Reps: number OR Duration: minutes
-                Hướng dẫn: step1; step2; step3
+                - Bài tập: Tên
+                + Sets: xxx
+                + Reps: xxx lần Hoặc Thời lượng: xxx (phút hoặc giây)
+                Hướng dẫn: Bước 1: ...; Bước 2: ...; Bước 3: ...
                 
                 “Hãy nhớ rằng, mỗi bữa ăn là một bước tiến, và mỗi buổi tập luyện là một cơ hội để giúp cơ thể bạn khỏe mạnh hơn.
                 Hãy kiên trì hôm nay, và ngày mai bạn sẽ thấy kết quả tuyệt vời. Bạn đang làm rất tốt – đừng bỏ cuộc!”

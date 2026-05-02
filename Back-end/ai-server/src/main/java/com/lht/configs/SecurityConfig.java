@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -37,16 +38,29 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable)
+        http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
+                        // ===== CHAT HISTORY =====
+                        .requestMatchers(HttpMethod.GET, "/api/v1/ai/chat/history").hasRole("CUSTOMER")
+                        // ===== EXERCISE =====
+                        .requestMatchers(HttpMethod.GET, "/api/v1/ai/exercises").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/ai/exercises/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/ai/exercises").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/ai/exercises/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/ai/exercises/**").hasRole("ADMIN")
+                        // ===== FOOD =====
+                        .requestMatchers(HttpMethod.GET, "/api/v1/ai/foods").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/ai/foods/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/ai/foods").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/ai/foods/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/ai/foods/**").hasRole("ADMIN")
+                        // ===== EMBEDDING =====
+                        .requestMatchers(HttpMethod.POST, "/api/v1/ai/embedding/**").hasRole("ADMIN")
+                        // ===== WEBSOCKET =====
                         .requestMatchers("/api/v1/ai/ai.ask/**").hasRole("CUSTOMER")
-                        .requestMatchers("/api/v1/ai/embedding/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/ai/chat/**").hasRole("CUSTOMER")
                         // ===== DEFAULT =====
                         .anyRequest().authenticated()
                 )
@@ -54,21 +68,5 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .addFilterBefore(new JwtFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-
-        config.setAllowedOrigins(List.of("http://localhost:3000")); // http://localhost:3000
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        config.setExposedHeaders(List.of("Authorization"));
-        config.setAllowCredentials(true); // Nếu dùng cookie
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-
-        return source;
     }
 }

@@ -1151,29 +1151,6 @@
           "ScaleOutCooldown": 60
         }
       }
-    },
-    "ApiSecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "VpcId": {"Ref": "VPC"},
-        "GroupDescription": "API Gateway VPC Link SG: allow egress, and ALB allows inbound from this SG.",
-        "SecurityGroupEgress": [
-          {
-            "IpProtocol": "-1",
-            "CidrIp": "0.0.0.0/0"
-          }
-        ]
-      }
-    },
-    "AlbIngressFromApiGw": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupId": {"Ref": "AlbSecurityGroup" },
-        "IpProtocol": "tcp",
-        "FromPort": 80,
-        "ToPort": 80,
-        "SourceSecurityGroupId": {"Ref": "ApiSecurityGroup"}
-      }
     }
   },
   "Outputs": {

@@ -294,6 +294,13 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    public void resetPassword(String mail, String newPassword) {
+        Account account = accountRepository.findByMail(mail).orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại"));
+        account.setPasswordHash(passwordEncoder.encode(newPassword));
+        accountRepository.save(account);
+    }
+
+    @Override
     public Account getAccountByMail(String mail) {
         Optional<Account> user = this.accountRepository.findByMail(mail);
         return user.orElse(null);

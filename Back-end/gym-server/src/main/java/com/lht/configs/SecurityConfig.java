@@ -45,73 +45,91 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable)
+        http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
                         // ===== INTERNAL MICROSERVICE =====
                         .requestMatchers("/internal/**").permitAll()
 
                         // ===== FACILITY =====
-                        .requestMatchers(HttpMethod.GET, "/api/v1/gym/facilities/**").permitAll()
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/facilities").permitAll()
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/facilities/filter").permitAll()
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/facilities/sort").permitAll()
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/facilities/**").permitAll()
+                        .requestMatchers(HttpMethod.POST,   "/api/v1/gym/facilities").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/facilities/**").hasRole("ADMIN")
 
                         // ===== PLANS =====
-                        .requestMatchers(HttpMethod.GET, "/api/v1/gym/plans/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/gym/plans").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/plans").permitAll()
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/plans/filter").permitAll()
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/plans/sort").permitAll()
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/plans/**").permitAll()
+                        .requestMatchers(HttpMethod.POST,   "/api/v1/gym/plans").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/plans/**").hasRole("ADMIN")
 
                         // ===== CUSTOMER SCHEDULE =====
-                        .requestMatchers(HttpMethod.GET, "/api/v1/gym/customer-schedules/**").hasAnyRole("CUSTOMER","STAFF","ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/gym/customer-schedules").hasAnyRole("CUSTOMER","ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/customer-schedules/**").hasAnyRole("CUSTOMER","ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/customer-schedules").hasAnyRole("CUSTOMER", "STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/customer-schedules/filter").hasAnyRole("CUSTOMER", "STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/customer-schedules/**").hasAnyRole("CUSTOMER", "STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/api/v1/gym/customer-schedules").hasAnyRole("CUSTOMER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/customer-schedules/**").hasAnyRole("CUSTOMER", "ADMIN")
 
                         // ===== PAY CUSTOMER =====
-                        .requestMatchers(HttpMethod.GET, "/api/v1/gym/pay-customers/**").hasAnyRole("CUSTOMER","ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/gym/pay-customers").hasAnyRole("CUSTOMER","ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/pay-customers").hasAnyRole("CUSTOMER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/pay-customers/filter").hasAnyRole("CUSTOMER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/pay-customers/sort").hasAnyRole("CUSTOMER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/pay-customers/**").hasAnyRole("CUSTOMER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/api/v1/gym/pay-customers").hasAnyRole("CUSTOMER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/pay-customers/**").hasRole("ADMIN")
 
                         // ===== PAYMENT =====
-                        .requestMatchers("/api/v1/gym/payment/**").hasAnyRole("CUSTOMER")
+                        .requestMatchers(HttpMethod.POST,   "/api/v1/gym/payment/create").hasRole("CUSTOMER")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/payment/return").permitAll()
 
                         // ===== SALARY =====
-                        .requestMatchers("/api/v1/gym/salaries/**").hasAnyRole("ADMIN","STAFF")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/salaries").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/salaries/filter").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/salaries/month").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/salaries/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/api/v1/gym/salaries").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/api/v1/gym/salaries/calculate-month").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/salaries/**").hasRole("ADMIN")
 
                         // ===== SHIFT =====
-                        .requestMatchers("/api/v1/gym/shifts/**").hasAnyRole("ADMIN","STAFF")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/shifts").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/shifts/filter").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/shifts/sort").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/shifts/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/api/v1/gym/shifts").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/shifts/**").hasRole("ADMIN")
 
                         // ===== STAFF DAY OFF =====
-                        .requestMatchers("/api/v1/gym/day-offs/**").hasAnyRole("ADMIN","STAFF")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/day-offs").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/day-offs/filter").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/day-offs/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/api/v1/gym/day-offs").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/day-offs/**").hasRole("ADMIN")
 
                         // ===== STAFF SCHEDULE =====
-                        .requestMatchers("/api/v1/gym/staff-schedules/**").hasAnyRole("ADMIN","STAFF")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/staff-schedules").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/staff-schedules/staff").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/staff-schedules/filter").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/staff-schedules/filter/staff").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/staff-schedules/page").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/staff-schedules/**").hasAnyRole("STAFF", "ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/api/v1/gym/staff-schedules").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/staff-schedules/**").hasRole("ADMIN")
 
                         // ===== REPORT =====
-                        .requestMatchers("/api/v1/gym/report/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/gym/report").hasRole("ADMIN")
 
                         // ===== DEFAULT =====
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .addFilterBefore(new JwtFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        config.setExposedHeaders(List.of("Authorization"));
-        config.setAllowCredentials(true); // Nếu dùng cookie
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-
-        return source;
     }
 }

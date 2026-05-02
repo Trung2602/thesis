@@ -3,6 +3,8 @@ package com.lht.pojo;
 import com.pgvector.PGvector;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Generated;
+import org.hibernate.annotations.GenerationTime;
 import org.hibernate.annotations.Type;
 
 import java.util.List;
@@ -18,6 +20,8 @@ import java.util.UUID;
 public class Exercise {
 
     @Id
+    @Column(name = "uuid", updatable = false, nullable = false)
+    @Generated(GenerationTime.INSERT)
     private UUID uuid;
 
     private String name;

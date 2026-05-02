@@ -1,34 +1,39 @@
+import '../config/app_config.dart';
+
 class UserServerApi {
-  // static const String baseUrl = "http://fitness-alb-1289679733.us-east-1.elb.amazonaws.com/api/v1/user";
-  static const String baseUrl = "http://192.168.1.10:8081/api/v1/user";
+  static final String baseUrl = AppConfig.buildUrl("user");
 
   // ================= AUTH =================
-  static const String login = "$baseUrl/auth/login";
-  static const String register = "$baseUrl/auth/register";
-  static const String otpURL = "$baseUrl/auth/verify/otp";
+  static final String login = "$baseUrl/auth/login";
+  static final String register = "$baseUrl/auth/register";
+  static final String otpURL = "$baseUrl/auth/register/verify-otp";
+  // ================= FORGOT PASSWORD =================
+  static final String forgotPassword = "$baseUrl/auth/password/forgot";
+  static final String forgotPasswordVerifyOtp = "$baseUrl/auth/password/forgot/verify-otp";
+  static final String resetPassword = "$baseUrl/auth/password/reset";
 
   // ================= ACCOUNT =================
-  static const String me = "$baseUrl/accounts/me";
-  static const String accountUpdate = "$baseUrl/accounts/me";
-  static const String verifyPassword = "$baseUrl/accounts/me/password/verify";
-  static const String changePassword = "$baseUrl/accounts/me/password";
-  static const String loadAccount = "$baseUrl/accounts";
+  static final String me = "$baseUrl/accounts/me";
+  static final String accountUpdate = "$baseUrl/accounts/me";
+  static final String verifyPassword = "$baseUrl/accounts/me/password/verify";
+  static final String changePassword = "$baseUrl/accounts/me/password";
+  static final String loadAccount = "$baseUrl/accounts";
   static String deleteAccount(String uuid) => "$baseUrl/accounts/$uuid";
 
   // ================= ADMIN =================
   static String getAdminByUuid(String uuid) => "$baseUrl/admins/$uuid";
-  static const String postAdmin = "$baseUrl/admins";
-  static const String patchAdmin = "$baseUrl/admins";
+  static final String postAdmin = "$baseUrl/admins";
+  static final String patchAdmin = "$baseUrl/admins";
 
   // ================= STAFF =================
   static String getStaffByUuid(String uuid) => "$baseUrl/staffs/$uuid";
-  static const String postStaff = "$baseUrl/staffs";
-  static const String patchStaff ="$baseUrl/staffs";
-  static const String getStaffs ="$baseUrl/staffs";
-  static const String getWorkingStaff = "$baseUrl/staffs/working";
+  static final String postStaff = "$baseUrl/staffs";
+  static final String patchStaff ="$baseUrl/staffs";
+  static final String getStaffs ="$baseUrl/staffs";
+  static final String getWorkingStaff = "$baseUrl/staffs/working";
 
   // ================= CUSTOMER =================
   static String getCustomerByUuid(String uuid) => "$baseUrl/customers/$uuid";
-  static const String postCustomer = "$baseUrl/customers";
-  static const String patchCustomer ="$baseUrl/customers";
+  static final String postCustomer = "$baseUrl/customers";
+  static final String patchCustomer ="$baseUrl/customers";
 }

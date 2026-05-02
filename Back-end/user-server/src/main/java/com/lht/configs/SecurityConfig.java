@@ -51,46 +51,43 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable)
+        http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/login", "/css/**", "/images/logo_transparent_white.png", "/js/**").permitAll()
-                        .requestMatchers("/").hasRole("ADMIN")
-                        // ===== PUBLIC API =====
-                        .requestMatchers("/api/v1/user/auth/login").permitAll()
-                        .requestMatchers("/api/v1/user/auth/register").permitAll()
-                        .requestMatchers("/api/v1/user/auth/verify/otp").permitAll()
-
                         // ===== INTERNAL MICROSERVICE =====
                         .requestMatchers("/internal/**").permitAll()
-
+                        // ===== AUTH  =====
+                        .requestMatchers(HttpMethod.POST, "/api/v1/user/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/user/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/user/auth/register/verify-otp").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/user/auth/password/forgot").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/user/auth/password/forgot/verify-otp").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/user/auth/password/reset").permitAll()
                         // ===== ACCOUNT =====
-                        .requestMatchers("/api/v1/user/accounts/me").authenticated()
-                        .requestMatchers("/api/v1/user/accounts/update").authenticated()
-                        .requestMatchers("/api/v1/user/accounts/change-password").authenticated()
-                        .requestMatchers("/api/v1/user/accounts/verify-password").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/user/accounts/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/user/accounts/*").hasRole("ADMIN")
-
+                        .requestMatchers(HttpMethod.GET,   "/api/v1/user/accounts/me").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/user/accounts/me").authenticated()
+                        .requestMatchers(HttpMethod.POST,  "/api/v1/user/accounts/me/password/verify").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/user/accounts/me/password").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/user/accounts/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,   "/api/v1/user/accounts").hasRole("ADMIN")
                         // ===== ADMIN =====
-                        .requestMatchers(HttpMethod.GET, "/api/v1/user/admins/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/user/admins").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,   "/api/v1/user/admins/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,  "/api/v1/user/admins").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/user/admins").hasRole("ADMIN")
-
                         // ===== STAFF =====
-                        .requestMatchers(HttpMethod.POST, "/api/v1/user/staffs").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,   "/api/v1/user/staffs").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(HttpMethod.GET,   "/api/v1/user/staffs/working").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(HttpMethod.GET,   "/api/v1/user/staffs/**").hasAnyRole("ADMIN", "STAFF")
+                        .requestMatchers(HttpMethod.POST,  "/api/v1/user/staffs").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/user/staffs").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/user/staffs/**").hasAnyRole("ADMIN","STAFF")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/user/staffs").hasAnyRole("ADMIN","CUSTOMER")
-
                         // ===== CUSTOMER =====
-                        .requestMatchers(HttpMethod.POST, "/api/v1/user/customers").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET,   "/api/v1/user/customers/**").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(HttpMethod.POST,  "/api/v1/user/customers").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/user/customers").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/user/customers/**").hasAnyRole("ADMIN", "CUSTOMER")
 
                         // ===== DEFAULT =====
                         .anyRequest().authenticated())
@@ -116,21 +113,5 @@ public class SecurityConfig {
                 "api_secret", apiSecret,
                 "secure", true
         ));
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-
-        config.setAllowedOrigins(List.of("http://localhost:3000")); // frontend origin: cho phép port truy cập api
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        config.setExposedHeaders(List.of("Authorization"));
-        config.setAllowCredentials(true); // Nếu dùng cookie
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-
-        return source;
     }
 }

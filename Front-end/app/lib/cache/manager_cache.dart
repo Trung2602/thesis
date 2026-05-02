@@ -3,6 +3,8 @@ import 'package:gym/models/pay_customer.dart';
 import 'package:gym/models/plan.dart';
 import 'package:gym/models/shift.dart';
 
+import '../models/Exercise.dart';
+import '../models/Food.dart';
 import '../models/salary.dart';
 import '../models/staff_day_off.dart';
 import '../models/staff_schedule.dart';
@@ -20,6 +22,8 @@ class ManagerCache {
   final Map<String, List<PayCustomer>> payCustomerManagerCache = {};
   final Map<String, List<Shift>> shiftManagerCache = {};
   final Map<String, List<Plan>> planManagerCache = {};
+  final Map<String, List<Food>> foodManagerCache = {};
+  final Map<String, List<Exercise>> exerciseManagerCache = {};
   // ===== CLEAR ALL =====
   void clearAll() {
     salaryManagerCache.clear();
@@ -29,5 +33,7 @@ class ManagerCache {
     payCustomerManagerCache.clear();
     shiftManagerCache.clear();
     payCustomerManagerCache.clear();
+    foodManagerCache.clear();
+    exerciseManagerCache.clear();
   }
 }
