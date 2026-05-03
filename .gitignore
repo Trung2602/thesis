@@ -9,3 +9,4 @@ Database/FoodData_Central_csv_2025-12-18/
 application.yaml
 application.yml
 .env
+Back-end/user-server/src/main/resources/firebase-service-account*.json
