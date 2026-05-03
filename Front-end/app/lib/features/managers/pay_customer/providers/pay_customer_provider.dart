@@ -31,8 +31,7 @@ class PayCustomerProvider extends ChangeNotifier {
     notifyListeners();
 
     final token = await AuthService().getToken();
-    final url =
-        '${GymServerApi.getPayCustomersSort}?sortField=$sortField&sortDir=$sortDir&page=$page&size=$size';
+    final url = '${GymServerApi.getPayCustomersSort}?sortField=$sortField&sortDir=$sortDir&page=$page&size=$size';
 
     try {
       final res = await http.get(Uri.parse(url),

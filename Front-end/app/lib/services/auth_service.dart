@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../cache/app_cache.dart';
 import '../models/account.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/customer_request.dart';
 
@@ -40,6 +41,13 @@ class AuthService {
           await prefs.setString("account", jsonEncode(account.toJson()));
           final accountProvider = Provider.of<AccountProvider>(context, listen: false);
           accountProvider.setAccount(account);
+
+          final firebaseToken = data["firebaseToken"] as String?;
+          if (firebaseToken != null && firebaseToken.isNotEmpty) {
+            await prefs.setString("firebaseToken", firebaseToken);
+            await FirebaseAuth.instance.signInWithCustomToken(firebaseToken);
+          }
+
           return account;
         }
       }

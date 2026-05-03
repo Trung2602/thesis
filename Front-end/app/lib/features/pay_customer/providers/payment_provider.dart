@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gym/api/gym_server_api.dart';
 import 'package:gym/api/user_server_api.dart';
 import 'package:gym/cache/app_cache.dart';
@@ -17,11 +16,6 @@ class PaymentProvider extends ChangeNotifier {
   int visibleCount = 5;
   bool isLoading = false;
   bool isLoadingMore = false;
-
-  Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token') ?? '';
-  }
 
   Future<void> fetchPayCustomers(String userUuid) async {
     if (cache.containsKey(userUuid)) {
@@ -81,7 +75,7 @@ class PaymentProvider extends ChangeNotifier {
 
   Future<String?> createPayment(String planUuid) async {
     try {
-      final token = await _getToken();
+      final token = await AuthService().getToken();
       final res = await http.post(
         Uri.parse(GymServerApi.createPayment),
         headers: {
@@ -102,7 +96,7 @@ class PaymentProvider extends ChangeNotifier {
 
   Future<Account?> refreshAccount() async {
     try {
-      final token = await _getToken();
+      final token = await AuthService().getToken();
       final res = await http.get(
         Uri.parse(UserServerApi.me),
         headers: {'Authorization': 'Bearer $token'},

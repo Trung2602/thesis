@@ -15,4 +15,5 @@ public class LoginResponseDTO {
     private String mail;
     private String role;
     private String token;
+    private String firebaseToken;
 }

@@ -1,5 +1,6 @@
 package com.lht.component;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
@@ -43,6 +44,10 @@ public class JwtUtils {
         signedJWT.sign(signer);
 
         return signedJWT.serialize();
+    }
+
+    public String generateFirebaseToken(UUID uuid) throws Exception {
+        return FirebaseAuth.getInstance().createCustomToken(uuid.toString());
     }
 
     public static boolean validateToken(String token) throws Exception {

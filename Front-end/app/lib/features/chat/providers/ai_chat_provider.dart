@@ -79,8 +79,7 @@ class AiChatProvider extends ChangeNotifier {
 
     try {
       final token = await AuthService().getToken();
-      final before =
-      messages.isNotEmpty ? messages.first['createdAt'] : null;
+      final before = messages.isNotEmpty ? messages.first['createdAt'] : null;
       var url = '${AiServerApi.getChatHistory}?pageSize=10';
       if (before != null) url += '&before=$before';
 

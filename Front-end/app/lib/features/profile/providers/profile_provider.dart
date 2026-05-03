@@ -3,9 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gym/api/user_server_api.dart';
 import 'package:gym/models/account.dart';
+
+import '../../../services/auth_service.dart';
 
 class ProfileProvider extends ChangeNotifier {
   final _picker = ImagePicker();
@@ -19,12 +20,6 @@ class ProfileProvider extends ChangeNotifier {
       selectedImage = File(picked.path);
       notifyListeners();
     }
-  }
-
-  Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-    return token.isEmpty ? null : token;
   }
 
   void clearError() {
@@ -48,7 +43,7 @@ class ProfileProvider extends ChangeNotifier {
     }
 
     try {
-      final token = await _getToken();
+      final token = await AuthService().getToken();
       if (token == null) {
         errorText = 'Bạn chưa đăng nhập';
         notifyListeners();
@@ -119,7 +114,7 @@ class ProfileProvider extends ChangeNotifier {
     }
 
     try {
-      final token = await _getToken();
+      final token = await AuthService().getToken();
       if (token == null) {
         errorText = 'Bạn chưa đăng nhập';
         notifyListeners();

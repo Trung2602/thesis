@@ -195,11 +195,13 @@ public class AccountServiceImpl implements AccountService {
         accountRepository.save(account);
 
         String token = jwtUtils.generateToken(account.getMail(), account.getRole().name(), account.getUuid());
+        String firebaseToken = jwtUtils.generateFirebaseToken(account.getUuid());
         return LoginResponseDTO.builder()
                 .uuid(account.getUuid())
                 .mail(account.getMail())
                 .role(account.getRole().name())
                 .token(token)
+                .firebaseToken(firebaseToken)
                 .build();
     }
 

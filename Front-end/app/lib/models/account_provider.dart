@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../features/chat/providers/firebase_chat_provider.dart';
 import 'account.dart';
 
 
@@ -7,9 +8,9 @@ class AccountProvider with ChangeNotifier {
 
   Account? get account => _account;
 
-  void setAccount(Account? account) {
+  Future<void> setAccount(Account? account) async {
     _account = account;
-    notifyListeners(); // báo cho widget nào đang listen rebuild lại
+    notifyListeners();
   }
 
   void clearAccount() {

@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gym/api/gym_server_api.dart';
 import 'package:gym/cache/app_cache.dart';
 import 'package:gym/models/staff_day_off.dart';
+
+import '../../../services/auth_service.dart';
 
 class DayOffProvider extends ChangeNotifier {
   final cache = AppCache().staffDayOffCache;
@@ -12,11 +13,6 @@ class DayOffProvider extends ChangeNotifier {
   List<StaffDayOff> registeredDaysOff = [];
   bool isLoading = false;
   bool isFirstLoad = true;
-
-  Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token') ?? '';
-  }
 
   Future<void> fetchByMonth(int month, int year) async {
     final key = '$month-$year';
@@ -35,7 +31,7 @@ class DayOffProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final token = await _getToken();
+      final token = await AuthService().getToken();
       final url = Uri.parse(GymServerApi.getStaffDayOffs).replace(
         queryParameters: {
           'month': month.toString(),
@@ -74,7 +70,7 @@ class DayOffProvider extends ChangeNotifier {
     }
 
     try {
-      final token = await _getToken();
+      final token = await AuthService().getToken();
       final res = await http.post(
         Uri.parse(GymServerApi.postStaffDayOff),
         headers: {

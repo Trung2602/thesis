@@ -4,6 +4,9 @@ import 'package:gym/features/auth/widgets/auth_text_field.dart';
 import 'package:gym/features/auth/widgets/forgot_password_dialog.dart';
 import 'package:gym/features/home/home_shell.dart';
 import 'package:gym/features/auth/views/register_view.dart';
+import 'package:provider/provider.dart';
+
+import '../../../models/account_provider.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -32,6 +35,8 @@ class _LoginViewState extends State<LoginView> {
     );
     if (!mounted) return;
     if (account != null) {
+      Provider.of<AccountProvider>(context, listen: false).setAccount(account);
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomeShell()),

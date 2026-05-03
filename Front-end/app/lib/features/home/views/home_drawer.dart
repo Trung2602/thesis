@@ -9,6 +9,7 @@ import 'package:gym/features/managers/plan/views/plan_manager_view.dart';
 import 'package:gym/features/managers/salary/views/salary_manager_view.dart';
 import 'package:gym/features/managers/shift/views/shift_manager_view.dart';
 import 'package:gym/features/managers/staff_schedule/views/staff_schedule_manager_view.dart';
+import '../../chat/views/conversation_list_page.dart';
 import '../../managers/user/views/user_manager_view.dart';
 import 'package:gym/models/account.dart';
 import 'package:gym/services/auth_service.dart';
@@ -101,7 +102,7 @@ class HomeDrawer extends StatelessWidget {
     }
 
     items.addAll([
-      {'icon': Icons.message, 'title': 'Liên Lạc', 'page': const FirebaseChatView()},
+      {'icon': Icons.message, 'title': 'Liên Lạc', 'page': const ConversationListPage()},
       {'icon': Icons.logout, 'title': 'Rời khỏi Trạm Vũ Trụ', 'isLogout': true},
     ]);
 
