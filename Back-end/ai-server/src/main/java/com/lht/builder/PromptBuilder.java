@@ -19,6 +19,13 @@ public class PromptBuilder {
                 .map(e -> e.getName() + ": " + String.join("; ", e.getInstructions()))
                 .collect(Collectors.joining("\n"));
 
+        String chatHistoryContext = "";
+        if (ctx.getRecentChats() != null && !ctx.getRecentChats().isEmpty()) {
+            chatHistoryContext = ctx.getRecentChats().stream()
+                    .map(c -> "Người dùng: " + c.getMessage() + "\nTrợ lý: " + c.getAiReply())
+                    .collect(Collectors.joining("\n"));
+        }
+
         double weight = user.getWeight().doubleValue(); // kg
         double height = user.getHeight().doubleValue(); // cm
         int age = Period.between(user.getBirthday(), LocalDate.now()).getYears();
@@ -39,6 +46,12 @@ public class PromptBuilder {
 
         double calories = BMR * TDEE_coefficient;
         double bmi = weight / Math.pow(height / 100.0, 2);
+
+        String historySection = chatHistoryContext.isBlank() ? "" : """
+                LỊCH SỬ HỘI THOẠI GẦN ĐÂY (dùng để hiểu ngữ cảnh, KHÔNG lặp lại):
+                %s
+                
+                """.formatted(chatHistoryContext);
 
         return """
                 Bạn là huấn luyện viên gym và chuyên gia dinh dưỡng.
@@ -88,12 +101,18 @@ public class PromptBuilder {
                 - Bài tập: Tên
                 + Sets: xxx 
                 + Reps: xxx lần Hoặc Thời lượng: xxx (phút hoặc giây)
-                Hướng dẫn: Bước 1: ...; Bước 2: ...; Bước 3: ...
+                ==> Hướng dẫn: 
+                Bước 1: ...
+                Bước 2: ...
+                Bước 3: ...
                 -------
                 - Bài tập: Tên
                 + Sets: xxx
                 + Reps: xxx lần Hoặc Thời lượng: xxx (phút hoặc giây)
-                Hướng dẫn: Bước 1: ...; Bước 2: ...; Bước 3: ...
+                ==> Hướng dẫn: 
+                Bước 1: ...
+                Bước 2: ...
+                Bước 3: ...
                 
                 “Hãy nhớ rằng, mỗi bữa ăn là một bước tiến, và mỗi buổi tập luyện là một cơ hội để giúp cơ thể bạn khỏe mạnh hơn.
                 Hãy kiên trì hôm nay, và ngày mai bạn sẽ thấy kết quả tuyệt vời. Bạn đang làm rất tốt – đừng bỏ cuộc!”

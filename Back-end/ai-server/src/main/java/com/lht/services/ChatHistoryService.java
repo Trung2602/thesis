@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ChatHistoryService {
-    ChatHistory saveChat(UUID userUuid, String userMessage, String aiReply);
+    ChatHistory saveChat(UUID uuid, String userMessage, String aiReply);
     List<ChatMessage> getChatHistory(LocalDateTime before, int pageSize);
+    List<ChatHistory> getRecentChats(UUID uuid, int limit);
 }

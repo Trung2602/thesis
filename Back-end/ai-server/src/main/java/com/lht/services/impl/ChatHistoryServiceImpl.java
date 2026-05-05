@@ -22,9 +22,9 @@ public class ChatHistoryServiceImpl implements ChatHistoryService{
     private final ChatHistoryRepository chatHistoryRepository;
 
     @Override
-    public ChatHistory saveChat(UUID userUuid, String userMessage, String aiReply) {
+    public ChatHistory saveChat(UUID uuid, String userMessage, String aiReply) {
         ChatHistory chat = ChatHistory.builder()
-                .userUuid(userUuid)
+                .userUuid(uuid)
                 .message(userMessage)
                 .aiReply(aiReply)
                 .createdAt(LocalDateTime.now())
@@ -48,5 +48,10 @@ public class ChatHistoryServiceImpl implements ChatHistoryService{
                     h.getCreatedAt()
             ))
             .toList();
+    }
+
+    @Override
+    public List<ChatHistory> getRecentChats(UUID uuid, int limit) {
+        return chatHistoryRepository.findTopByUserUuidOrderByCreatedAtDesc(uuid, PageRequest.of(0, limit));
     }
 }

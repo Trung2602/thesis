@@ -40,7 +40,7 @@ public class SocketController {
                 String errorMsg;
                 if (cause instanceof HttpServerErrorException e && e.getStatusCode().value() == 503) {
                     System.out.println("Mã lỗi 503");
-                    errorMsg = "AI đang bận, vui lòng thử lại sau ít phút ⏳";
+                    errorMsg = "AI đang bận, vui lòng thử lại sau ít phút";
                 } else {
                     errorMsg = "Đã xảy ra lỗi: " + cause.getMessage();
                 }

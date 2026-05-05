@@ -19,10 +19,10 @@ public class RagServiceImpl implements RagService {
     private final InternalUserClient userClient;
 
     @Override
-    public String askFitnessAI(UUID userUuid, String question) {
+    public String askFitnessAI(UUID uuid, String question) {
         float[] vector = embeddingService.createEmbedding(question);
-        RAGContext ctx = searchService.research(vector);
-        String prompt = PromptBuilder.build(userClient.getCustomer(userUuid), ctx, question);
+        RAGContext ctx = searchService.research(vector, uuid);
+        String prompt = PromptBuilder.build(userClient.getCustomer(uuid), ctx, question);
         return geminiService.generate(prompt);
     }
 }

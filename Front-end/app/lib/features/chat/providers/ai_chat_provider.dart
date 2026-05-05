@@ -40,11 +40,14 @@ class AiChatProvider extends ChangeNotifier {
         if (frame.body == null) return;
         final data = jsonDecode(frame.body!);
         final now = DateTime.now().toIso8601String();
-        messages.add({
-          'role': 'user',
-          'text': data['question'] ?? '',
-          'createdAt': now,
-        });
+        if (messages.isNotEmpty && messages.last['role'] == 'user') {
+          messages.last['createdAt'] = now;
+        }
+        // messages.add({
+        //   'role': 'user',
+        //   'text': data['question'] ?? '',
+        //   'createdAt': now,
+        // });
         messages.add({
           'role': 'ai',
           'text': data['answer'] ?? '',
@@ -62,7 +65,7 @@ class AiChatProvider extends ChangeNotifier {
 
   void sendMessage(String text) {
     if (text.isEmpty || _stompClient == null) return;
-    messages.add({'role': 'user', 'text': text});
+    messages.add({'role': 'user', 'text': text, 'createdAt': DateTime.now().toIso8601String(),});
     isLoading = true;
     notifyListeners();
 
