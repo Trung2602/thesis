@@ -14,7 +14,7 @@ public interface SalaryService {
     SalaryDTO addOrUpdateSalary(SalaryDTO dto);
 
     boolean deleteSalary(UUID uuid);
-
+    void deleteByStaffUuid(UUID staffUuid);
     Page<SalaryDTO> getSalariesFilter(Map<String, String> params, String sortField, String sortDir, int page, int size);
 
     List<SalaryDTO> getSalaryByStaffUuid(UUID uuid);

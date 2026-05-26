@@ -22,7 +22,9 @@ public interface StaffScheduleService {
     StaffScheduleDTO addOrUpdateStaffSchedule(StaffScheduleDTO dto);
 
     boolean deleteStaffSchedule(UUID uuid);
-
+    void deleteByStaffUuid(UUID staffUuid);
+    void deleteByFacilityUuid(UUID facilityUuid);
+    void deleteByShiftUuid(UUID shiftUuid);
     List<StaffScheduleDTO> getStaffSchedules(Map<String, String> params);
 
     List<StaffScheduleDTO> getStaffSchedulesByStaffUuid(Map<String, String> params);

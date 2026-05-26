@@ -162,6 +162,15 @@ public class  PayCustomerServiceImpl implements PayCustomerService {
     }
 
     @Override
+    public void deleteByCustomerUuid(UUID customerUuid) {
+        payCustomerRepository.deleteByCustomerUuid(customerUuid);
+    }
+    @Override
+    public void deleteByPlanUuid(UUID planUuid) {
+        payCustomerRepository.deleteByPlanUuid(planUuid);
+    }
+
+    @Override
     public List<PayCustomerDTO> getPayCustomers(Map<String, String> params) {
         Specification<PayCustomer> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();

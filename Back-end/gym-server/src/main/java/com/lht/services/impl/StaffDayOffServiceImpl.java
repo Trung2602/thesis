@@ -143,6 +143,15 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
     }
 
     @Override
+    public void deleteByStaffUuid(UUID staffUuid) {
+        staffDayOffRepository.deleteByStaffUuid(staffUuid);
+    }
+    @Override
+    public void deleteByFacilityUuid(UUID facilityUuid) {
+        staffDayOffRepository.deleteByFacilityUuid(facilityUuid);
+    }
+
+    @Override
     public List<StaffDayOffDTO> getStaffDayOffs(int month, int year) {
         UUID uuid = SecurityUtils.getCurrentUserUuid();
         LocalDate start = LocalDate.of(year, month, 1);

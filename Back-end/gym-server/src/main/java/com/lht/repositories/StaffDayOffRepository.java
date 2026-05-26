@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface StaffDayOffRepository extends JpaRepository<StaffDayOff, UUID>, JpaSpecificationExecutor<StaffDayOff> {
+public interface    StaffDayOffRepository extends JpaRepository<StaffDayOff, UUID>, JpaSpecificationExecutor<StaffDayOff> {
 
     List<StaffDayOff> findByStaffUuid(UUID staffUuid);
 
@@ -22,6 +22,10 @@ public interface StaffDayOffRepository extends JpaRepository<StaffDayOff, UUID>,
     List<StaffDayOff> findByStaffUuidAndDateOffBetween(UUID staffUuid, LocalDate start, LocalDate end);
 
     List<StaffDayOff> findByDateOff(LocalDate dateOff);
+
+    void deleteByStaffUuid(UUID staffUuid);
+
+    void deleteByFacilityUuid(UUID facilityUuid);
 
     @Query("""
     SELECT d.staffUuid

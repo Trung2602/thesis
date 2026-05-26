@@ -4,6 +4,7 @@ import com.lht.dto.ShiftDTO;
 import com.lht.pojo.Shift;
 import com.lht.repositories.ShiftRepository;
 import com.lht.services.ShiftService;
+import com.lht.services.StaffScheduleService;
 import jakarta.persistence.criteria.Predicate;
 
 import java.math.BigDecimal;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ShiftServiceImpl implements ShiftService {
 
     private final ShiftRepository shiftRepository;
+    private final StaffScheduleService staffScheduleService;
 
     private ShiftDTO mapToDTO(Shift s) {
         return ShiftDTO.builder()
@@ -77,13 +79,15 @@ public class ShiftServiceImpl implements ShiftService {
         Shift saved = shiftRepository.save(shift);
         return this.mapToDTO(saved);
     }
+
     @Override
     public boolean deleteShift(UUID uuid) {
-        if (shiftRepository.existsById(uuid)) {
-            shiftRepository.deleteById(uuid);
-            return true;
-        }
-        return false;
+        if (!shiftRepository.existsById(uuid)) return false;
+
+        staffScheduleService.deleteByShiftUuid(uuid);
+
+        shiftRepository.deleteById(uuid);
+        return true;
     }
 
     @Override

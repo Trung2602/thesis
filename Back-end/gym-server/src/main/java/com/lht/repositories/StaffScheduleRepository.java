@@ -19,6 +19,10 @@ public interface StaffScheduleRepository extends JpaRepository<StaffSchedule, UU
 
     boolean existsByStaffUuidAndDateAndShiftUuid(UUID staffUuid, LocalDate date, UUID shiftUuid);
 
+    void deleteByStaffUuid(UUID staffUuid);
+    void deleteByFacilityUuid(UUID facilityUuid);
+    void deleteByShiftUuid(UUID shiftUuid);
+
     @Query("""
     SELECT sc.staffUuid
     FROM StaffSchedule sc

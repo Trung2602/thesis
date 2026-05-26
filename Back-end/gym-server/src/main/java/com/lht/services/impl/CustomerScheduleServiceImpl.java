@@ -185,6 +185,21 @@ public class CustomerScheduleServiceImpl implements CustomerScheduleService {
     }
 
     @Override
+    public void deleteByCustomerUuid(UUID customerUuid) {
+        customerScheduleRepository.deleteByCustomerUuid(customerUuid);
+    }
+
+    @Override
+    public void deleteByStaffUuid(UUID staffUuid) {
+        customerScheduleRepository.deleteByStaffUuid(staffUuid);
+    }
+
+    @Override
+    public void deleteByFacilityUuid(UUID facilityUuid) {
+        customerScheduleRepository.deleteByFacilityUuid(facilityUuid);
+    }
+
+    @Override
     public Page<CustomerSchedule> getAllSort(String sortField, String sortDir, int page, int size) {
         Sort sort = sortDir.equalsIgnoreCase("asc")
                 ? Sort.by(sortField).ascending()

@@ -23,7 +23,9 @@ public interface CustomerScheduleService {
     CustomerSchedule addOrUpdateCustomerSchedule(CustomerScheduleDTO dto);
 
     boolean deleteCustomerSchedule(UUID uuid);
-    
+    void deleteByCustomerUuid(UUID customerUuid);
+    void deleteByStaffUuid(UUID customerUuid);
+    void deleteByFacilityUuid(UUID facilityUuid);
     Page<CustomerSchedule> getAllSort(String sortField, String sortDir, int page, int size);
 
     List<CustomerScheduleDTO> getSchedulesByAccount();

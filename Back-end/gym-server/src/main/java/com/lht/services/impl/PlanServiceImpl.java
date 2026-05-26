@@ -3,6 +3,7 @@ package com.lht.services.impl;
 import com.lht.dto.PlanDTO;
 import com.lht.pojo.Plan;
 import com.lht.repositories.PlanRepository;
+import com.lht.services.PayCustomerService;
 import com.lht.services.PlanService;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PlanServiceImpl implements PlanService {
 
     private final PlanRepository planRepository;
+    private final PayCustomerService payCustomerService;
 
     private PlanDTO mapToDTO(Plan p) {
         if (p == null) return null;
@@ -78,11 +80,12 @@ public class PlanServiceImpl implements PlanService {
 
     @Override
     public boolean deletePlan(UUID uuid) {
-        if (planRepository.existsById(uuid)) {
-            planRepository.deleteById(uuid);
-            return true;
-        }
-        return false;
+        if (!planRepository.existsById(uuid)) return false;
+
+        payCustomerService.deleteByPlanUuid(uuid);
+
+        planRepository.deleteById(uuid);
+        return true;
     }
 
     @Override

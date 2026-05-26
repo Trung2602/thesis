@@ -13,6 +13,9 @@ public interface PayCustomerRepository extends JpaRepository<PayCustomer, UUID>,
 
     List<PayCustomer> findByCustomerUuid(UUID customerUuid);
 
+    void deleteByCustomerUuid(UUID customerUuid);
+    void deleteByPlanUuid(UUID planUuid);
+
     @Query("""
     SELECT MONTH(p.date), SUM(pl.price)
     FROM PayCustomer p

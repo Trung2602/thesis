@@ -32,4 +32,10 @@ public interface InternalGymClient {
             @RequestParam("checkin") @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime checkin,
             @RequestParam("checkout") @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime checkout
     );
+
+    @DeleteMapping("/internal/users/{uuid}")
+    void deleteRelatedData(
+            @PathVariable UUID uuid,
+            @RequestParam String role
+    );
 }

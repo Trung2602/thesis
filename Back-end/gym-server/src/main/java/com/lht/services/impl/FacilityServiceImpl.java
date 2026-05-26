@@ -1,8 +1,14 @@
 package com.lht.services.impl;
 
 import com.lht.pojo.Facility;
+import com.lht.repositories.CustomerScheduleRepository;
 import com.lht.repositories.FacilityRepository;
+import com.lht.repositories.StaffDayOffRepository;
+import com.lht.repositories.StaffScheduleRepository;
+import com.lht.services.CustomerScheduleService;
 import com.lht.services.FacilityService;
+import com.lht.services.StaffDayOffService;
+import com.lht.services.StaffScheduleService;
 import jakarta.persistence.criteria.Predicate;
 
 import java.util.*;
@@ -21,6 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class FacilityServiceImpl implements FacilityService {
 
     private final FacilityRepository facilityRepository;
+    private final StaffDayOffRepository staffDayOffRepository;
+    private final StaffScheduleRepository staffScheduleRepository;
+    private final CustomerScheduleRepository customerScheduleRepository;
 
     @Override
     public List<Facility> getAllFacilities() {
@@ -46,11 +55,14 @@ public class FacilityServiceImpl implements FacilityService {
 
     @Override
     public boolean deleteFacility(UUID uuid) {
-        if (facilityRepository.existsById(uuid)) {
-            facilityRepository.deleteById(uuid);
-            return true;
-        }
-        return false;
+        if (!facilityRepository.existsById(uuid)) return false;
+
+        staffDayOffRepository.deleteByFacilityUuid(uuid);
+        staffScheduleRepository.deleteByFacilityUuid(uuid);
+        customerScheduleRepository.deleteByFacilityUuid(uuid);
+
+        facilityRepository.deleteById(uuid);
+        return true;
     }
 
     @Override

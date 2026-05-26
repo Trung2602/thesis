@@ -16,7 +16,8 @@ public interface StaffDayOffService {
     StaffDayOffDTO getStaffDayOffByUuid(UUID uuid);
     StaffDayOffDTO addOrUpdateStaffDayOff(StaffDayOffDTO dto);
     boolean deleteStaffDayOff(UUID uuid);
-
+    void deleteByStaffUuid(UUID staffUuid);
+    void deleteByFacilityUuid(UUID facilityUuid);
     List<StaffDayOffDTO> getStaffDayOffs(int month, int year);
     Page<StaffDayOffDTO> getStaffDayOffsFilter(Map<String, String> params, String sortField, String sortDir, int page, int size);
     int countByStaffUuidAndMonthYear(UUID staffUuid, int month, int year);

@@ -19,6 +19,10 @@ public interface CustomerScheduleRepository extends JpaRepository<CustomerSchedu
 
     List<CustomerSchedule> findByStaffUuid(UUID staffUuid);
 
+    void deleteByCustomerUuid(UUID customerUuid);
+    void deleteByStaffUuid(UUID customerUuid);
+    void deleteByFacilityUuid(UUID facilityUuid);
+
     @Query("""
     SELECT cs FROM CustomerSchedule cs
     WHERE cs.staffUuid = :staffUuid

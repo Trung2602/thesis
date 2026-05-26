@@ -108,6 +108,11 @@ public class SalaryServiceImpl implements SalaryService {
     }
 
     @Override
+    public void deleteByStaffUuid(UUID staffUuid) {
+        salaryRepository.deleteByStaffUuid(staffUuid);
+    }
+
+    @Override
     public Page<SalaryDTO> getSalariesFilter(Map<String, String> params, String sortField, String sortDir, int page, int size) {
         Specification<Salary> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();

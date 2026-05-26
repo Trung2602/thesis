@@ -4,6 +4,7 @@ import com.lht.services.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -22,6 +23,7 @@ public class InternalGymController {
     private final PlanService planService;
     private final FacilityService facilityService;
     private final CustomerScheduleService customerScheduleService;
+    private final InternalUserService internalUserService;
 
     @GetMapping("/plans/{uuid}/duration")
     public int getDurationDays(@PathVariable UUID uuid) {
@@ -46,5 +48,13 @@ public class InternalGymController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime checkout
     ) {
         return customerScheduleService.getAvailableStaff(facilityUuid, date, checkin, checkout);
+    }
+
+    @DeleteMapping("/users/{uuid}")
+    public ResponseEntity<Void> deleteRelatedData(
+            @PathVariable UUID uuid,
+            @RequestParam String role) {
+        internalUserService.deleteRelatedData(uuid, role);
+        return ResponseEntity.noContent().build();
     }
 }

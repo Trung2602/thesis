@@ -333,6 +333,68 @@ class _ManagerUserViewState extends State<ManagerUserView>
     );
   }
 
+  Future<bool> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            SizedBox(width: 8),
+            Text('Xác nhận xóa'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Bạn có chắc chắn muốn xóa người dùng này không?',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, color: Colors.red, size: 18),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Toàn bộ dữ liệu liên quan đến người dùng này sẽ bị xóa vĩnh viễn khỏi hệ thống và không thể khôi phục.',
+                      style: TextStyle(color: Colors.red, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -387,12 +449,12 @@ class _ManagerUserViewState extends State<ManagerUserView>
                       ),
                     );
                   },
-                  onEdit: () =>
-                      _openForm(uuid: u.uuid, role: u.role),
+                  onEdit: () => _openForm(uuid: u.uuid, role: u.role),
                   onDelete: () async {
+                    final confirmed = await _confirmDelete(context);
+                    if (!confirmed) return;
                     await _provider.deleteUser(u.uuid);
-                    _provider.fetchUsers(
-                        role: roles[_tabController.index]);
+                    _provider.fetchUsers(role: roles[_tabController.index]);
                   },
                 );
               },

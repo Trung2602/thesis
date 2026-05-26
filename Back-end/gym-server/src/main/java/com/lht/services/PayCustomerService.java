@@ -22,7 +22,8 @@ public interface PayCustomerService {
     PayCustomer createPayCustomer(PayCustomer entity);
 
     boolean deletePayCustomer(UUID uuid);
-
+    void deleteByCustomerUuid(UUID customerUuid);
+    void deleteByPlanUuid(UUID planUuid);
     List<PayCustomerDTO> getPayCustomers(Map<String, String> params);
 
     Page<PayCustomerDTO> getAllSort(String sortField, String sortDir, int page, int size);

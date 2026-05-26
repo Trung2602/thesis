@@ -18,6 +18,8 @@ public interface SalaryRepository extends JpaRepository<Salary, UUID>, JpaSpecif
 
     List<Salary> findByDateBetween(LocalDate start, LocalDate end);
 
+    void deleteByStaffUuid(UUID staffUuid);
+
     @Query("""
     SELECT s.date, SUM(s.price)
     FROM Salary s

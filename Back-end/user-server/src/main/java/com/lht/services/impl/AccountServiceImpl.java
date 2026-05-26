@@ -11,6 +11,7 @@ import com.lht.services.AccountService;
 import com.lht.services.AdminService;
 import com.lht.services.CustomerService;
 import com.lht.services.StaffService;
+import feign.FeignException;
 import jakarta.persistence.criteria.Predicate;
 
 import java.io.IOException;
@@ -174,11 +175,14 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public boolean deleteAccount(UUID uuid) {
-        if (accountRepository.existsById(uuid)) {
-            accountRepository.deleteById(uuid);
-            return true;
+        Account account = accountRepository.findById(uuid).orElseThrow(() -> new RuntimeException("Account not found"));
+        try {
+            internalGymClient.deleteRelatedData(uuid, account.getRole().toString());
+        } catch (FeignException e) {
+            throw new RuntimeException("Không thể xóa dữ liệu liên quan ở gym-server: " + e.getMessage());
         }
-        return false;
+        accountRepository.deleteById(uuid);
+        return true;
     }
 
     @Override

@@ -134,6 +134,20 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
     }
 
     @Override
+    public void deleteByStaffUuid(UUID staffUuid) {
+        staffScheduleRepository.deleteByStaffUuid(staffUuid);
+    }
+
+    @Override
+    public void deleteByFacilityUuid(UUID facilityUuid) {
+        staffScheduleRepository.deleteByFacilityUuid(facilityUuid);
+    }
+    @Override
+    public void deleteByShiftUuid(UUID shiftUuid) {
+        staffScheduleRepository.deleteByShiftUuid(shiftUuid);
+    }
+
+    @Override
     public List<StaffScheduleDTO> getStaffSchedules(Map<String, String> params) {
         Specification<StaffSchedule> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
