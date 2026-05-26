@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../../api/ai_server_api.dart';
-import '../../../../models/Food.dart';
+import '../../../../models/food.dart';
 import '../../../../services/auth_service.dart';
 import '../../../../cache/manager_cache.dart';
 

@@ -25,10 +25,11 @@ public interface InternalGymClient {
     @PostMapping("/internal/facilities/batch")
     Map<UUID, String> getFacilityNamesByUuids(@RequestBody Set<UUID> facilityUuids);
 
-    @GetMapping("/internal/staffs")
+    @GetMapping("/internal/facilities/{facilityUuid}/staffs/available")
     Set<UUID> getAvailableStaff(
+            @PathVariable UUID facilityUuid,
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam("checkin") @DateTimeFormat(pattern = "h:mm a") LocalTime checkin,
-            @RequestParam("checkout") @DateTimeFormat(pattern = "h:mm a") LocalTime checkout
+            @RequestParam("checkin") @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime checkin,
+            @RequestParam("checkout") @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime checkout
     );
 }

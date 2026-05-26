@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../models/Exercise.dart';
+import '../../../../models/exercise.dart';
 
 class ExerciseCard extends StatelessWidget {
   final Exercise exercise;

@@ -49,29 +49,6 @@
       "Type": "String",
       "Default": "smtp.gmail.com"
     },
-    "MailUsername": {
-      "Type": "String",
-      "Default": "trunglu2602@gmail.com"
-    },
-    "MailPassword": {
-      "Type": "String",
-      "NoEcho": true,
-      "MinLength": 8,
-      "Description": "Email SMTP password / app password"
-    },
-    "GoogleApiKey": {
-      "Type": "String",
-      "NoEcho": true
-    },
-    "DbUsername": { 
-      "Type": "String",
-      "Default": "postgres"
-    },
-    "DbPassword": {
-      "Type": "String",
-      "NoEcho": true,
-      "MinLength": 8
-    },
     "DbPort": {
       "Type": "Number",
       "Default": 5432
@@ -104,10 +81,6 @@
     "ServiceCName": {
       "Type": "String",
       "Default": "ai"
-    },
-    "JWTSecret": {
-      "Type": "String",
-      "Default": "9fK3#pL8vX2q@W7mZrT5sYhD1eG6uN0bQ4cA8jHkLpRsUvWx"
     },
     "EcrRegion": {
       "Type": "String",
@@ -158,6 +131,72 @@
     "AutoScaleCpuTarget": {
       "Type": "Number",
       "Default": 60.0
+    },
+    "LambdaS3Bucket": {
+      "Type": "String",
+      "Default": "fitness-lambda-trunglu-2602",
+      "Description": "S3 bucket chua Lambda deployment package (db_init.zip)"
+    },
+    "LambdaS3Key": {
+      "Type": "String",
+      "Default": "lambda/db_init.zip",
+      "Description": "S3 key (duong dan) toi file db_init.zip"
+    },
+    "DbUsername": { 
+      "Type": "String",
+      "Default": "postgres"
+    },
+    "DbPassword": {
+      "Type": "String",
+      "NoEcho": true,
+      "MinLength": 6
+    },
+    "JWTSecret": {
+      "Type": "String",
+      "NoEcho": true
+    },
+    "VnpTmnCode": {
+      "Type": "String",
+      "Description": "VNPay Terminal Code"
+    },
+    "VnpHashSecret": {
+      "Type": "String",
+      "NoEcho": true,
+      "MinLength": 32,
+      "Description": "VNPay Hash Secret"
+    },
+    "CloudinaryCloudName": {
+      "Type": "String",
+      "Description": "Cloudinary cloud name"
+    },
+    "CloudinaryApiKey": {
+      "Type": "String",
+      "Description": "Cloudinary API key"
+    },
+    "CloudinaryApiSecret": {
+      "Type": "String",
+      "NoEcho": true,
+      "MinLength": 20,
+      "Description": "Cloudinary API secret"
+    },
+    "MailUsername": {
+      "Type": "String",
+      "NoEcho": true,
+      "Description": "xxxx@gmail.com"
+    },
+    "MailPassword": {
+      "Type": "String",
+      "NoEcho": true,
+      "MinLength": 8,
+      "Description": "Email SMTP password / app password"
+    },
+    "FirebaseUrl": {
+      "Type": "String",
+      "NoEcho": true
+    },
+    "GoogleApiKey": {
+      "Type": "String",
+      "NoEcho": true
     }
   },
   "Conditions": {
@@ -514,6 +553,71 @@
         "SourceSecurityGroupId": { "Ref": "Ec2SecurityGroup" }
       }
     },
+    "EcsSelfIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {"Ref": "EcsSecurityGroup"},
+        "IpProtocol": "tcp",
+        "FromPort": {"Ref": "ContainerPort"},
+        "ToPort": {"Ref": "ContainerPort"},
+        "SourceSecurityGroupId": {"Ref": "EcsSecurityGroup"}
+      }
+    },
+    "LambdaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": {
+          "Fn::Sub": "${ProjectName}-lambda-db-init-role"
+        },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+        ]
+      }
+    },
+    "DbInitFunction": {
+      "Type": "AWS::Lambda::Function",
+      "DependsOn": ["Db","LambdaExecutionRole","DbIngressFromEcs"],
+      "Properties": {
+        "FunctionName": {"Fn::Sub": "${ProjectName}-db-init"},
+        "Runtime": "python3.12",
+        "Handler": "index.handler",
+        "Role": {"Fn::GetAtt": ["LambdaExecutionRole","Arn"]},
+        "Timeout": 120,
+        "Code": {
+          "S3Bucket": {"Ref": "LambdaS3Bucket"},
+          "S3Key": {"Ref": "LambdaS3Key"}
+        },
+        "VpcConfig": {
+          "SubnetIds": [{"Ref": "PrivateSubnet1"},{"Ref": "PrivateSubnet2"}],
+          "SecurityGroupIds": [{"Ref": "EcsSecurityGroup"}]
+        },
+        "Environment": {
+          "Variables": {
+            "DB_HOST": {"Fn::GetAtt": ["Db","Endpoint.Address"]},
+            "DB_PORT": {"Ref": "DbPort"},
+            "DB_USERNAME": {"Ref": "DbUsername"},
+            "DB_PASSWORD": {"Ref": "DbPassword"}
+          }
+        }
+      }
+    },
+    "DbInitCustomResource": {
+      "Type": "AWS::CloudFormation::CustomResource",
+      "DependsOn": ["DbInitFunction","Db","DbIngressFromEcs"],
+      "Properties": {"ServiceToken": {"Fn::GetAtt": ["DbInitFunction","Arn"]}}
+    },
     "ALB": {
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "Properties": {
@@ -731,44 +835,15 @@
                   ]
                 }
               },
-              {
-                "Name": "DB_USERNAME",
-                "Value": { "Ref": "DbUsername" }
-              },
-              {
-                "Name": "DB_PASSWORD",
-                "Value": { "Ref": "DbPassword" }
-              },
-              {
-                "Name": "SERVER_PORT",
-                "Value": { "Ref": "ContainerPort" }
-              },
-              {
-                "Name": "JWT_SECRET",
-                "Value": { "Ref": "JWTSecret" }
-              },
-              {
-                "Name": "USER_SERVICE_URL",
-                "Value": {
-                  "Fn::Sub": "http://${ServiceBName}.${ProjectName}.internal:${ContainerPort}"
-                }
-              },
-              {
-                "Name": "VNP_TMN_CODE",
-                "Value": "9J2VIKEK"
-              },
-              {
-                "Name": "VNP_HASH_SECRET",
-                "Value": "XEQX3BXDCXTNJ6LF53UDYU8F88W3P13J"
-              },
-              {
-                "Name": "VNP_URL",
-                "Value": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
-              },
-              {
-                "Name": "VNP_RETURN_URL",
-                "Value": "https://your-domain/api/payment/return"
-              }
+              {"Name": "DB_USERNAME","Value": { "Ref": "DbUsername" }},
+              {"Name": "DB_PASSWORD","Value": { "Ref": "DbPassword" }},
+              {"Name": "SERVER_PORT","Value": { "Ref": "ContainerPort" }},
+              {"Name": "JWT_SECRET","Value": { "Ref": "JWTSecret" }},
+              {"Name": "USER_SERVICE_URL","Value": {"Fn::Sub": "http://${ServiceBName}.${ProjectName}.internal:${ContainerPort}"}},
+              {"Name": "VNP_TMN_CODE","Value": { "Ref": "VnpTmnCode" }},
+              {"Name": "VNP_HASH_SECRET","Value": { "Ref": "VnpHashSecret" }},
+              {"Name": "VNP_URL","Value": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"},
+              {"Name": "VNP_RETURN_URL","Value": {"Fn::Sub": "http://${ALB.DNSName}/api/v1/gym/payment/return"}}
             ],
             "LogConfiguration": { 
               "LogDriver": "awslogs", 
@@ -776,7 +851,7 @@
               { 
                 "awslogs-group": { "Ref": "EcsLogGroup" }, 
                 "awslogs-region": { "Ref": "AWS::Region" }, 
-                "awslogs-stream-prefix": "service-${ServiceAName}"
+                "awslogs-stream-prefix": {"Fn::Sub": "service-${ServiceAName}"}
               } 
             }
           }
@@ -811,65 +886,21 @@
                   ]
                 }
               },
-              {
-                "Name": "DB_USERNAME",
-                "Value": { "Ref": "DbUsername" }
-              },
-              {
-                "Name": "DB_PASSWORD",
-                "Value": { "Ref": "DbPassword" }
-              },
-              {
-                "Name": "SERVER_PORT",
-                "Value": { "Ref": "ContainerPort" }
-              },
-              {
-                "Name": "JWT_SECRET",
-                "Value": { "Ref": "JWTSecret" }
-              },
-              {
-                "Name": "GYM_SERVICE_URL",
-                "Value": {
-                  "Fn::Sub": "http://${ServiceAName}.${ProjectName}.internal:${ContainerPort}"
-                }
-              },
-              {
-                "Name": "MAIL_HOST",
-                "Value": "smtp.gmail.com"
-              },
-              {
-                "Name": "MAIL_PORT",
-                "Value": "587"
-              },
-              {
-                "Name": "MAIL_USERNAME",
-                "Value": { "Ref": "MailUsername" }
-              },
-              {
-                "Name": "MAIL_PASSWORD",
-                "Value": { "Ref": "MailPassword" }
-              },
-
-              {
-                "Name": "MAIL_SMTP_AUTH",
-                "Value": "true"
-              },
-              {
-                "Name": "MAIL_STARTTLS_ENABLE",
-                "Value": "true"
-              },
-              {
-                "Name": "CLOUDINARY_CLOUD_NAME",
-                "Value": "dsagezboe"
-              },
-              {
-                "Name": "CLOUDINARY_API_KEY",
-                "Value": "118713819798876"
-              },
-              {
-                "Name": "CLOUDINARY_API_SECRET",
-                "Value": "XDDfAXu88BqLa21ISQWKzgCAwHM"
-              }
+              {"Name": "DB_USERNAME","Value": { "Ref": "DbUsername" }},
+              {"Name": "DB_PASSWORD","Value": { "Ref": "DbPassword" }},
+              {"Name": "SERVER_PORT","Value": { "Ref": "ContainerPort" }},
+              {"Name": "JWT_SECRET","Value": { "Ref": "JWTSecret" }},
+              {"Name": "GYM_SERVICE_URL","Value": {"Fn::Sub": "http://${ServiceAName}.${ProjectName}.internal:${ContainerPort}"}},
+              {"Name": "MAIL_HOST","Value": "smtp.gmail.com"},
+              {"Name": "MAIL_PORT","Value": "587"},
+              {"Name": "MAIL_USERNAME","Value": { "Ref": "MailUsername" }},
+              {"Name": "MAIL_PASSWORD","Value": { "Ref": "MailPassword" }},
+              {"Name": "MAIL_SMTP_AUTH","Value": "true"},
+              {"Name": "MAIL_STARTTLS_ENABLE","Value": "true"},
+              {"Name": "CLOUDINARY_CLOUD_NAME","Value": { "Ref": "CloudinaryCloudName" }},
+              {"Name": "CLOUDINARY_API_KEY","Value": { "Ref": "CloudinaryApiKey" }},
+              {"Name": "CLOUDINARY_API_SECRET","Value": { "Ref": "CloudinaryApiSecret" }},
+              {"Name": "FIREBASE_DB_URL","Value": {"Ref": "FirebaseUrl"}}
             ],
             "LogConfiguration": {
               "LogDriver": "awslogs",
@@ -911,32 +942,12 @@
                   ]
                 }
               },
-              {
-                "Name": "DB_USERNAME",
-                "Value": { "Ref": "DbUsername" }
-              },
-              {
-                "Name": "DB_PASSWORD",
-                "Value": { "Ref": "DbPassword" }
-              },
-              {
-                "Name": "SERVER_PORT",
-                "Value": { "Ref": "ContainerPort" }
-              },
-              {
-                "Name": "JWT_SECRET",
-                "Value": { "Ref": "JWTSecret" }
-              },
-              {
-                "Name": "USER_SERVICE_URL",
-                "Value": {
-                  "Fn::Sub": "http://${ServiceBName}.${ProjectName}.internal:${ContainerPort}"
-                }
-              },
-              {
-                "Name": "GOOGLE_API_KEY",
-                "Value": { "Ref": "GoogleApiKey" }
-              }
+              {"Name": "DB_USERNAME","Value": { "Ref": "DbUsername" }},
+              {"Name": "DB_PASSWORD","Value": { "Ref": "DbPassword" }},
+              {"Name": "SERVER_PORT","Value": { "Ref": "ContainerPort" }},
+              {"Name": "JWT_SECRET","Value": { "Ref": "JWTSecret" }},
+              {"Name": "USER_SERVICE_URL","Value": {"Fn::Sub": "http://${ServiceBName}.${ProjectName}.internal:${ContainerPort}"}},
+              {"Name": "GOOGLE_API_KEY","Value": { "Ref": "GoogleApiKey" }}
             ],
             "LogConfiguration": {
               "LogDriver": "awslogs",
@@ -952,7 +963,7 @@
     },
     "ServiceA": {
       "Type": "AWS::ECS::Service",
-      "DependsOn": ["ALBListener","RuleA","EcrRepoA"],
+      "DependsOn": ["ALBListener","RuleA","EcrRepoA","DbInitCustomResource"],
       "Properties": {
         "ServiceName": {"Fn::Sub": "${ProjectName}-service-${ServiceAName}"},
         "Cluster": {"Ref": "EcsCluster"},
@@ -984,7 +995,7 @@
     },
     "ServiceB": {
       "Type": "AWS::ECS::Service",
-      "DependsOn": ["ALBListener","RuleB","EcrRepoB"],
+      "DependsOn": ["ALBListener","RuleB","EcrRepoB","DbInitCustomResource"],
       "Properties": {
         "ServiceName": { "Fn::Sub": "${ProjectName}-service-${ServiceBName}" },
         "Cluster": { "Ref": "EcsCluster" },
@@ -1016,7 +1027,7 @@
     },
     "ServiceC": {
       "Type": "AWS::ECS::Service",
-      "DependsOn": ["ALBListener","RuleC","EcrRepoC"],
+      "DependsOn": ["ALBListener","RuleC","EcrRepoC","DbInitCustomResource"],
       "Properties": {
         "ServiceName": { "Fn::Sub": "${ProjectName}-service-${ServiceCName}" },
         "Cluster": { "Ref": "EcsCluster" },

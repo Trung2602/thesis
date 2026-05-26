@@ -40,6 +40,12 @@ class _DayOffViewState extends State<DayOffView> {
   }
 
   Future<void> _handleRegister() async {
+    final account = Provider.of<AccountProvider>(context, listen: false).account;
+    if (account?.facilityUuid == null) {
+      _showMsg('Không tìm thấy cơ sở của bạn', isError: true);
+      return;
+    }
+
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -49,16 +55,13 @@ class _DayOffViewState extends State<DayOffView> {
     if (!mounted || picked == null) return;
 
     final error = await _provider.registerDayOff(
-        picked, _selectedMonth, _selectedYear);
+        picked, account!.facilityUuid!, _selectedMonth, _selectedYear);
     if (!mounted) return;
 
     if (error == null) {
-      _showMsg(
-          'Đăng ký nghỉ thành công ngày ${picked.day}/${picked.month}/${picked.year}');
+      _showMsg('Đăng ký nghỉ thành công ngày ${picked.day}/${picked.month}/${picked.year}');
     } else if (error == 'duplicate') {
-      _showMsg(
-          'Ngày ${picked.day}/${picked.month}/${picked.year} đã xin nghỉ rồi.',
-          isError: true);
+      _showMsg('Ngày ${picked.day}/${picked.month}/${picked.year} đã xin nghỉ rồi.', isError: true);
     } else {
       _showMsg('Lỗi đăng ký nghỉ ($error)', isError: true);
     }
@@ -208,24 +211,21 @@ class _DayOffViewState extends State<DayOffView> {
                       'Không có ngày nghỉ nào trong tháng này.',
                       style: TextStyle(color: Colors.white54),
                     ),
-                  )
-                      : ListView.builder(
-                    itemCount:
-                    provider.registeredDaysOff.length,
+                  ) : ListView.builder(
+                    itemCount: provider.registeredDaysOff.length,
                     itemBuilder: (context, index) {
-                      final item =
-                      provider.registeredDaysOff[index];
+                      final item = provider.registeredDaysOff[index];
+                      if (item.date == null || item.uuid == null) return const SizedBox.shrink();
+
                       final now = DateTime.now();
-                      final today = DateTime(
-                          now.year, now.month, now.day);
-                      final showDelete = item.date.isAfter(
-                          today.add(
-                              const Duration(days: 1)));
+                      final today = DateTime(now.year, now.month, now.day);
+                      final showDelete = item.date!.isAfter(today.add(const Duration(days: 1)));
+
                       return DayOffCard(
-                        date: item.date,
+                        date: item.date!,
+                        approved: item.approved,
                         showDelete: showDelete,
-                        onDelete: () =>
-                            _handleDelete(item.uuid, item.date),
+                        onDelete: () => _handleDelete(item.uuid!, item.date!),
                       );
                     },
                   ),

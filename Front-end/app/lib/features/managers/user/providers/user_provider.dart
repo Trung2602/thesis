@@ -73,24 +73,32 @@ class UserProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> saveUser({
-    required String? uuid,
-    required String role,
-    required Map<String, dynamic> bodyMap,
-  }) async {
+  Future<void> saveUser({required String? uuid, required String role, required Map<String, dynamic> bodyMap,}) async {
     final token = await AuthService().getToken();
-    final url = uuid == null ? _getCreateApi(role) : _getUpdateApi(role);
-    final headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
+    final url = uuid == null ? _getCreateApi(role) : _getUpdateApi(role, uuid);
 
     if (uuid == null) {
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
       await http.post(Uri.parse(url),
           headers: headers, body: jsonEncode(bodyMap));
     } else {
-      await http.patch(Uri.parse(url),
-          headers: headers, body: jsonEncode(bodyMap));
+      final request = http.MultipartRequest('PATCH', Uri.parse(url));
+      request.headers['Authorization'] = 'Bearer $token';
+      bodyMap.forEach((key, value) {
+        if (value != null) {
+          request.fields[key] = value.toString();
+        }
+      });
+
+      final streamed = await request.send();
+      final res = await http.Response.fromStream(streamed);
+
+      if (res.statusCode != 200) {
+        throw Exception('Cập nhật thất bại: ${res.body}');
+      }
     }
   }
 
@@ -120,14 +128,14 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  String _getUpdateApi(String role) {
+  String _getUpdateApi(String role, String uuid) {
     switch (role) {
       case 'ADMIN':
-        return UserServerApi.patchAdmin;
+        return UserServerApi.patchAdmin(uuid);
       case 'STAFF':
-        return UserServerApi.patchStaff;
+        return UserServerApi.patchStaff(uuid);
       case 'CUSTOMER':
-        return UserServerApi.patchCustomer;
+        return UserServerApi.patchCustomer(uuid);
       default:
         throw Exception('Invalid role');
     }
@@ -135,6 +143,6 @@ class UserProvider extends ChangeNotifier {
 
   String formatDate(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}-'
-          '${date.month.toString().padLeft(2, '0')}-'
-          '${date.day.toString().padLeft(2, '0')}';
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
 }

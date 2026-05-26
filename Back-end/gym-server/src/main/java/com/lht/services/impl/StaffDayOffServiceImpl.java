@@ -3,7 +3,9 @@ package com.lht.services.impl;
 import com.lht.client.InternalUserClient;
 import com.lht.dto.StaffDayOffDTO;
 import com.lht.component.SecurityUtils;
+import com.lht.dto.StaffScheduleDTO;
 import com.lht.pojo.StaffDayOff;
+import com.lht.pojo.StaffSchedule;
 import com.lht.repositories.StaffDayOffRepository;
 import com.lht.services.StaffDayOffService;
 
@@ -32,6 +34,9 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
         dto.setUuid(s.getUuid());
         dto.setDate(s.getDateOff());
         dto.setName(internalUserClient.getStaffNameByUuid(s.getStaffUuid()));
+        dto.setFacilityUuid(s.getFacilityUuid());
+        dto.setReason(s.getReason());
+        dto.setApproved(s.getApproved());
         return dto;
     }
 
@@ -48,6 +53,9 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
                         .uuid(d.getUuid())
                         .date(d.getDateOff())
                         .name(staffMap.get(d.getStaffUuid()))
+                        .facilityUuid(d.getFacilityUuid())
+                        .reason(d.getReason())
+                        .approved(d.getApproved())
                         .build())
                 .toList();
     }
@@ -64,36 +72,65 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
 
     @Override
     public StaffDayOffDTO addOrUpdateStaffDayOff(StaffDayOffDTO dto) {
-        UUID staffUuid = SecurityUtils.getCurrentUserUuid();
-        String staffType = internalUserClient.getStaffType(staffUuid);
-        if (!"Fulltime".equalsIgnoreCase(staffType)) {
-            throw new IllegalArgumentException("Only Fulltime staff can register day off");
+        UUID currentUuid = SecurityUtils.getCurrentUserUuid();
+        String role = SecurityUtils.getCurrentUserRole();
+        UUID staffUuid;
+        if ("ADMIN".equals(role)) {
+            if (dto.getStaffUuid() == null) {
+                throw new IllegalArgumentException("staffUuid is required for admin");
+            }
+            staffUuid = dto.getStaffUuid();
+        } else {
+            String staffType = internalUserClient.getStaffType(currentUuid);
+
+            if (!"Fulltime".equalsIgnoreCase(staffType)) {
+                throw new IllegalArgumentException("Only Fulltime staff can register day off");
+            }
+
+            staffUuid = currentUuid;
         }
+
+        UUID facilityUuid = dto.getFacilityUuid();
+
+        if (facilityUuid == null) {
+            facilityUuid = internalUserClient.getFacilityUuidbyStaffUuid(staffUuid);
+        }
+
         if (dto.getUuid() == null) {
             boolean alreadyExists = staffDayOffRepository.existsByStaffUuidAndDateOff(staffUuid, dto.getDate());
             if (alreadyExists) {
                 throw new IllegalArgumentException("Day off already registered for this date");
             }
         }
+
         StaffDayOff entity;
         if (dto.getUuid() != null) {
-            entity = staffDayOffRepository.findById(dto.getUuid()).orElseThrow(() -> new RuntimeException("Day off not found"));
-            if (!entity.getStaffUuid().equals(staffUuid)) {
+            entity = staffDayOffRepository.findById(dto.getUuid())
+                    .orElseThrow(() -> new RuntimeException("Day off not found"));
+            if (!"ADMIN".equals(role)
+                    && !entity.getStaffUuid().equals(staffUuid)) {
                 throw new RuntimeException("Forbidden");
             }
             if (!dto.getDate().isAfter(LocalDate.now())) {
-                throw new RuntimeException("Cannot update past or today's day off. Only future dates allowed.");
+                throw new RuntimeException(
+                        "Cannot update past or today's day off."
+                );
             }
             entity.setDateOff(dto.getDate());
-        }
-        else {
+            entity.setReason(dto.getReason());
+            entity.setFacilityUuid(facilityUuid);
+            if (dto.getApproved() != null) {
+                entity.setApproved(dto.getApproved());
+            }
+        } else {
             entity = new StaffDayOff();
             entity.setStaffUuid(staffUuid);
             entity.setDateOff(dto.getDate());
+            entity.setReason(dto.getReason());
+            entity.setFacilityUuid(facilityUuid);
+            entity.setApproved("ADMIN".equals(role));
         }
-
-        StaffDayOff saved = staffDayOffRepository.save(entity);
-        return mapToDTO(saved);
+        return mapToDTO(staffDayOffRepository.save(entity));
     }
 
     @Override
@@ -159,13 +196,10 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
         return new PageImpl<>(dtoList, pageable, entityPage.getTotalElements());
     }
 
-
     @Override
     public int countByStaffUuidAndMonthYear(UUID staffUuid, int month, int year) {
-
         LocalDate start = LocalDate.of(year, month, 1);
         LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
-
         return (int) staffDayOffRepository.countByStaffUuidAndDateOffBetween(staffUuid, start, end);
     }
 
@@ -175,23 +209,18 @@ public class StaffDayOffServiceImpl implements StaffDayOffService {
         return mapToDTO(staffDayOffRepository.findByStaffUuid(uuid));
     }
 
-    private static final LocalTime FULLTIME_START = LocalTime.of(5, 0);
-    private static final LocalTime FULLTIME_END = LocalTime.of(21, 0);
+    @Override
+    public Set<UUID> getStaffsOff(UUID facilityUuid, LocalDate date) {
+        return staffDayOffRepository.findApprovedLeave(facilityUuid, date);
+    }
 
     @Override
-    public List<UUID> getStaffsWorking(LocalDate date, LocalTime checkIn, LocalTime checkOut) {
-        boolean validFulltime = !checkIn.isBefore(FULLTIME_START) && !checkOut.isAfter(FULLTIME_END);
-        if (!validFulltime) {
-            return Collections.emptyList();
-        }
-        // lấy tất cả FULLTIME từ user-server
-        List<UUID> fulltimeStaff = new ArrayList<>(internalUserClient.getStaffsFulltime());
-        List<StaffDayOff> offDays = staffDayOffRepository.findByDateOff(date);
-        Set<UUID> offStaff = offDays.stream()
-                .map(StaffDayOff::getStaffUuid)
-                .collect(Collectors.toSet());
+    public boolean approveDayOff(UUID uuid) {
+        StaffDayOff entity = staffDayOffRepository.findById(uuid).orElse(null);
+        if (entity == null) return false;
 
-        fulltimeStaff.removeAll(offStaff);
-        return fulltimeStaff;
+        entity.setApproved(true);
+        staffDayOffRepository.save(entity);
+        return true;
     }
 }

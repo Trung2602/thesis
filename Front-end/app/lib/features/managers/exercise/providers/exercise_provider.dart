@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-import '../../../../models/Exercise.dart';
+import '../../../../models/exercise.dart';
 import '../../../../api/ai_server_api.dart';
 import '../../../../services/auth_service.dart';
 import '../../../../cache/manager_cache.dart';

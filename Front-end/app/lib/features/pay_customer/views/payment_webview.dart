@@ -27,8 +27,8 @@ class _PaymentWebViewState extends State<PaymentWebView> {
               final uri = Uri.parse(request.url);
               final response = await http.get(uri);
               if (response.statusCode == 200) {
-                final Map<String, dynamic> json =
-                jsonDecode(response.body);
+                final Map<String, dynamic> json = jsonDecode(response.body);
+
                 final status = json['status'];
                 if (context.mounted) {
                   Navigator.pop(context, {'status': status});

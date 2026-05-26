@@ -49,10 +49,8 @@ class _HomeShellState extends State<HomeShell> {
       _pages = [
         const DashboardView(),
         const CustomerScheduleView(),
-        if (_savedAccount!.type == 'FULLTIME')
-          const DayOffView()
-        else
-          const StaffScheduleView(),
+        const StaffScheduleView(),
+        if (_savedAccount!.type == 'FULLTIME') const DayOffView(),
         const SalaryView(),
         const ProfileView(),
       ];
@@ -78,14 +76,13 @@ class _HomeShellState extends State<HomeShell> {
       ];
     } else if (_savedAccount!.role == 'STAFF') {
       return [
-        const BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Trang chủ'),
-        const BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Lịch Trình'),
+        const BottomNavigationBarItem(icon: Icon(Icons.dashboard),       label: 'Trang chủ'),
+        const BottomNavigationBarItem(icon: Icon(Icons.calendar_today),  label: 'Lịch Trình'),
+        const BottomNavigationBarItem(icon: Icon(Icons.access_time),     label: 'Ca Làm'),
         if (_savedAccount!.type == 'FULLTIME')
-          const BottomNavigationBarItem(icon: Icon(Icons.beach_access), label: 'Xin Nghỉ')
-        else
-          const BottomNavigationBarItem(icon: Icon(Icons.access_time), label: 'Ca Làm'),
-        const BottomNavigationBarItem(icon: Icon(Icons.attach_money), label: 'Bảng Lương'),
-        const BottomNavigationBarItem(icon: Icon(Icons.person_pin), label: 'Hồ Sơ'),
+          const BottomNavigationBarItem(icon: Icon(Icons.beach_access),  label: 'Xin Nghỉ'),
+        const BottomNavigationBarItem(icon: Icon(Icons.attach_money),    label: 'Bảng Lương'),
+        const BottomNavigationBarItem(icon: Icon(Icons.person_pin),      label: 'Hồ Sơ'),
       ];
     } else
       if (_savedAccount!.role == 'ADMIN') {
@@ -139,6 +136,7 @@ class _HomeShellState extends State<HomeShell> {
       ),
       floatingActionButton: _savedAccount!.role == 'CUSTOMER'
           ? FloatingActionButton(
+        heroTag: 'home_shell_fab',
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const AiChatView()),

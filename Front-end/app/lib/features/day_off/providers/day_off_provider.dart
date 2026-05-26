@@ -59,15 +59,13 @@ class DayOffProvider extends ChangeNotifier {
 
   // Trả về null nếu thành công, String lỗi nếu thất bại
   Future<String?> registerDayOff(
-      DateTime picked, int selectedMonth, int selectedYear) async {
+      DateTime picked, String facilityUuid, int selectedMonth, int selectedYear) async {
     final exists = registeredDaysOff.any((d) =>
-    d.date.year == picked.year &&
-        d.date.month == picked.month &&
-        d.date.day == picked.day);
+    d.date?.year == picked.year &&
+        d.date?.month == picked.month &&
+        d.date?.day == picked.day);
 
-    if (exists) {
-      return 'duplicate';
-    }
+    if (exists) return 'duplicate';
 
     try {
       final token = await AuthService().getToken();
@@ -79,6 +77,7 @@ class DayOffProvider extends ChangeNotifier {
         },
         body: jsonEncode({
           'date': picked.toIso8601String().split('T')[0],
+          'facilityUuid': facilityUuid,   // ← THÊM
         }),
       );
 
@@ -96,9 +95,11 @@ class DayOffProvider extends ChangeNotifier {
   Future<String?> deleteDayOff(
       String uuid, int selectedMonth, int selectedYear) async {
     try {
-      final res = await http
-          .delete(Uri.parse(GymServerApi.deleteStaffDayOff(uuid)));
-
+      final token = await AuthService().getToken();
+      final res = await http.delete(
+        Uri.parse(GymServerApi.deleteStaffDayOff(uuid)),
+        headers: {'Authorization': 'Bearer $token'},
+      );
       if (res.statusCode == 200 || res.statusCode == 204) {
         cache.remove('$selectedMonth-$selectedYear');
         registeredDaysOff.removeWhere((d) => d.uuid == uuid);

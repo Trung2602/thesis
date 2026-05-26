@@ -9,6 +9,7 @@ import 'package:gym/features/managers/plan/views/plan_manager_view.dart';
 import 'package:gym/features/managers/salary/views/salary_manager_view.dart';
 import 'package:gym/features/managers/shift/views/shift_manager_view.dart';
 import 'package:gym/features/managers/staff_schedule/views/staff_schedule_manager_view.dart';
+import '../../body_log/views/body_log_view.dart';
 import '../../chat/views/conversation_list_page.dart';
 import '../../managers/user/views/user_manager_view.dart';
 import 'package:gym/models/account.dart';
@@ -76,15 +77,16 @@ class HomeDrawer extends StatelessWidget {
         {'icon': Icons.calendar_today, 'title': 'Lịch Trình', 'tabIndex': 1},
         {'icon': Icons.payment, 'title': 'Thanh Toán', 'tabIndex': 2},
         {'icon': Icons.person, 'title': 'Hồ Sơ Phi Hành Gia', 'tabIndex': 3},
+        {'icon': Icons.monitor_weight, 'title': 'Body Log', 'page': const BodyLogView()},
       ]);
     } else if (account.role == 'STAFF') {
       items.addAll([
         {'icon': Icons.calendar_today, 'title': 'Lịch Trình', 'tabIndex': 1},
-        account.type == 'FULLTIME'
-            ? {'icon': Icons.beach_access, 'title': 'Xin Nghỉ', 'tabIndex': 2}
-            : {'icon': Icons.access_time, 'title': 'Ca Làm', 'tabIndex': 2},
-        {'icon': Icons.attach_money, 'title': 'Bảng Lương', 'tabIndex': 3},
-        {'icon': Icons.person, 'title': 'Hồ Sơ Phi Hành Gia', 'tabIndex': 4},
+        {'icon': Icons.access_time, 'title': 'Ca Làm', 'tabIndex': 2},
+        if (account.type == 'FULLTIME')
+          {'icon': Icons.beach_access, 'title': 'Xin Nghỉ', 'tabIndex': 3},
+        {'icon': Icons.attach_money, 'title': 'Bảng Lương', 'tabIndex': account.type == 'FULLTIME' ? 4 : 3},
+        {'icon': Icons.person, 'title': 'Hồ Sơ Phi Hành Gia', 'tabIndex': account.type == 'FULLTIME' ? 5 : 4},
       ]);
     } else if (account.role == 'ADMIN') {
       items.addAll([
@@ -100,7 +102,6 @@ class HomeDrawer extends StatelessWidget {
         {'icon': Icons.fitness_center, 'title': 'Bài tập', 'page': const ManagerExerciseView()},
       ]);
     }
-
     items.addAll([
       {'icon': Icons.message, 'title': 'Liên Lạc', 'page': const ConversationListPage()},
       {'icon': Icons.logout, 'title': 'Rời khỏi Trạm Vũ Trụ', 'isLogout': true},

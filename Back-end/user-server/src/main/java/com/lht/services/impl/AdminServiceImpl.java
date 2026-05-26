@@ -107,7 +107,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public AdminDTO updateAdmin(AdminRequestDTO dto) {
+    public AdminDTO updateAdmin(AdminRequestDTO dto, MultipartFile file) {
         Admin admin = adminRepository.findById(dto.getUuid()).orElseThrow(() -> new RuntimeException("Admin không tồn tại"));
         admin.setMail(dto.getMail());
         admin.setName(dto.getName());
@@ -123,6 +123,18 @@ public class AdminServiceImpl implements AdminService {
         }
         if (dto.getPermissions() != null) {
             admin.setPermissions(dto.getPermissions());
+        }
+        if (file != null && !file.isEmpty()) {
+            try {
+                Map res = cloudinary.uploader().upload(
+                        file.getBytes(),
+                        ObjectUtils.asMap("resource_type", "auto")
+                );
+                admin.setAvatar(res.get("secure_url").toString());
+
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
         }
         Admin saved = adminRepository.save(admin);
         return mapToDTO(saved);

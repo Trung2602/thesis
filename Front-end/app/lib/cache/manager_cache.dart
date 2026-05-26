@@ -3,8 +3,8 @@ import 'package:gym/models/pay_customer.dart';
 import 'package:gym/models/plan.dart';
 import 'package:gym/models/shift.dart';
 
-import '../models/Exercise.dart';
-import '../models/Food.dart';
+import '../models/exercise.dart';
+import '../models/food.dart';
 import '../models/salary.dart';
 import '../models/staff_day_off.dart';
 import '../models/staff_schedule.dart';

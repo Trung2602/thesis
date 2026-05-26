@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 class DayOffCard extends StatelessWidget {
   final DateTime date;
+  final bool approved;
   final bool showDelete;
   final VoidCallback onDelete;
 
   const DayOffCard({
     super.key,
     required this.date,
+    required this.approved,
     required this.showDelete,
     required this.onDelete,
   });
@@ -36,14 +38,27 @@ class DayOffCard extends StatelessWidget {
           style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
         ),
-        trailing: showDelete
-            ? IconButton(
-          icon: const Icon(Icons.delete_outline,
-              color: Colors.redAccent),
-          tooltip: 'Xoá ngày nghỉ',
-          onPressed: onDelete,
-        )
-            : null,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: approved ? Colors.green : Colors.orange,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                approved ? 'Đã duyệt' : 'Chờ duyệt',
+                style: const TextStyle(color: Colors.white, fontSize: 11),
+              ),
+            ),
+            if (showDelete)
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                onPressed: onDelete,
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -37,9 +37,11 @@ class _StaffScheduleViewState extends State<StaffScheduleView> {
 
   Future<void> _handleAddSchedule() async {
     if (_selectedDay == null) return;
-    final account =
-        Provider.of<AccountProvider>(context, listen: false).account;
-
+    final account = Provider.of<AccountProvider>(context, listen: false).account;
+    if (account?.facilityUuid == null) {
+      _showMsg('Không tìm thấy cơ sở của bạn', isError: true);
+      return;
+    }
     List<dynamic> shifts = [];
     try {
       shifts = await _provider.fetchShifts();
@@ -81,7 +83,11 @@ class _StaffScheduleViewState extends State<StaffScheduleView> {
     if (!mounted) return;
 
     final error = await _provider.addSchedule(
-        account!.uuid, _selectedDay!, selectedShift['uuid']);
+        account!.uuid,
+        account.facilityUuid!,
+        _selectedDay!,
+        selectedShift['uuid'],
+    );
     if (!mounted) return;
     if (error == null) {
       _showMsg('Đã thêm lịch staff');

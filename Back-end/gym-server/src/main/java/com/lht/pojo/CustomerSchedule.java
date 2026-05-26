@@ -40,4 +40,7 @@ public class CustomerSchedule {
 
     @Column(name = "customer_uuid", nullable = false)
     private UUID customerUuid;
+
+    @Column(name = "note", columnDefinition = "TEXT")
+    private String note;
 }

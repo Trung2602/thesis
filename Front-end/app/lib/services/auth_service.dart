@@ -34,6 +34,9 @@ class AuthService {
             "Authorization": "Bearer $token",
           },
         );
+        debugPrint(
+            "ME RESPONSE JSON:\n${const JsonEncoder.withIndent('  ').convert(jsonDecode(meResponse.body))}"
+        );
         if (meResponse.statusCode == 200) {
           final userData = jsonDecode(meResponse.body);
           final account = Account.fromJson(userData);
@@ -76,19 +79,14 @@ class AuthService {
   }
 
   Future<bool> registerCustomer(CustomerRequest request, File? image) async {
-
     var uri = Uri.parse(UserServerApi.register);
-
     var req = http.MultipartRequest("POST", uri);
-
     request.toJson().forEach((key, value) {
       req.fields[key] = value.toString();
     });
-
     if (image != null) {
       req.files.add(await http.MultipartFile.fromPath('image', image.path));
     }
-
     var res = await req.send();
     var response = await http.Response.fromStream(res);
 

@@ -9,14 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/gym/staff-schedules")
@@ -40,6 +33,11 @@ public class ApiStaffScheduleController {
         return ResponseEntity.ok(staffScheduleService.getStaffSchedules(params));
     }
 
+    @PatchMapping("/{uuid}/approve")
+    public ResponseEntity<StaffScheduleDTO> approve(@PathVariable UUID uuid) {
+        return ResponseEntity.ok(staffScheduleService.approveSchedule(uuid));
+    }
+
     @GetMapping("/filter/staff")
     public ResponseEntity<List<StaffScheduleDTO>> filterByStaffUuid(@RequestParam Map<String, String> params) {
         return ResponseEntity.ok(staffScheduleService.getStaffSchedulesByStaffUuid(params));
@@ -58,7 +56,6 @@ public class ApiStaffScheduleController {
         if (dto.getStaffUuid() == null) return ResponseEntity.badRequest().body("Staff UUID is required");
         if (dto.getShiftUuid() == null) return ResponseEntity.badRequest().body("Shift UUID is required");
         if (dto.getDate() == null) return ResponseEntity.badRequest().body("Date is required");
-
         try {
             StaffScheduleDTO saved = staffScheduleService.addOrUpdateStaffSchedule(dto);
             return ResponseEntity.ok(saved);

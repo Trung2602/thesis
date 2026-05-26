@@ -1,10 +1,10 @@
 package com.lht.controllers;
 
+import com.lht.dto.BodyLogDTO;
 import com.lht.dto.CustomerBMIDTO;
+import com.lht.dto.GoalDTO;
 import com.lht.dto.InternalUserResponse;
-import com.lht.services.AccountService;
-import com.lht.services.CustomerService;
-import com.lht.services.StaffService;
+import com.lht.services.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,21 +22,8 @@ public class InternalUserController {
     private final AccountService accountService;
     private final StaffService staffService;
     private final CustomerService customerService;
-
-    @GetMapping("/users/{uuid}/role")
-    public String getRoleByUuid(@PathVariable UUID uuid) {
-        return accountService.getRoleByUuid(uuid);
-    }
-
-    @RequestMapping(value = "/users/{uuid}", method = RequestMethod.HEAD)
-    public ResponseEntity<Void> existsUser(@PathVariable UUID uuid) {
-        boolean exists = accountService.existsByUuid(uuid);
-        if (exists) {
-            return ResponseEntity.ok().build();
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
+    private final BodyLogService bodyLogService;
+    private final GoalService goalService;
 
     @GetMapping("/staffs/{uuid}/type")
     public String getStaffType(@PathVariable UUID uuid) {
@@ -58,10 +45,6 @@ public class InternalUserController {
         return staffService.getStaffsAll();
     }
 
-    @GetMapping("/staffs/fulltime")
-    public List<UUID> getStaffsFulltime() {
-        return staffService.getStaffsFulltime();
-    }
 
     @GetMapping("/staffs/{uuid}/name")
     public String getStaffNameByUuid(@PathVariable UUID uuid) {
@@ -83,7 +66,7 @@ public class InternalUserController {
         return customerService.getCustomerNamesByUuids(customerUuids);
     }
 
-    @PatchMapping("/customers/{uuid}/expiry")
+    @PostMapping("/customers/{uuid}/expiry")
     public void updateExpiryAfterPayment(
             @PathVariable UUID uuid,
             @RequestParam UUID planUuid)
@@ -94,5 +77,19 @@ public class InternalUserController {
     @GetMapping("/customers/{uuid}/bmi")
     public CustomerBMIDTO getBMICustomer(@PathVariable UUID uuid) {
         return customerService.getBMI(uuid);
+    }
+
+    @GetMapping("/staff/{uuid}/facility")
+    public UUID getFacilityUuidbyStaffUuid(@PathVariable UUID uuid){return staffService.getFacilityUuidByStaffUuid(uuid);}
+
+    @GetMapping("/customer/{uuid}/body-log")
+    public ResponseEntity<List<BodyLogDTO>> getRecentHistory(@PathVariable UUID uuid,
+                                                             @RequestParam(defaultValue = "3") int limit) {
+        return ResponseEntity.ok(bodyLogService.getRecentHistory(uuid, limit));
+    }
+
+    @GetMapping("/customer/{uuid}/goal")
+    public ResponseEntity<GoalDTO> getGoalByCustomerUuid(@PathVariable UUID uuid) {
+        return ResponseEntity.ok(goalService.getCurrentGoal(uuid));
     }
 }

@@ -14,4 +14,6 @@ public class RAGContext {
     private List<Food> foods;
     private List<Exercise> exercises;
     private List<ChatHistory> recentChats;
+    private List<BodyLogDTO> logs;
+    private GoalDTO goal;
 }

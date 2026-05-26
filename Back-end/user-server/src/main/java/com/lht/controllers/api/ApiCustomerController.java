@@ -8,6 +8,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/user/customers")
@@ -25,8 +26,9 @@ public class ApiCustomerController {
         return ResponseEntity.ok(customerService.createCustomer(dto));
     }
 
-    @PatchMapping
-    public ResponseEntity<?> updateCustomer(@RequestBody CustomerRequestDTO dto) {
-        return ResponseEntity.ok(customerService.updateCustomer(dto));
+    @PatchMapping("/{uuid}")
+    public ResponseEntity<?> updateCustomer(@PathVariable UUID uuid, @ModelAttribute CustomerRequestDTO dto, @RequestPart(value = "file", required = false) MultipartFile file) {
+        dto.setUuid(uuid);
+        return ResponseEntity.ok(customerService.updateCustomer(dto, file));
     }
 }

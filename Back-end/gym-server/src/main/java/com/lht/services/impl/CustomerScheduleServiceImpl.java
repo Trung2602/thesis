@@ -66,6 +66,7 @@ public class CustomerScheduleServiceImpl implements CustomerScheduleService {
                         .customerName(customerMap.getOrDefault(cs.getCustomerUuid(), "Unknown"))
                         .staffName(staffMap.getOrDefault(cs.getStaffUuid(), "Unknown"))
                         .facilityName(facilityMap.getOrDefault(cs.getFacilityUuid(), "Unknown"))
+                        .note(cs.getNote())
                         .build())
                 .toList();
     }
@@ -97,7 +98,7 @@ public class CustomerScheduleServiceImpl implements CustomerScheduleService {
         dto.setCustomerName(customerName);
         dto.setStaffName(staffName);
         dto.setFacilityName(facilityName);
-
+        dto.setNote(cs.getNote());
         return dto;
     }
 
@@ -153,6 +154,13 @@ public class CustomerScheduleServiceImpl implements CustomerScheduleService {
         } else {
             cs = new CustomerSchedule();
         }
+
+        if (dto.getCheckin() == null || dto.getCheckout() == null) {
+            throw new IllegalArgumentException("Checkin và checkout không được để trống");
+        }
+        if (!dto.getCheckout().isAfter(dto.getCheckin())) {
+            throw new IllegalArgumentException("Checkout phải sau checkin");
+        }
         cs.setDate(dto.getDate());
         cs.setCheckin(dto.getCheckin());
         cs.setCheckout(dto.getCheckout());
@@ -162,6 +170,7 @@ public class CustomerScheduleServiceImpl implements CustomerScheduleService {
 
         cs.setStaffUuid(dto.getStaffUuid());
         cs.setFacilityUuid(dto.getFacilityUuid());
+        cs.setNote(dto.getNote());
 
         return customerScheduleRepository.save(cs);
     }
@@ -199,26 +208,30 @@ public class CustomerScheduleServiceImpl implements CustomerScheduleService {
     }
 
     @Override
-    public boolean isScheduleConflict(UUID uuid, UUID staffUuid, LocalDate date, LocalTime checkin) {
-        List<CustomerSchedule> existing = customerScheduleRepository.findByStaffUuidAndDateAndCheckin(staffUuid, date, checkin);
+    public CustomerScheduleDTO updateNote(UUID uuid, String note) {
+        CustomerSchedule cs = customerScheduleRepository.findById(uuid).orElse(null);
+        if (cs == null) return null;
+        cs.setNote(note);
+        customerScheduleRepository.save(cs);
+        return getCustomerScheduleByUuid(uuid);
+    }
 
+    @Override
+    public boolean isScheduleConflict(UUID uuid, UUID staffUuid, LocalDate date, LocalTime checkin, LocalTime checkout) {
+        List<CustomerSchedule> existing = customerScheduleRepository.findConflicting(staffUuid, date, checkin, checkout);
         if (uuid == null) {
             return !existing.isEmpty();
         }
-
         return existing.stream().anyMatch(e -> !e.getUuid().equals(uuid));
     }
 
     @Override
-    public Set<UUID> getAvailableStaff(LocalDate date, LocalTime checkIn, LocalTime checkOut) {
-
-        Set<UUID> workingStaff = new HashSet<>();
-        workingStaff.addAll(staffDayOffService.getStaffsWorking(date, checkIn, checkOut));
-        workingStaff.addAll(staffScheduleService.getStaffsWorking(date, checkIn, checkOut));
-
-        Set<UUID> busyStaff = customerScheduleRepository.findBusyStaff(date, checkIn, checkOut);
-
-        workingStaff.removeAll(busyStaff);
-        return workingStaff;
+    public Set<UUID> getAvailableStaff(UUID facilityUuid, LocalDate date, LocalTime checkIn, LocalTime checkOut) {
+        Set<UUID> working = new HashSet<>(staffScheduleService.getStaffsWorking(facilityUuid, date, checkIn, checkOut));
+        Set<UUID> onLeave = staffDayOffService.getStaffsOff(facilityUuid, date);
+        working.removeAll(onLeave);
+        Set<UUID> busy = customerScheduleRepository.findBusyStaff(facilityUuid, date, checkIn, checkOut);
+        working.removeAll(busy);
+        return working;
     }
 }

@@ -38,12 +38,13 @@ public class InternalGymController {
         return facilityService.getFacilityNamesByUuids(facilityUuids);
     }
 
-    @GetMapping("/staffs")
+    @GetMapping("/facilities/{facilityUuid}/staffs/available")
     public Set<UUID> getAvailableStaff(
+            @PathVariable UUID facilityUuid,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam @DateTimeFormat(pattern = "h:mm a") LocalTime checkin,
-            @RequestParam @DateTimeFormat(pattern = "h:mm a") LocalTime checkout
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime checkin,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime checkout
     ) {
-        return customerScheduleService.getAvailableStaff(date, checkin, checkout);
+        return customerScheduleService.getAvailableStaff(facilityUuid, date, checkin, checkout);
     }
 }

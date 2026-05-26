@@ -11,5 +11,5 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface StaffRepository extends JpaRepository<Staff, UUID>, JpaSpecificationExecutor<Staff>{
 
-    List<Staff> findByType(StaffType type);
+    Optional<Staff> findByUuid(UUID uuid);
 }

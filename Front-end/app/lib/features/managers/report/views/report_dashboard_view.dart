@@ -97,11 +97,8 @@ class _ReportDashboardViewState extends State<ReportDashboardView> {
         padding: const EdgeInsets.all(15),
         child: Column(
           children: [
-            // ── Filter ──
             ReportFilter(provider: _provider),
             const SizedBox(height: 20),
-
-            // ── Summary ──
             Text(
               'Doanh thu: ${_provider.totalRevenue}',
               style: const TextStyle(color: Colors.blue),
@@ -119,14 +116,10 @@ class _ReportDashboardViewState extends State<ReportDashboardView> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // ── Pie chart ──
             const Text('Tỷ lệ thu / chi',
                 style: TextStyle(color: Colors.white)),
             _buildPieChart(),
             const SizedBox(height: 20),
-
-            // ── Bar chart ──
             const Text('Biểu đồ dòng tiền',
                 style: TextStyle(color: Colors.white)),
             _buildBarChart(),

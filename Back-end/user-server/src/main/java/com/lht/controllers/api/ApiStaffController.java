@@ -1,6 +1,7 @@
 package com.lht.controllers.api;
 
 import com.lht.dto.AvailableStaffDTO;
+import com.lht.dto.NameUUIDDTO;
 import com.lht.dto.StaffDTO;
 import com.lht.dto.StaffRequestDTO;
 import com.lht.services.StaffService;
@@ -37,24 +38,19 @@ public class ApiStaffController {
         return ResponseEntity.ok(staffService.createStaff(dto));
     }
 
-    @PatchMapping
-    public ResponseEntity<?> updateStaff(@RequestBody StaffRequestDTO dto) {
-        return ResponseEntity.ok(staffService.updateStaff(dto));
+    @PatchMapping("/{uuid}")
+    public ResponseEntity<?> updateStaff(@PathVariable UUID uuid, @ModelAttribute StaffRequestDTO dto, @RequestPart(value = "file", required = false) MultipartFile file) {
+        dto.setUuid(uuid);
+        return ResponseEntity.ok(staffService.updateStaff(dto, file));
     }
 
-
-    @GetMapping("/working")
+    @GetMapping("/working/{facilityUuid}")
     public List<AvailableStaffDTO> getAvailableStaff(
-            @RequestParam
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate date,
-            @RequestParam
-            @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
-            LocalTime checkin,
-            @RequestParam
-            @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
-            LocalTime checkout
+            @PathVariable UUID facilityUuid,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime checkin,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime checkout
     ) {
-        return staffService.getAvailableStaff(date, checkin, checkout);
+        return staffService.getAvailableStaff(facilityUuid, date, checkin, checkout);
     }
 }

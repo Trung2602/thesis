@@ -14,13 +14,10 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
 public class StaffDTO extends AccountDTO {
-
     private String type;
     private BigDecimal baseSalary;
-
-    private String facilityUuid;
+    private UUID facilityUuid;
     private String facilityName;
-
     public StaffDTO(Account acc) {
         super(acc);
     }

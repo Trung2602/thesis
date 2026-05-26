@@ -119,12 +119,11 @@ class _PayCustomerViewState extends State<PayCustomerView> {
     );
 
     if (!mounted) return;
-    final account =
-        Provider.of<AccountProvider>(context, listen: false).account;
+    final account = Provider.of<AccountProvider>(context, listen: false).account;
 
     if (result?['status'] == 'SUCCESS') {
       _showMsg('Thanh toán thành công!');
-      await _provider.fetchPayCustomers(account!.uuid);
+      await _provider.fetchPayCustomers(account!.uuid, forceRefresh: true);
       final updatedAccount = await _provider.refreshAccount();
       if (!mounted) return;
       if (updatedAccount != null) {
@@ -180,6 +179,7 @@ class _PayCustomerViewState extends State<PayCustomerView> {
             ),
           ),
           floatingActionButton: FloatingActionButton.extended(
+            heroTag: 'pay_customer_fab',
             onPressed: _handlePay,
             label: const Text('Thanh Toán'),
             icon: const Icon(Icons.payment),

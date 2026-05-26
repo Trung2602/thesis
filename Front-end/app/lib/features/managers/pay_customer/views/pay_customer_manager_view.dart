@@ -42,7 +42,6 @@ class _ManagerPayCustomerViewState extends State<ManagerPayCustomerView> {
     super.dispose();
   }
 
-  // ───────────────────────── DETAIL ─────────────────────────
   void _showDetail(PayCustomer p) {
     showDialog(
       context: context,
@@ -120,7 +119,6 @@ class _ManagerPayCustomerViewState extends State<ManagerPayCustomerView> {
     );
   }
 
-  // ───────────────────────── BUILD ─────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(

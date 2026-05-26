@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../models/Food.dart';
+import '../../../../models/food.dart';
 import '../providers/food_provider.dart';
 import '../widgets/food_card.dart';
 import '../../shared/widgets/manager_info_row.dart';
@@ -31,7 +31,6 @@ class _ManagerFoodViewState extends State<ManagerFoodView> {
     super.dispose();
   }
 
-  // ───────────────────────── HELPERS ─────────────────────────
   Widget _buildTextField(
       TextEditingController controller,
       String label, {
@@ -54,7 +53,6 @@ class _ManagerFoodViewState extends State<ManagerFoodView> {
     );
   }
 
-  // ───────────────────────── FORM ─────────────────────────
   void _openForm({Food? food}) {
     final nameController = TextEditingController(text: food?.name ?? '');
     final codeController =
@@ -138,7 +136,6 @@ class _ManagerFoodViewState extends State<ManagerFoodView> {
     );
   }
 
-  // ───────────────────────── DETAIL ─────────────────────────
   void _showDetail(Food f) {
     showDialog(
       context: context,
@@ -219,7 +216,6 @@ class _ManagerFoodViewState extends State<ManagerFoodView> {
     );
   }
 
-  // ───────────────────────── BUILD ─────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -230,6 +226,7 @@ class _ManagerFoodViewState extends State<ManagerFoodView> {
       ),
       backgroundColor: const Color(0xFF0F123A),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'food_manager_fab',
         backgroundColor: const Color(0xFFFFD740),
         onPressed: () => _openForm(),
         child: const Icon(Icons.add, color: Colors.black),
@@ -270,6 +267,7 @@ class _ManagerFoodViewState extends State<ManagerFoodView> {
                   ? () =>
                   _provider.fetchFoods(page: _provider.currentPage + 1)
                   : null,
+              onGoToPage: (page) => _provider.fetchFoods(page: page),
             ),
         ],
       ),

@@ -24,22 +24,22 @@ docker push 798974632310.dkr.ecr.us-east-1.amazonaws.com/fitness-ai-images:lates
 
 
 
+update lại ecs lấy ecr
+aws ecs update-service \
+  --cluster fitness-ecs-cluster \
+  --service fitness-service-gym \
+  --force-new-deployment \
+  --region us-east-1
 
-ssh -i "C:\Users\ADMIN\Downloads\fitness-key.pem" ^
--L 5433:fitness-db.ca3cs8aesik8.us-east-1.rds.amazonaws.com:5432 ^
-ec2-user@100.52.181.248
-
-sudo dnf install postgresql15 -y
-
-psql -h fitness-db.ca3cs8aesik8.us-east-1.rds.amazonaws.com \
-     -U postgres \
-     -p 5432 \
-     -d postgres
-
-SELECT datname FROM pg_database;
-
+aws ecs describe-services \
+  --cluster fitness-ecs-cluster \
+  --services fitness-service-gym \
+  --region us-east-1 \
+  --query "services[0].deployments"
 
 
+chạy ngrok cho vnpay
+ngrok config add-authtoken "3DbhqIikxdjdpLzosIbWHAyy7th_4NLbvbi5s1GSUXJzwQney"
 
 
 xây dựng kịch bản vd từ 80kg xuống 60.

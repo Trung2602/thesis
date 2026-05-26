@@ -6,7 +6,6 @@ import com.lht.component.SecurityUtils;
 import com.lht.pojo.Shift;
 import com.lht.pojo.StaffSchedule;
 import com.lht.repositories.ShiftRepository;
-import com.lht.repositories.StaffDayOffRepository;
 import com.lht.repositories.StaffScheduleRepository;
 import com.lht.services.StaffScheduleService;
 import jakarta.persistence.criteria.Predicate;
@@ -41,13 +40,11 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
         dto.setUuid(s.getUuid());
         dto.setDate(s.getDate());
         dto.setShiftUuid(s.getShiftUuid());
+        dto.setFacilityUuid(s.getFacilityUuid());
         dto.setStaffUuid(s.getStaffUuid());
+        dto.setApproved(s.getApproved());
         dto.setStaffName(internalUserClient.getStaffNameByUuid(s.getStaffUuid()));
-
-        Shift shift = shiftRepository.findById(s.getShiftUuid()).orElse(null);
-        if (shift != null) {
-            dto.setShiftName(shift.getName());
-        }
+        shiftRepository.findById(s.getShiftUuid()).ifPresent(shift -> dto.setShiftName(shift.getName()));
         return dto;
     }
 
@@ -74,6 +71,8 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
                             .staffName(staffMap.getOrDefault(s.getStaffUuid(), "Unknown"))
                             .shiftUuid(s.getShiftUuid())
                             .shiftName(shift != null ? shift.getName() : null)
+                            .approved(s.getApproved())
+                            .facilityUuid(s.getFacilityUuid())
                             .build();
                 })
                 .toList();
@@ -91,23 +90,38 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
 
     @Override
     public StaffScheduleDTO addOrUpdateStaffSchedule(StaffScheduleDTO dto) {
-        Shift shift = shiftRepository.findById(dto.getShiftUuid()).orElseThrow(() -> new IllegalArgumentException("Shift does not exist"));
-        boolean conflict = staffScheduleRepository.existsByStaffUuidAndDateAndShiftUuid(dto.getStaffUuid(), dto.getDate(), dto.getShiftUuid());
-        if (conflict) {
-            throw new IllegalStateException("Staff already has this shift");
+        if (!shiftRepository.existsById(dto.getShiftUuid())) {
+            throw new IllegalArgumentException("Shift does not exist");
+        }
+        UUID facilityUuid = dto.getFacilityUuid();
+        if (facilityUuid == null) {
+            if (dto.getStaffUuid() == null) {
+                throw new IllegalArgumentException("Staff UUID is required");
+            }
+            facilityUuid = internalUserClient.getFacilityUuidbyStaffUuid(dto.getStaffUuid());
         }
         StaffSchedule entity;
         if (dto.getUuid() != null) {
             entity = staffScheduleRepository.findById(dto.getUuid()).orElseThrow(() -> new IllegalArgumentException("Staff schedule not found"));
         } else {
+            boolean conflict = staffScheduleRepository.existsByStaffUuidAndDateAndShiftUuid(
+                            dto.getStaffUuid(),
+                            dto.getDate(),
+                            dto.getShiftUuid()
+                    );
+            if (conflict) {
+                throw new IllegalStateException(
+                        "Staff already has this shift"
+                );
+            }
             entity = new StaffSchedule();
+            entity.setApproved(false);
+            entity.setStaffUuid(dto.getStaffUuid());
         }
-
         entity.setDate(dto.getDate());
         entity.setShiftUuid(dto.getShiftUuid());
-        entity.setStaffUuid(dto.getStaffUuid());
-        StaffSchedule saved = staffScheduleRepository.save(entity);
-        return mapToDTO(saved);
+        entity.setFacilityUuid(facilityUuid);
+        return mapToDTO(staffScheduleRepository.save(entity));
     }
 
     @Override
@@ -244,41 +258,38 @@ public class StaffScheduleServiceImpl implements StaffScheduleService {
     }
 
     @Override
-    public BigDecimal sumDurationByStaffUuidAndMonthYear(UUID staffUuid, int month, int year) {
-
-        List<StaffSchedule> schedules = staffScheduleRepository.findByStaffUuid(staffUuid);
-        if (schedules.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-
-        List<StaffSchedule> filteredSchedules = schedules.stream().filter(s -> s.getDate().getMonthValue() == month && s.getDate().getYear() == year).toList();
-        if (filteredSchedules.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-
-        Set<UUID> shiftUuids = filteredSchedules.stream()
-                .map(StaffSchedule::getShiftUuid).collect(Collectors.toSet());
-        List<Shift> shifts = shiftRepository.findAllById(shiftUuids);
-        Map<UUID, BigDecimal> shiftDurationMap = shifts.stream()
-                .collect(Collectors.toMap(
-                        Shift::getUuid,
-                        Shift::getDuration
-                ));
-
-        BigDecimal total = BigDecimal.ZERO;
-        for (StaffSchedule schedule : filteredSchedules) {
-            BigDecimal duration =
-                    shiftDurationMap.getOrDefault(
-                            schedule.getShiftUuid(),
-                            BigDecimal.ZERO);
-
-            total = total.add(duration);
-        }
-        return total;
+    public StaffScheduleDTO approveSchedule(UUID uuid) {
+        StaffSchedule entity = staffScheduleRepository.findById(uuid).orElseThrow(() -> new IllegalArgumentException("Staff schedule not found"));
+        entity.setApproved(!entity.getApproved());
+        return mapToDTO(staffScheduleRepository.save(entity));
     }
 
     @Override
-    public List<UUID> getStaffsWorking(LocalDate date, LocalTime checkIn, LocalTime checkOut) {
-        return staffScheduleRepository.findWorkingStaff(date, checkIn, checkOut);
+    public BigDecimal sumDurationByStaffUuidAndMonthYear(UUID staffUuid, int month, int year) {
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+
+        List<StaffSchedule> schedules = staffScheduleRepository.findByStaffUuidAndDateBetweenAndApprovedTrue(staffUuid, start, end);
+
+        if (schedules.isEmpty()) return BigDecimal.ZERO;
+
+        Set<UUID> shiftUuids = schedules.stream()
+                .map(StaffSchedule::getShiftUuid)
+                .collect(Collectors.toSet());
+
+        Map<UUID, BigDecimal> shiftDurationMap = shiftRepository.findAllById(shiftUuids)
+                .stream()
+                .collect(Collectors.toMap(Shift::getUuid, Shift::getDuration));
+
+        return schedules.stream()
+                .map(s -> shiftDurationMap.getOrDefault(s.getShiftUuid(), BigDecimal.ZERO))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
+    @Override
+    public List<UUID> getStaffsWorking(UUID facilityUuid, LocalDate date, LocalTime checkIn, LocalTime checkOut) {
+        return staffScheduleRepository.findWorkingStaff(facilityUuid, date, checkIn, checkOut);
+    }
+
+
 }

@@ -1,8 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:gym/models/account_provider.dart';
 import 'package:gym/models/available_staff.dart';
+import '../../../api/user_server_api.dart';
+import '../../../models/customer_schedule.dart';
+import '../../../models/facility.dart';
+import '../../../services/auth_service.dart';
 import '../providers/customer_schedule_provider.dart';
 import '../widgets/schedule_calendar.dart';
 import '../widgets/customer_schedule_card.dart';
@@ -40,37 +47,75 @@ class _CustomerScheduleViewState extends State<CustomerScheduleView> {
   }
 
   Future<void> _handleAddSchedule() async {
+    await _provider.loadFacilities();
+    if (!mounted) return;
     final checkIn = await showTimePicker(
       context: context,
       initialTime: const TimeOfDay(hour: 8, minute: 0),
     );
     if (checkIn == null) return;
-
     if (!mounted) return;
     final checkOut = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: checkIn.hour + 1, minute: checkIn.minute),
     );
     if (checkOut == null) return;
-
-    await _provider.fetchWorkingStaff(_selectedDay!, checkIn, checkOut);
+    final selectedFacility = await _showFacilityDialog();
+    if (selectedFacility == null || selectedFacility.uuid == null) return;
+    await _provider.fetchWorkingStaff(selectedFacility.uuid!, _selectedDay!, checkIn, checkOut);
     if (!mounted) return;
-
     final selectedStaff = await _showStaffDialog();
     if (selectedStaff == null) return;
-
     final error = await _provider.addSchedule(
         _selectedDay!, checkIn, checkOut, selectedStaff);
     if (!mounted) return;
-
     if (error == null) {
       _showMsg('Đã thêm lịch');
     } else if (error == 'conflict') {
-      _showMsg('Lịch trùng ngày và giờ checkin, không thể tạo',
-          isError: true);
+      _showMsg('Lịch trùng ngày và giờ checkin, không thể tạo', isError: true);
     } else {
       _showMsg('Lỗi khi thêm lịch: $error', isError: true);
     }
+  }
+
+  Future<Facility?> _showFacilityDialog() {
+    return showDialog<Facility>(
+      context: context,
+      builder: (context) {
+        final facilities = _provider.facilities;
+        if (facilities.isEmpty) {
+          return AlertDialog(
+            title: const Text('Không có cơ sở'),
+            content: const Text('Hiện không có cơ sở nào khả dụng.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        }
+        return AlertDialog(
+          title: const Text('Chọn cơ sở tập'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: facilities.length,
+              itemBuilder: (context, index) {
+                final facility = facilities[index];
+                return ListTile(
+                  leading: const Icon(Icons.location_on),
+                  title: Text(facility.name ?? 'Không có tên'),
+                  subtitle: Text(facility.address ?? ''),
+                  onTap: () => Navigator.pop(context, facility),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<AvailableStaff?> _showStaffDialog() {
@@ -141,10 +186,151 @@ class _CustomerScheduleViewState extends State<CustomerScheduleView> {
     }
   }
 
+  Future<void> _handleEditNote(CustomerSchedule schedule) async {
+    final controller = TextEditingController(text: schedule.note ?? '');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Ghi chú buổi tập'),
+        content: TextField(
+          controller: controller,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            hintText: 'Nhập ghi chú...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Lưu')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final error = await _provider.updateNote(schedule.uuid!, controller.text.trim(), _selectedDay!);
+    if (!mounted) return;
+    if (error == null) {
+      _showMsg('Đã cập nhật ghi chú');
+    } else {
+      _showMsg('Lỗi: $error', isError: true);
+    }
+  }
+
+  //Goal
+
+  Future<void> _handleMeasure(CustomerSchedule schedule) async {
+    final weightCtrl = TextEditingController();
+    final heightCtrl = TextEditingController();
+    final fatCtrl    = TextEditingController();
+    final muscleCtrl = TextEditingController();
+    final noteCtrl   = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: Row(
+          children: [
+            const Icon(Icons.monitor_weight, color: Color(0xFFFFD740), size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Đo chỉ số - ${schedule.customerName ?? ''}',
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _measureField(weightCtrl, 'Cân nặng (kg)'),
+              _measureField(heightCtrl, 'Chiều cao (cm)'),
+              _measureField(fatCtrl,    '% mỡ cơ thể (tuỳ chọn)'),
+              _measureField(muscleCtrl, 'Khối lượng cơ kg (tuỳ chọn)'),
+              _measureField(noteCtrl,   'Ghi chú (tuỳ chọn)', isNumber: false),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFAB40)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || schedule.customerUuid == null) return;
+
+    // Validate
+    if (weightCtrl.text.isEmpty || heightCtrl.text.isEmpty) {
+      _showMsg('Cân nặng và chiều cao không được để trống', isError: true);
+      return;
+    }
+
+    final data = {
+      'customerUuid': schedule.customerUuid,
+      'weight': double.tryParse(weightCtrl.text),
+      'height': double.tryParse(heightCtrl.text),
+      if (fatCtrl.text.isNotEmpty)    'bodyFatPercent': double.tryParse(fatCtrl.text),
+      if (muscleCtrl.text.isNotEmpty) 'muscleMass': double.tryParse(muscleCtrl.text),
+      if (noteCtrl.text.isNotEmpty)   'note': noteCtrl.text,
+    };
+
+    try {
+      final token = await AuthService().getToken();
+      final res = await http.post(
+        Uri.parse(UserServerApi.postBodyLog),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(data),
+      );
+
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        _showMsg('Đã cập nhật chỉ số cơ thể của ${schedule.customerName ?? 'khách hàng'}');
+      } else {
+        _showMsg('Lỗi: ${res.statusCode}', isError: true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showMsg('Lỗi: $e', isError: true);
+    }
+  }
+
+  Widget _measureField(TextEditingController ctrl, String label,
+      {bool isNumber = true}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: ctrl,
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.white54),
+          enabledBorder: const OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.white24)),
+          focusedBorder: const OutlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFFFFAB40))),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final account = Provider.of<AccountProvider>(context).account;
-
     return ChangeNotifierProvider.value(
       value: _provider,
       child: Consumer<CustomerScheduleProvider>(
@@ -153,18 +339,12 @@ class _CustomerScheduleViewState extends State<CustomerScheduleView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Lịch Trình Huấn Luyện',
+              const Text('Lịch Trình Huấn Luyện',
                 style: TextStyle(
                   color: Color(0xFFFFAB40),
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                        blurRadius: 10,
-                        color: Colors.black,
-                        offset: Offset(2, 2))
-                  ],
+                  shadows: [Shadow(blurRadius: 10, color: Colors.black, offset: Offset(2, 2))],
                 ),
               ),
               const SizedBox(height: 20),
@@ -189,9 +369,7 @@ class _CustomerScheduleViewState extends State<CustomerScheduleView> {
                     setState(() => _calendarFormat = format);
                   }
                 },
-                onPageChanged: (focused) {
-                  _focusedDay = focused;
-                },
+                onPageChanged: (focused) {_focusedDay = focused;},
               ),
               const SizedBox(height: 30),
 
@@ -214,10 +392,9 @@ class _CustomerScheduleViewState extends State<CustomerScheduleView> {
                           DateTime.now().year,
                           DateTime.now().month,
                           DateTime.now().day)) &&
-                      account?.role != 'STAFF')
+                      account?.role == 'CUSTOMER')
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.greenAccent),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent),
                       onPressed: _handleAddSchedule,
                       child: const Text('Add Schedule'),
                     ),
@@ -225,45 +402,34 @@ class _CustomerScheduleViewState extends State<CustomerScheduleView> {
               ),
               const SizedBox(height: 30),
 
-              const Text(
-                'Sự Kiện Trong Ngày Được Chọn:',
+              const Text('Sự Kiện Trong Ngày Được Chọn:',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                        blurRadius: 5,
-                        color: Colors.black54,
-                        offset: Offset(1, 1))
-                  ],
+                  shadows: [Shadow(blurRadius: 5, color: Colors.black54, offset: Offset(1, 1))],
                 ),
               ),
               const SizedBox(height: 15),
 
               if (_selectedDay == null)
-                const Text(
-                  'Hãy chọn một ngày trên lịch để xem lịch trình của bạn.',
+                const Text('Hãy chọn một ngày trên lịch để xem lịch trình của bạn.',
                   style: TextStyle(color: Colors.white70, fontSize: 16),
                 )
               else if (provider.isFirstLoad || provider.isLoading)
-                const Center(
-                    child: CircularProgressIndicator(color: Colors.white))
+                const Center(child: CircularProgressIndicator(color: Colors.white))
               else if (provider.schedulesForSelectedDay.isEmpty)
-                  Text(
-                    'Không có sự kiện vào ngày ${_selectedDay!.toLocal().toString().split(' ')[0]}',
-                    style:
-                    const TextStyle(color: Colors.white70, fontSize: 16),
+                  Text('Không có sự kiện vào ngày ${_selectedDay!.toLocal().toString().split(' ')[0]}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 16),
                   )
                 else
                   Column(
-                    children: provider.schedulesForSelectedDay
-                        .map((s) => CustomerScheduleCard(
+                    children: provider.schedulesForSelectedDay.map((s) => CustomerScheduleCard(
                       schedule: s,
-                      onDelete: () =>
-                          _handleDelete(s.uuid!, _selectedDay!),
-                    ))
-                        .toList(),
+                      onDelete: account?.role == 'CUSTOMER' ? () => _handleDelete(s.uuid!, _selectedDay!) : null,
+                      onEditNote: account?.role == 'STAFF' ? () => _handleEditNote(s) : null,
+                      onMeasure: account?.role == 'STAFF' ? () => _handleMeasure(s) : null,
+                    )).toList(),
                   ),
             ],
           ),

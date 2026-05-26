@@ -45,8 +45,7 @@ class _ManagerDayOffViewState extends State<ManagerDayOffView> {
     showDialog(
       context: context,
       builder: (_) => Dialog(
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         backgroundColor: const Color(0xFF1A237E),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -57,26 +56,40 @@ class _ManagerDayOffViewState extends State<ManagerDayOffView> {
                 children: [
                   Icon(Icons.event_busy, color: Colors.amber),
                   SizedBox(width: 10),
-                  Text(
-                    'Chi tiết ngày nghỉ',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text('Chi tiết ngày nghỉ',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 15),
               const Divider(color: Colors.white24),
-              Text(
-                'Nhân viên: ${d.name ?? 'Không có tên'}',
-                style: const TextStyle(color: Colors.white),
-              ),
+              Text('Nhân viên: ${d.name ?? 'Không có tên'}',
+                  style: const TextStyle(color: Colors.white)),
               const SizedBox(height: 10),
               Text(
-                'Ngày: ${DateFormat('dd/MM/yyyy').format(d.date)}',
+                d.date != null
+                    ? 'Ngày: ${DateFormat('dd/MM/yyyy').format(d.date!)}'
+                    : 'Ngày: Không có',
                 style: const TextStyle(color: Colors.white),
+              ),
+              if (d.reason != null && d.reason!.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text('Lý do: ${d.reason}',
+                    style: const TextStyle(color: Colors.white70)),
+              ],
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: d.approved ? Colors.green : Colors.orange,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  d.approved ? 'Đã duyệt' : 'Chờ duyệt',
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
               ),
               const SizedBox(height: 20),
               Row(
@@ -88,10 +101,27 @@ class _ManagerDayOffViewState extends State<ManagerDayOffView> {
                     label: const Text('Đóng',
                         style: TextStyle(color: Colors.white70)),
                   ),
+                  // Nút approve — chỉ hiện khi chưa duyệt
+                  if (!d.approved)
+                    TextButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        final ok = await _provider.approveItem(d.uuid!);
+                        if (ok && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Đã duyệt')),
+                          );
+                          _provider.fetchData(isRefresh: true);
+                        }
+                      },
+                      icon: const Icon(Icons.check_circle, color: Colors.green),
+                      label: const Text('Duyệt',
+                          style: TextStyle(color: Colors.green)),
+                    ),
                   TextButton.icon(
                     onPressed: () async {
                       Navigator.pop(context);
-                      final ok = await _provider.deleteItem(d.uuid);
+                      final ok = await _provider.deleteItem(d.uuid!);
                       if (ok && mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Đã xóa')),
@@ -100,8 +130,7 @@ class _ManagerDayOffViewState extends State<ManagerDayOffView> {
                       }
                     },
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    label: const Text('Xóa',
-                        style: TextStyle(color: Colors.red)),
+                    label: const Text('Xóa', style: TextStyle(color: Colors.red)),
                   ),
                 ],
               ),

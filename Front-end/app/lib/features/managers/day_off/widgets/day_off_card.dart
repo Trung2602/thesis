@@ -27,15 +27,28 @@ class DayOffCard extends StatelessWidget {
                   Text(
                     dayOff.name ?? 'Không có tên',
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    DateFormat('dd/MM/yyyy').format(dayOff.date),
+                    dayOff.date != null
+                        ? DateFormat('dd/MM/yyyy').format(dayOff.date!)
+                        : 'Không có ngày',
                     style: const TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: dayOff.approved ? Colors.green : Colors.orange,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      dayOff.approved ? 'Đã duyệt' : 'Chờ duyệt',
+                      style: const TextStyle(color: Colors.white, fontSize: 11),
+                    ),
                   ),
                 ],
               ),

@@ -73,12 +73,12 @@ class StaffScheduleProvider extends ChangeNotifier {
     throw Exception('Lỗi tải ca làm việc: ${res.statusCode}');
   }
 
-  Future<String?> addSchedule(
-      String staffUuid, DateTime date, String shiftUuid) async {
+  Future<String?> addSchedule(String staffUuid, String facilityUuid, DateTime date, String shiftUuid) async {
     try {
       final token = await AuthService().getToken();
       final newSchedule = StaffSchedule(
         staffUuid: staffUuid,
+        facilityUuid: facilityUuid,
         date: date,
         shiftUuid: shiftUuid,
       );

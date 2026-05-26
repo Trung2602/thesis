@@ -28,7 +28,9 @@ public interface CustomerScheduleService {
 
     List<CustomerScheduleDTO> getSchedulesByAccount();
 
-    boolean isScheduleConflict(UUID uuid, UUID staffUuid, LocalDate date, LocalTime checkin);
+    CustomerScheduleDTO updateNote(UUID uuid, String note);
 
-    Set<UUID> getAvailableStaff(LocalDate date, LocalTime checkIn, LocalTime checkOut);
+    boolean isScheduleConflict(UUID uuid, UUID staffUuid, LocalDate date, LocalTime checkin, LocalTime checkout);
+
+    Set<UUID> getAvailableStaff(UUID facilityUuid, LocalDate date, LocalTime checkIn, LocalTime checkOut);
 }

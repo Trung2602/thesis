@@ -85,7 +85,6 @@ public class ApiSalaryController {
     public ResponseEntity<List<SalaryDTO>> getSalaryByMonth(
             @RequestParam int month,
             @RequestParam int year) {
-
         return ResponseEntity.ok(salaryService.getSalaryByMonth(month, year));
     }
 }

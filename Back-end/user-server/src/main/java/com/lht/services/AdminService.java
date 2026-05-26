@@ -12,5 +12,5 @@ public interface AdminService {
 
     AdminDTO getAdminById(UUID uuid);
     AdminDTO createAdmin(AdminRequestDTO dto);
-    AdminDTO updateAdmin(AdminRequestDTO dto);
+    AdminDTO updateAdmin(AdminRequestDTO dto, MultipartFile file);
 }

@@ -77,18 +77,28 @@ public class SecurityConfig {
                         // ===== ADMIN =====
                         .requestMatchers(HttpMethod.GET,   "/api/v1/user/admins/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST,  "/api/v1/user/admins").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/v1/user/admins").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/user/admins/**").hasRole("ADMIN")
                         // ===== STAFF =====
                         .requestMatchers(HttpMethod.GET,   "/api/v1/user/staffs").hasAnyRole("ADMIN", "CUSTOMER")
-                        .requestMatchers(HttpMethod.GET,   "/api/v1/user/staffs/working").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(HttpMethod.GET,   "/api/v1/user/staffs/working/**").hasAnyRole("ADMIN", "CUSTOMER")
                         .requestMatchers(HttpMethod.GET,   "/api/v1/user/staffs/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers(HttpMethod.POST,  "/api/v1/user/staffs").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/v1/user/staffs").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/user/staffs/**").hasAnyRole("ADMIN","STAFF")
                         // ===== CUSTOMER =====
                         .requestMatchers(HttpMethod.GET,   "/api/v1/user/customers/**").hasAnyRole("ADMIN", "CUSTOMER")
                         .requestMatchers(HttpMethod.POST,  "/api/v1/user/customers").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/v1/user/customers").hasRole("ADMIN")
-
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/user/customers/**").hasAnyRole("ADMIN","CUSTOMER")
+                        // ===== BODY LOG =====
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/user/body-log").hasAnyRole("ADMIN", "CUSTOMER", "STAFF")
+                        .requestMatchers(HttpMethod.POST,   "/api/v1/user/body-log").hasAnyRole("ADMIN","STAFF")
+                        .requestMatchers(HttpMethod.PATCH,    "/api/v1/user/body-log/**").hasAnyRole("ADMIN","STAFF")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/user/body-log/**").hasAnyRole("ADMIN","STAFF")
+                        // ===== GOAL =====
+                        .requestMatchers(HttpMethod.GET,    "/api/v1/user/goal").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(HttpMethod.POST,   "/api/v1/user/goal").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(HttpMethod.PUT,    "/api/v1/user/goal/**").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(HttpMethod.PATCH,  "/api/v1/user/goal/**").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/user/goal/**").hasAnyRole("ADMIN", "CUSTOMER")
                         // ===== DEFAULT =====
                         .anyRequest().authenticated())
                 .formLogin(AbstractHttpConfigurer::disable)

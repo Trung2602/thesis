@@ -17,8 +17,8 @@ class PaymentProvider extends ChangeNotifier {
   bool isLoading = false;
   bool isLoadingMore = false;
 
-  Future<void> fetchPayCustomers(String userUuid) async {
-    if (cache.containsKey(userUuid)) {
+  Future<void> fetchPayCustomers(String userUuid,  {bool forceRefresh = false}) async {
+    if (!forceRefresh && cache.containsKey(userUuid)) {
       allData = cache[userUuid]!;
       visibleCount = 5;
       payList = allData.take(visibleCount).toList();

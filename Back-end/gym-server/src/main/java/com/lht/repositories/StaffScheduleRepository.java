@@ -3,7 +3,6 @@ package com.lht.repositories;
 import com.lht.pojo.StaffSchedule;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,19 +15,22 @@ public interface StaffScheduleRepository extends JpaRepository<StaffSchedule, UU
     
     List<StaffSchedule> findByStaffUuid(UUID staffUuid);
 
-    List<StaffSchedule> findByDate(LocalDate date);
+    List<StaffSchedule> findByStaffUuidAndDateBetweenAndApprovedTrue(UUID staffUuid, LocalDate start, LocalDate end);
 
     boolean existsByStaffUuidAndDateAndShiftUuid(UUID staffUuid, LocalDate date, UUID shiftUuid);
 
     @Query("""
-SELECT sc.staffUuid
-FROM StaffSchedule sc
-JOIN Shift s ON sc.shiftUuid = s.uuid
-WHERE sc.date = :date
-AND :checkIn >= s.checkin
-AND :checkOut <= s.checkout
-""")
+    SELECT sc.staffUuid
+    FROM StaffSchedule sc
+    JOIN Shift s ON sc.shiftUuid = s.uuid
+    WHERE sc.facilityUuid = :facilityUuid
+    AND sc.date = :date
+    AND s.checkin < :checkOut
+    AND s.checkout > :checkIn
+    AND sc.approved = true
+    """)
     List<UUID> findWorkingStaff(
+            @Param("facilityUuid") UUID facilityUuid,
             @Param("date") LocalDate date,
             @Param("checkIn") LocalTime checkIn,
             @Param("checkOut") LocalTime checkOut

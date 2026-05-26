@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gym/models/staff_schedule.dart';
 
+import 'package:flutter/material.dart';
+import 'package:gym/models/staff_schedule.dart';
+
 class StaffScheduleCard extends StatelessWidget {
   final StaffSchedule schedule;
   final bool canDelete;
@@ -18,17 +21,33 @@ class StaffScheduleCard extends StatelessWidget {
     return Card(
       color: Colors.white.withValues(alpha: 0.15),
       margin: const EdgeInsets.symmetric(vertical: 8),
-      shape:
-      RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ListTile(
         leading: const Icon(Icons.schedule, color: Color(0xFFFFD740)),
-        title: Text(
-          schedule.shiftName ?? '',
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                schedule.shiftName ?? '',
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: schedule.approved ? Colors.green : Colors.orange,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                schedule.approved ? 'Đã duyệt' : 'Chờ duyệt',
+                style: const TextStyle(color: Colors.white, fontSize: 11),
+              ),
+            ),
+          ],
         ),
         subtitle: Text(
-          'Nhân viên: ${schedule.staffName}\nCa làm: ${schedule.shiftName}',
+          'Ca làm: ${schedule.shiftName}',
           style: const TextStyle(color: Colors.white70),
         ),
         trailing: canDelete

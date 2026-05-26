@@ -1,6 +1,5 @@
 package com.lht.controllers.api;
 
-import com.lht.client.InternalUserClient;
 import com.lht.dto.CustomerScheduleDTO;
 import com.lht.component.SecurityUtils;
 import com.lht.pojo.CustomerSchedule;
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 public class ApiCustomerScheduleController {
 
     private final CustomerScheduleService customerScheduleService;
-    private final InternalUserClient internalUserClient;
 
     @GetMapping
     public ResponseEntity<List<CustomerScheduleDTO>> getSchedules() {
@@ -59,12 +57,13 @@ public class ApiCustomerScheduleController {
     @PostMapping
     public ResponseEntity<?> addOrUpdateCustomerSchedule(@RequestBody CustomerScheduleDTO dto) {
         if (dto.getStaffUuid() == null ||
-            dto.getFacilityUuid() == null ||
-            dto.getDate() == null ||
-            dto.getCheckin() == null) {
+                dto.getFacilityUuid() == null ||
+                dto.getDate() == null ||
+                dto.getCheckin() == null ||
+                dto.getCheckout() == null) {
             return ResponseEntity.badRequest().body("Missing required fields");
         }
-        boolean conflict = customerScheduleService.isScheduleConflict(dto.getUuid(), dto.getStaffUuid(), dto.getDate(), dto.getCheckin());
+        boolean conflict = customerScheduleService.isScheduleConflict(dto.getUuid(), dto.getStaffUuid(), dto.getDate(), dto.getCheckin(), dto.getCheckout());
         if (conflict) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Đã có lịch trùng staff + ngày + giờ checkin");
         }
@@ -78,5 +77,15 @@ public class ApiCustomerScheduleController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @PatchMapping("/{uuid}/note")
+    public ResponseEntity<?> updateNote(@PathVariable UUID uuid, @RequestBody Map<String, String> body) {
+        String note = body.get("note");
+        CustomerScheduleDTO updated = customerScheduleService.updateNote(uuid, note);
+        if (updated == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(updated);
     }
 }

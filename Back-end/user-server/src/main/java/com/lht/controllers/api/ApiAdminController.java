@@ -27,8 +27,10 @@ public class ApiAdminController {
     public ResponseEntity<?> createAdmin(@RequestBody AdminRequestDTO dto) {
         return ResponseEntity.ok(adminService.createAdmin(dto));
     }
-    @PatchMapping
-    public ResponseEntity<?> updateAdmin(@RequestBody AdminRequestDTO dto) {
-        return ResponseEntity.ok(adminService.updateAdmin(dto));
+
+    @PatchMapping("/{uuid}")
+    public ResponseEntity<?> updateAdmin(@PathVariable UUID uuid, @ModelAttribute AdminRequestDTO dto, @RequestPart(value = "file", required = false) MultipartFile file) {
+        dto.setUuid(uuid);
+        return ResponseEntity.ok(adminService.updateAdmin(dto, file));
     }
 }

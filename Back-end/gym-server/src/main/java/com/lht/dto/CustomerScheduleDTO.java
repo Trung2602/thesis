@@ -17,6 +17,7 @@ public class CustomerScheduleDTO {
     private LocalDate date;
     private LocalTime checkin;
     private LocalTime checkout;
+    private String note;
 
     private UUID customerUuid;
     private UUID staffUuid;

@@ -37,7 +37,7 @@ class ReportProvider extends ChangeNotifier {
         revenueData = List<double>.from(data['revenue'] ?? []);
         totalExpense = (data['totalExpense'] ?? 0).toDouble();
         totalRevenue =
-            (data['totalRevenue'] ?? 0).toDouble() + 100000000;
+            (data['totalRevenue'] ?? 0).toDouble();
         profit = totalRevenue - totalExpense;
       }
     } catch (e) {

@@ -18,7 +18,8 @@ public class StaffScheduleDTO {
 
     private UUID staffUuid;
     private String staffName;
-
+    private UUID facilityUuid;
     private UUID shiftUuid;
     private String shiftName;
+    private Boolean approved;
 }

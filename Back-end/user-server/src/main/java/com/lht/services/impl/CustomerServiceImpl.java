@@ -207,7 +207,7 @@ public class CustomerServiceImpl implements CustomerService {
 
 
     @Override
-    public CustomerDTO updateCustomer(CustomerRequestDTO dto) {
+    public CustomerDTO updateCustomer(CustomerRequestDTO dto, MultipartFile file) {
         Customer c = customerRepository.findById(dto.getUuid()).orElseThrow(() -> new RuntimeException("Customer không tồn tại"));
         c.setMail(dto.getMail());
         c.setName(dto.getName());
@@ -223,7 +223,21 @@ public class CustomerServiceImpl implements CustomerService {
         if (dto.getPassword() != null) {
             c.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         }
-        c.setExpiryDate(dto.getExpiryDate());
+        if (file != null && !file.isEmpty()) {
+            try {
+                Map res = cloudinary.uploader().upload(
+                        file.getBytes(),
+                        ObjectUtils.asMap("resource_type", "auto")
+                );
+                c.setAvatar(res.get("secure_url").toString());
+
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+        if (dto.getExpiryDate() != null) {
+            c.setExpiryDate(dto.getExpiryDate());
+        }
         Customer saved = customerRepository.save(c);
         return mapToDTO(saved);
     }

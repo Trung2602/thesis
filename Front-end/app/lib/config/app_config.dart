@@ -1,7 +1,7 @@
 class AppConfig {
   static const bool isProduction = false;
-  static const String prodHost  = "http://fitness-alb-1289679733.us-east-1.elb.amazonaws.com/api/v1/user";
-  static const String localHost = "http://192.168.1.5";
+  static const String prodHost  = "http://fitness-alb-435245092.us-east-1.elb.amazonaws.com";
+  static const String localHost = "http://192.168.1.10";
 
   static const String aiPort = "8082";
   static const String gymPort = "8080";

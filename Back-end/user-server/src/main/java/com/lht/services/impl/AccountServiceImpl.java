@@ -260,11 +260,14 @@ public class AccountServiceImpl implements AccountService {
             StaffDTO dto = new StaffDTO(account);
             dto.setType(staff.getType().name());
             dto.setBaseSalary(staff.getBaseSalary());
+            dto.setFacilityUuid(staff.getFacilityUuid());
             dto.setFacilityName(internalGymClient.getFacilityNameByUuid(staff.getFacilityUuid()));
             return dto;
         }
         if (account instanceof Customer customer) {
             CustomerDTO dto = new CustomerDTO(account);
+            dto.setWeight(customer.getWeight());
+            dto.setHeight(customer.getHeight());
             dto.setExpiryDate(customer.getExpiryDate());
             return dto;
         }

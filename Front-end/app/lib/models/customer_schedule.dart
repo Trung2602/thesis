@@ -14,6 +14,7 @@ class CustomerSchedule {
   final String? customerName;
   final String? facilityName;
   final String? staffName;
+  final String? note;
 
   CustomerSchedule({
     this.uuid,
@@ -26,6 +27,7 @@ class CustomerSchedule {
     this.customerName,
     this.facilityName,
     this.staffName,
+    this.note,
   });
 
   static TimeOfDay? _parseTime(String? timeStr) {
@@ -61,6 +63,7 @@ class CustomerSchedule {
       customerName: json['customerName'],
       facilityName: json['facilityName'],
       staffName: json['staffName'],
+      note: json['note'],
     );
   }
 

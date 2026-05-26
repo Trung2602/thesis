@@ -75,6 +75,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,    "/api/v1/gym/customer-schedules/**").hasAnyRole("CUSTOMER", "STAFF", "ADMIN")
                         .requestMatchers(HttpMethod.POST,   "/api/v1/gym/customer-schedules").hasAnyRole("CUSTOMER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/customer-schedules/**").hasAnyRole("CUSTOMER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/gym/customer-schedules/*/note").hasAnyRole("ADMIN", "STAFF")
 
                         // ===== PAY CUSTOMER =====
                         .requestMatchers(HttpMethod.GET,    "/api/v1/gym/pay-customers").hasAnyRole("CUSTOMER", "ADMIN")
@@ -111,6 +112,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,    "/api/v1/gym/day-offs/**").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers(HttpMethod.POST,   "/api/v1/gym/day-offs").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/day-offs/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH,   "/api/v1/gym/day-offs/*/approve").hasRole("ADMIN")
 
                         // ===== STAFF SCHEDULE =====
                         .requestMatchers(HttpMethod.GET,    "/api/v1/gym/staff-schedules").hasAnyRole("STAFF", "ADMIN")
@@ -119,8 +121,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,    "/api/v1/gym/staff-schedules/filter/staff").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers(HttpMethod.GET,    "/api/v1/gym/staff-schedules/page").hasAnyRole("STAFF", "ADMIN")
                         .requestMatchers(HttpMethod.GET,    "/api/v1/gym/staff-schedules/**").hasAnyRole("STAFF", "ADMIN")
-                        .requestMatchers(HttpMethod.POST,   "/api/v1/gym/staff-schedules").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/staff-schedules/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/api/v1/gym/staff-schedules").hasAnyRole("ADMIN", "STAFF")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/gym/staff-schedules/**").hasAnyRole("ADMIN", "STAFF")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/gym/staff-schedules/*/approve").hasRole("ADMIN")
 
                         // ===== REPORT =====
                         .requestMatchers(HttpMethod.GET,    "/api/v1/gym/report").hasRole("ADMIN")

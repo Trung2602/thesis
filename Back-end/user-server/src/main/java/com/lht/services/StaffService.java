@@ -14,12 +14,11 @@ public interface StaffService {
     StaffDTO getStaffByUuid(UUID uuid);
     List<StaffDTO> getStaffs(Map<String, String> params);
     StaffDTO createStaff(StaffRequestDTO dto);
-    StaffDTO updateStaff(StaffRequestDTO dto);
-
+    StaffDTO updateStaff(StaffRequestDTO dto, MultipartFile file);
+    UUID getFacilityUuidByStaffUuid(UUID uuid);
     List<InternalUserResponse> getStaffsAll();
     String getStaffNameByUuid(UUID uuid);
     Map<UUID, String> getStaffNamesByUuids(Set<UUID> staffUuids);
     String getStaffType(UUID uuid);
-    List<UUID> getStaffsFulltime();
-    List<AvailableStaffDTO> getAvailableStaff(LocalDate date, LocalTime checkin, LocalTime checkout);
+    List<AvailableStaffDTO> getAvailableStaff(UUID facilityUuid, LocalDate date, LocalTime checkin, LocalTime checkout);
 }

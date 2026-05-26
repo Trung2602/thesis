@@ -81,22 +81,19 @@ class _ManagerStaffScheduleViewState
                   itemHeight: 60,
                   decoration:
                   const InputDecoration(labelText: 'Nhân viên'),
-                  items: _provider.listStaffs!
-                      .map<DropdownMenuItem<String>>((s) {
+                  items: _provider.listStaffs!.map<DropdownMenuItem<String>>((s) {
                     return DropdownMenuItem(
                       value: s['uuid'].toString(),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            s['name'],
+                          Text(s['name'],
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontWeight: FontWeight.bold),
                           ),
-                          Text(
-                            s['mail'],
+                          Text(s['mail'],
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontSize: 12, color: Colors.grey),
@@ -105,8 +102,7 @@ class _ManagerStaffScheduleViewState
                       ),
                     );
                   }).toList(),
-                  onChanged: (val) =>
-                      setStateDialog(() => selectedStaffUuid = val),
+                  onChanged: (val) => setStateDialog(() => selectedStaffUuid = val),
                 ),
                 const SizedBox(height: 15),
                 Row(
@@ -154,15 +150,20 @@ class _ManagerStaffScheduleViewState
             ),
             ElevatedButton(
               onPressed: () {
-                if (selectedStaffUuid == null ||
-                    selectedShiftUuid == null) {
+                if (selectedStaffUuid == null || selectedShiftUuid == null) {
                   _showMsg('Vui lòng chọn đầy đủ', isError: true);
                   return;
                 }
+
+                final selectedStaff = _provider.listStaffs!.firstWhere((s) => s['uuid'].toString() == selectedStaffUuid);
+
+                final facilityUuid = selectedStaff['facilityUuid']?.toString();
+
                 Navigator.pop(context, {
                   'staffUuid': selectedStaffUuid,
                   'shiftUuid': selectedShiftUuid,
                   'date': selectedDate,
+                  'facilityUuid': facilityUuid,
                 });
               },
               child: const Text('Lưu'),
@@ -214,12 +215,38 @@ class _ManagerStaffScheduleViewState
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('Nhân viên: ${s.staffName}'),
-            Text(
-                'Ngày: ${s.date?.toLocal().toString().split(' ')[0]}'),
+            Text('Ngày: ${s.date?.toLocal().toString().split(' ')[0]}'),
             Text('Ca: ${s.shiftName}'),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Text('Trạng thái: '),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: s.approved ? Colors.green : Colors.orange,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    s.approved ? 'Đã duyệt' : 'Chờ duyệt',
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
         actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _handleApprove(s);
+            },
+            child: Text(
+              s.approved ? 'Hủy duyệt' : 'Duyệt',
+              style: TextStyle(color: s.approved ? Colors.orange : Colors.green),
+            ),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
@@ -232,8 +259,7 @@ class _ManagerStaffScheduleViewState
               Navigator.pop(context);
               await _handleDelete(s.uuid!);
             },
-            child: const Text('Xóa',
-                style: TextStyle(color: Colors.red)),
+            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -242,6 +268,14 @@ class _ManagerStaffScheduleViewState
         ],
       ),
     );
+  }
+
+  Future<void> _handleApprove(StaffSchedule s) async {
+    final ok = await _provider.approveSchedule(s.uuid!, _selectedDay!);
+    if (mounted) {
+      _showMsg(ok ? 'Cập nhật trạng thái thành công' : 'Lỗi duyệt lịch', isError: !ok);
+      setState(() {});
+    }
   }
 
   Widget _buildCalendar() {

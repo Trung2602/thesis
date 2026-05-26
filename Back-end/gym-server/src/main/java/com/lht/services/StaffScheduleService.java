@@ -31,7 +31,9 @@ public interface StaffScheduleService {
 
     List<StaffScheduleDTO> getStaffScheduleByStaffUuid();
 
+    StaffScheduleDTO approveSchedule(UUID uuid);
+
     BigDecimal sumDurationByStaffUuidAndMonthYear(UUID staffUuid, int month, int year);
 
-    List<UUID> getStaffsWorking(LocalDate date, LocalTime checkIn, LocalTime checkOut);
+    List<UUID> getStaffsWorking(UUID facilityUuid, LocalDate date, LocalTime checkIn, LocalTime checkOut);
 }

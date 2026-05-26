@@ -4,21 +4,31 @@ import 'package:gym/models/account_provider.dart';
 import '../providers/profile_provider.dart';
 
 class SaveProfileDialog extends StatefulWidget {
+  final String uuid;
   final String name;
   final String mail;
   final String gender;
   final String role;
   final bool isActive;
   final DateTime? birthday;
+  final double? weight;
+  final double? height;
+  final String? staffType;
+  final String? facilityUuid;
 
   const SaveProfileDialog({
     super.key,
+    required this.uuid,
     required this.name,
     required this.mail,
     required this.gender,
     required this.role,
     required this.isActive,
     required this.birthday,
+    this.weight,
+    this.height,
+    this.staffType,
+    this.facilityUuid,
   });
 
   @override
@@ -47,8 +57,7 @@ class _SaveProfileDialogState extends State<SaveProfileDialog> {
           if (_errorText != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(_errorText!,
-                  style: const TextStyle(color: Colors.red)),
+              child: Text(_errorText!, style: const TextStyle(color: Colors.red)),
             ),
           TextField(
             controller: _passwordController,
@@ -68,6 +77,7 @@ class _SaveProfileDialogState extends State<SaveProfileDialog> {
         ElevatedButton(
           onPressed: () async {
             final updatedAccount = await provider.saveProfile(
+              uuid: widget.uuid,
               password: _passwordController.text.trim(),
               name: widget.name,
               mail: widget.mail,
@@ -75,14 +85,16 @@ class _SaveProfileDialogState extends State<SaveProfileDialog> {
               role: widget.role,
               isActive: widget.isActive,
               birthday: widget.birthday,
+              weight: widget.weight,
+              height: widget.height,
+              staffType: widget.staffType,
+              facilityUuid: widget.facilityUuid,
             );
 
             if (!context.mounted) return;
 
             if (updatedAccount != null) {
-              context
-                  .read<AccountProvider>()
-                  .setAccount(updatedAccount);
+              context.read<AccountProvider>().setAccount(updatedAccount);
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Thông tin đã được lưu')),

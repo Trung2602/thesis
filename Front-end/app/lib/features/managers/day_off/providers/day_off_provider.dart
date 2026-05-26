@@ -87,4 +87,13 @@ class DayOffProvider extends ChangeNotifier {
     yearController.dispose();
     super.dispose();
   }
+
+  Future<bool> approveItem(String uuid) async {
+    final token = await AuthService().getToken();
+    final res = await http.patch(
+      Uri.parse(GymServerApi.patchStaffDayOffApprove(uuid)),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return res.statusCode == 200;
+  }
 }

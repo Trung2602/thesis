@@ -11,6 +11,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface CustomerScheduleRepository extends JpaRepository<CustomerSchedule, UUID>, JpaSpecificationExecutor<CustomerSchedule>{
 
@@ -18,20 +19,32 @@ public interface CustomerScheduleRepository extends JpaRepository<CustomerSchedu
 
     List<CustomerSchedule> findByStaffUuid(UUID staffUuid);
 
-    List<CustomerSchedule> findByDate(LocalDate date);
-
-    List<CustomerSchedule> findByStaffUuidAndDateAndCheckin(UUID staffUuid, LocalDate date, LocalTime checkin);
+    @Query("""
+    SELECT cs FROM CustomerSchedule cs
+    WHERE cs.staffUuid = :staffUuid
+    AND cs.date = :date
+    AND cs.checkin < :checkOut
+    AND cs.checkout > :checkIn
+    """)
+    List<CustomerSchedule> findConflicting(
+            @Param("staffUuid") UUID staffUuid,
+            @Param("date") LocalDate date,
+            @Param("checkIn") LocalTime checkIn,
+            @Param("checkOut") LocalTime checkOut
+    );
 
     @Query("""
-SELECT DISTINCT cs.staffUuid
-FROM CustomerSchedule cs
-WHERE cs.date = :date
-AND cs.checkin < :checkOut
-AND cs.checkout > :checkIn
-""")
+    SELECT DISTINCT cs.staffUuid
+    FROM CustomerSchedule cs
+    WHERE cs.facilityUuid = :facilityUuid
+    AND cs.date = :date
+    AND cs.checkin < :checkOut
+    AND cs.checkout > :checkIn
+    """)
     Set<UUID> findBusyStaff(
-            LocalDate date,
-            LocalTime checkIn,
-            LocalTime checkOut
+            @Param("facilityUuid") UUID facilityUuid,
+            @Param("date") LocalDate date,
+            @Param("checkIn") LocalTime checkIn,
+            @Param("checkOut") LocalTime checkOut
     );
 }

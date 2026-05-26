@@ -1,12 +1,11 @@
 package com.lht.services;
 
 import com.lht.dto.StaffDayOffDTO;
-import com.lht.pojo.StaffDayOff;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -22,5 +21,6 @@ public interface StaffDayOffService {
     Page<StaffDayOffDTO> getStaffDayOffsFilter(Map<String, String> params, String sortField, String sortDir, int page, int size);
     int countByStaffUuidAndMonthYear(UUID staffUuid, int month, int year);
     List<StaffDayOffDTO> getStaffDayOffByStaffUuid();
-    List<UUID> getStaffsWorking(LocalDate date, LocalTime checkIn, LocalTime checkOut);
+    Set<UUID> getStaffsOff(UUID facilityUuid, LocalDate date);
+    boolean approveDayOff(UUID uuid);
 }

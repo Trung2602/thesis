@@ -3,6 +3,7 @@ import 'package:gym/models/plan.dart';
 import 'package:gym/models/shift.dart';
 
 import '../models/customer_schedule.dart';
+import '../models/facility.dart';
 import '../models/salary.dart';
 import '../models/staff_day_off.dart';
 import '../models/staff_schedule.dart';
@@ -16,6 +17,7 @@ class AppCache {
   // ===== CACHE =====
   final Map<String, List<Salary>> salaryCache = {};
   final Map<String, List<StaffSchedule>> staffScheduleCache = {};
+  final Map<String, List<Facility>> facilityCache = {};
   final Map<String, List<CustomerSchedule>> customerScheduleCache = {};
   final Map<String, List<StaffDayOff>> staffDayOffCache = {};
   final Map<String, List<PayCustomer>> payCustomerCache = {};
@@ -30,6 +32,7 @@ class AppCache {
     payCustomerCache.clear();
     shiftCache.clear();
     planCache.clear();
+    facilityCache.clear();
   }
 
   // ===== CLEAR THEO USER =====

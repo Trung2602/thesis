@@ -180,13 +180,11 @@ public class SalaryServiceImpl implements SalaryService {
             }
 
             Salary salary = new Salary();
-            salary.setUuid(UUID.randomUUID());
             salary.setStaffUuid(staffUuid);
             salary.setDate(LocalDate.of(year, month, 10));
             salary.setDuration(duration);
             salary.setDayOff(totalDayOff);
             salary.setPrice(totalSalary);
-
             salaryRepository.save(salary);
         }
     }

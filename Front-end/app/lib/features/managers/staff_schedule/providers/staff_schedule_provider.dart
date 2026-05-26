@@ -92,6 +92,7 @@ class StaffScheduleProvider extends ChangeNotifier {
     final token = await AuthService().getToken();
     final newSchedule = StaffSchedule(
       staffUuid: result['staffUuid'],
+      facilityUuid: result['facilityUuid'],
       shiftUuid: result['shiftUuid'],
       date: result['date'],
     );
@@ -104,7 +105,8 @@ class StaffScheduleProvider extends ChangeNotifier {
       },
       body: jsonEncode(newSchedule.toJson()),
     );
-
+    print(res.statusCode);
+    print(res.body);
     if (res.statusCode == 200) {
       _cache.remove(formatDate(selectedDay));
       await loadSchedulesForDay(selectedDay);
@@ -113,14 +115,28 @@ class StaffScheduleProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> editSchedule(
-      StaffSchedule original, Map<String, dynamic> result, DateTime selectedDay) async {
+  Future<bool> approveSchedule(String uuid, DateTime selectedDay) async {
+    final token = await AuthService().getToken();
+    final res = await http.patch(
+      Uri.parse(GymServerApi.approveStaffSchedule(uuid)),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (res.statusCode == 200) {
+      _cache.remove(formatDate(selectedDay));
+      await loadSchedulesForDay(selectedDay);
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> editSchedule(StaffSchedule original, Map<String, dynamic> result, DateTime selectedDay) async {
     final token = await AuthService().getToken();
     final updated = StaffSchedule(
       uuid: original.uuid,
       staffUuid: result['staffUuid'],
       shiftUuid: result['shiftUuid'],
       date: result['date'],
+      facilityUuid: original.facilityUuid,
     );
 
     final res = await http.post(
@@ -131,7 +147,6 @@ class StaffScheduleProvider extends ChangeNotifier {
       },
       body: jsonEncode(updated.toJson()),
     );
-
     if (res.statusCode == 200) {
       _cache.remove(formatDate(selectedDay));
       await loadSchedulesForDay(selectedDay);

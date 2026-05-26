@@ -150,8 +150,9 @@ class _ManagerUserViewState extends State<ManagerUserView>
               ),
               TextField(
                 controller: passwordCtrl,
-                decoration:
-                const InputDecoration(labelText: 'Mật khẩu *'),
+                decoration: InputDecoration(
+                  labelText: uuid == null ? 'Mật khẩu *' : 'Mật khẩu mới (để trống nếu không đổi)',
+                ),
                 obscureText: true,
               ),
             ],
@@ -280,15 +281,13 @@ class _ManagerUserViewState extends State<ManagerUserView>
                   }
                   try {
                     final Map<String, dynamic> bodyMap = {
-                      if (uuid != null) 'uuid': uuid,
                       'name': nameCtrl.text.trim(),
                       'mail': emailCtrl.text.trim(),
                       'gender': selectedGender,
                       if (selectedBirthday != null)
                         'birthday':
                         _provider.formatDate(selectedBirthday!),
-                      if (uuid == null &&
-                          passwordCtrl.text.trim().isNotEmpty)
+                      if (passwordCtrl.text.trim().isNotEmpty)
                         'password': passwordCtrl.text.trim(),
                     };
                     if (role == 'STAFF') {
@@ -296,26 +295,21 @@ class _ManagerUserViewState extends State<ManagerUserView>
                         bodyMap['type'] = selectedStaffType;
                       }
                       if (baseSalaryCtrl.text.isNotEmpty) {
-                        bodyMap['baseSalary'] =
-                            double.tryParse(baseSalaryCtrl.text);
+                        bodyMap['baseSalary'] = double.tryParse(baseSalaryCtrl.text);
                       }
                       if (selectedFacility != null) {
-                        bodyMap['facilityUuid'] =
-                            selectedFacility!.uuid;
+                        bodyMap['facilityUuid'] = selectedFacility!.uuid;
                       }
                     }
                     if (role == 'CUSTOMER') {
                       if (weightCtrl.text.isNotEmpty) {
-                        bodyMap['weight'] =
-                            double.tryParse(weightCtrl.text);
+                        bodyMap['weight'] = double.tryParse(weightCtrl.text);
                       }
                       if (heightCtrl.text.isNotEmpty) {
-                        bodyMap['height'] =
-                            double.tryParse(heightCtrl.text);
+                        bodyMap['height'] = double.tryParse(heightCtrl.text);
                       }
                       if (selectedExpiryDate != null) {
-                        bodyMap['expiryDate'] =
-                            _provider.formatDate(selectedExpiryDate!);
+                        bodyMap['expiryDate'] = _provider.formatDate(selectedExpiryDate!);
                       }
                     }
                     await _provider.saveUser(

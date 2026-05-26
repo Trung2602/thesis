@@ -53,7 +53,7 @@ public class StaffServiceImpl implements StaffService {
         dto.setType(s.getType() != null ? s.getType().name() : null);
         dto.setBaseSalary(s.getBaseSalary());
 
-        dto.setFacilityUuid(s.getFacilityUuid().toString());
+        dto.setFacilityUuid(s.getFacilityUuid());
         dto.setFacilityName(internalGymClient.getFacilityNameByUuid(s.getFacilityUuid()));
         return dto;
     }
@@ -80,10 +80,8 @@ public class StaffServiceImpl implements StaffService {
                         .isActive(s.getIsActive())
                         .type(s.getType() != null ? s.getType().name() : null)
                         .baseSalary(s.getBaseSalary())
-                        .facilityUuid(s.getFacilityUuid().toString())
-                        .facilityName(
-                                facilityMap.getOrDefault(s.getFacilityUuid(), "Unknown")
-                        )
+                        .facilityUuid(s.getFacilityUuid())
+                        .facilityName(facilityMap.getOrDefault(s.getFacilityUuid(), "Unknown"))
                         .build())
                 .collect(Collectors.toList());
     }
@@ -186,7 +184,7 @@ public class StaffServiceImpl implements StaffService {
     }
 
     @Override
-    public StaffDTO updateStaff(StaffRequestDTO dto) {
+    public StaffDTO updateStaff(StaffRequestDTO dto, MultipartFile file) {
         Staff staff = staffRepository.findById(dto.getUuid()).orElseThrow(() -> new RuntimeException("Staff không tồn tại"));
         staff.setMail(dto.getMail());
         staff.setName(dto.getName());
@@ -200,9 +198,27 @@ public class StaffServiceImpl implements StaffService {
         if (dto.getPassword() != null) {
             staff.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         }
-        staff.setType(StaffType.valueOf(dto.getType().toUpperCase()));
-        staff.setFacilityUuid(dto.getFacilityUuid());
-        staff.setBaseSalary(dto.getBaseSalary());
+        if (file != null && !file.isEmpty()) {
+            try {
+                Map res = cloudinary.uploader().upload(
+                        file.getBytes(),
+                        ObjectUtils.asMap("resource_type", "auto")
+                );
+                staff.setAvatar(res.get("secure_url").toString());
+
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+        if (dto.getType() != null && !dto.getType().isBlank()) {
+            staff.setType(StaffType.valueOf(dto.getType().toUpperCase()));
+        }
+        if (dto.getFacilityUuid() != null) {
+            staff.setFacilityUuid(dto.getFacilityUuid());
+        }
+        if (dto.getBaseSalary() != null) {
+            staff.setBaseSalary(dto.getBaseSalary());
+        }
         Staff saved = staffRepository.save(staff);
         return mapToDTO(saved);
     }
@@ -223,13 +239,11 @@ public class StaffServiceImpl implements StaffService {
 
     @Override
     public String getStaffNameByUuid(UUID uuid) {
-
         return staffRepository.findById(uuid).map(Staff::getName).orElse("Unknown");
     }
 
     @Override
     public Map<UUID, String> getStaffNamesByUuids(Set<UUID> staffUuids) {
-
         List<Staff> staffs = staffRepository.findAllById(staffUuids);
         return staffs.stream().collect(Collectors.toMap(
                     Staff::getUuid,
@@ -237,7 +251,6 @@ public class StaffServiceImpl implements StaffService {
             ));
     }
 
-    // Lấy staff type (FULLTIME / PARTTIME / INTERN)
     @Override
     public String getStaffType(UUID uuid) {
 
@@ -247,22 +260,20 @@ public class StaffServiceImpl implements StaffService {
     }
 
     @Override
-    public List<UUID> getStaffsFulltime() {
-
-        return staffRepository.findByType(StaffType.FULLTIME)
-                .stream().map(Staff::getUuid).toList();
+    public UUID getFacilityUuidByStaffUuid(UUID uuid) {
+        Staff staff = staffRepository.findByUuid(uuid).orElseThrow(() -> new IllegalArgumentException("Staff not found"));
+        return staff.getFacilityUuid();
     }
 
     @Override
-    public List<AvailableStaffDTO> getAvailableStaff(LocalDate date, LocalTime checkin, LocalTime checkout) {
+    public List<AvailableStaffDTO> getAvailableStaff(UUID facilityUuid, LocalDate date, LocalTime checkin, LocalTime checkout) {
 
-        Set<UUID> staffUuids = internalGymClient.getAvailableStaff(date, checkin, checkout);
+        Set<UUID> staffUuids = internalGymClient.getAvailableStaff(facilityUuid, date, checkin, checkout);
         if (staffUuids == null || staffUuids.isEmpty()) {
             return Collections.emptyList();
         }
         List<UUID> uuidList = new ArrayList<>(staffUuids);
-        return staffRepository.findAllById(uuidList)
-                .stream()
+        return staffRepository.findAllById(uuidList).stream()
                 .map(s -> new AvailableStaffDTO(s.getUuid(), s.getName(), s.getFacilityUuid()))
                 .toList();
     }

@@ -8,9 +8,12 @@ import 'package:gym/models/available_staff.dart';
 import 'package:gym/models/customer_schedule.dart';
 import 'package:gym/services/auth_service.dart';
 
+import '../../../models/facility.dart';
+
 class CustomerScheduleProvider extends ChangeNotifier {
   final cache = AppCache().customerScheduleCache;
-
+  final facilityCache = AppCache().facilityCache;
+  List<Facility> get facilities => AppCache().facilityCache['all'] ?? [];
   List<CustomerSchedule> schedulesForSelectedDay = [];
   List<AvailableStaff> staffList = [];
 
@@ -22,6 +25,22 @@ class CustomerScheduleProvider extends ChangeNotifier {
     return '${day.year.toString().padLeft(4, '0')}-'
         '${day.month.toString().padLeft(2, '0')}-'
         '${day.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> loadFacilities() async {
+    if (AppCache().facilityCache.containsKey('all')) return;
+    try {
+      final token = await AuthService().getToken();
+      final res = await http.get(
+        Uri.parse(GymServerApi.getFacilities),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as List;
+        AppCache().facilityCache['all'] = data.map((e) => Facility.fromJson(e)).toList();
+        notifyListeners();
+      }
+    } catch (_) {}
   }
 
   Future<void> loadSchedulesForDay(DateTime day) async {
@@ -70,8 +89,7 @@ class CustomerScheduleProvider extends ChangeNotifier {
     throw Exception('Failed to load schedules: ${res.statusCode}');
   }
 
-  Future<void> fetchWorkingStaff(
-      DateTime date, TimeOfDay checkIn, TimeOfDay checkOut) async {
+  Future<void> fetchWorkingStaff(String facilityUuid, DateTime date, TimeOfDay checkIn, TimeOfDay checkOut) async {
     isLoadingStaff = true;
     notifyListeners();
     try {
@@ -80,8 +98,8 @@ class CustomerScheduleProvider extends ChangeNotifier {
           '${checkIn.hour.toString().padLeft(2, '0')}:${checkIn.minute.toString().padLeft(2, '0')}:00';
       final checkOutStr =
           '${checkOut.hour.toString().padLeft(2, '0')}:${checkOut.minute.toString().padLeft(2, '0')}:00';
-      final uri =
-      Uri.parse(UserServerApi.getWorkingStaff).replace(queryParameters: {
+      final uri = Uri.parse(UserServerApi.getWorkingStaff(facilityUuid))
+          .replace(queryParameters: {
         'date': formatDate(date),
         'checkin': checkInStr,
         'checkout': checkOutStr,
@@ -116,6 +134,7 @@ class CustomerScheduleProvider extends ChangeNotifier {
         staffUuid: staff.uuid,
         facilityUuid: staff.facilityUuid,
       );
+      print('SCHEDULE JSON: ${jsonEncode(staff.toJson())}');
       final res = await http.post(
         Uri.parse(GymServerApi.postCustomerSchedule),
         headers: {
@@ -124,10 +143,12 @@ class CustomerScheduleProvider extends ChangeNotifier {
         },
         body: jsonEncode(newSchedule.toJson()),
       );
+      print("STATUS: ${res.statusCode}");
+      print("BODY: ${res.body}");
       if (res.statusCode == 200) {
         cache.remove(formatDate(date));
         await loadSchedulesForDay(date);
-        return null; // success
+        return null;
       } else if (res.statusCode == 409) {
         return 'conflict';
       } else {
@@ -152,6 +173,28 @@ class CustomerScheduleProvider extends ChangeNotifier {
         cache.remove(formatDate(day));
         await loadSchedulesForDay(day);
         return null; // success
+      }
+      return 'error: ${res.body}';
+    } catch (e) {
+      return 'error: $e';
+    }
+  }
+
+  Future<String?> updateNote(String uuid, String note, DateTime day) async {
+    try {
+      final token = await AuthService().getToken();
+      final res = await http.patch(
+        Uri.parse(GymServerApi.patchCustomerScheduleNote(uuid)),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'note': note}),
+      );
+      if (res.statusCode == 200) {
+        cache.remove(formatDate(day));
+        await loadSchedulesForDay(day);
+        return null;
       }
       return 'error: ${res.body}';
     } catch (e) {

@@ -30,7 +30,6 @@ class _ManagerFacilityViewState extends State<ManagerFacilityView> {
     super.dispose();
   }
 
-  // ───────────────────────── FORM ─────────────────────────
   void _openForm({Facility? facility}) {
     final nameController =
     TextEditingController(text: facility?.name ?? '');
@@ -118,7 +117,6 @@ class _ManagerFacilityViewState extends State<ManagerFacilityView> {
     );
   }
 
-  // ───────────────────────── DETAIL ─────────────────────────
   void _showDetail(Facility f) {
     showDialog(
       context: context,
@@ -193,7 +191,6 @@ class _ManagerFacilityViewState extends State<ManagerFacilityView> {
     );
   }
 
-  // ───────────────────────── BUILD ─────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -204,6 +201,7 @@ class _ManagerFacilityViewState extends State<ManagerFacilityView> {
       ),
       backgroundColor: const Color(0xFF0F123A),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'facility_manager_fab',
         backgroundColor: const Color(0xFFFFD740),
         onPressed: () => _openForm(),
         child: const Icon(Icons.add, color: Colors.black),

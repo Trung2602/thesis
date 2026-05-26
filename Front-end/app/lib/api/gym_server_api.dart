@@ -2,6 +2,7 @@ import '../config/app_config.dart';
 
 class GymServerApi {
   static final String baseUrl = AppConfig.buildUrl("gym");
+  // static final String baseUrl = "https://exemplify-spinster-frighten.ngrok-free.dev/api/v1/gym";
 
   // ================== PLAN ==================
   static final String getPlans = "$baseUrl/plans";
@@ -23,6 +24,7 @@ class GymServerApi {
   static final String postCustomerSchedule = "$baseUrl/customer-schedules";
   static String deleteCustomerSchedule(String uuid) => "$baseUrl/customer-schedules/$uuid";
   static final String getCustomerSchedulesFilter = "$baseUrl/customer-schedules/filter";
+  static String patchCustomerScheduleNote(String uuid) => '$baseUrl/customer-schedules/$uuid/note';
 
   // ================== STAFF SCHEDULE ==================
   static final String getStaffSchedules = "$baseUrl/staff-schedules";
@@ -32,6 +34,7 @@ class GymServerApi {
   static String deleteStaffSchedule(String uuid) => "$baseUrl/staff-schedules/$uuid";
   static final String getStaffSchedulesFilter = "$baseUrl/staff-schedules/filter";
   static final String getStaffSchedulesFilterByStaff = "$baseUrl/staff-schedules/filter/staff";
+  static String approveStaffSchedule(String uuid) => '$baseUrl/staff-schedules/$uuid/approve';
 
   // ================== STAFF DAY OFF ==================
   static final String getStaffDayOffs = "$baseUrl/day-offs";
@@ -39,6 +42,7 @@ class GymServerApi {
   static final String postStaffDayOff = "$baseUrl/day-offs";
   static String deleteStaffDayOff(String uuid) => "$baseUrl/day-offs/$uuid";
   static final String getStaffDayOffsFilter = "$baseUrl/day-offs/filter";
+  static String patchStaffDayOffApprove(String uuid) => '$baseUrl/day-offs/$uuid/approve';
 
   // ================== PAY CUSTOMER ==================
   static final String getPayCustomers = "$baseUrl/pay-customers";
@@ -65,7 +69,7 @@ class GymServerApi {
 
   // ================== PAYMENT ==================
   static final String createPayment = "$baseUrl/payment/create";
-  static final String returnPath = "/api/v1/payment/return";
+  static final String returnPath = "/api/v1/gym/payment/return";
 
   // ================== REPORT ==================
   static final String getReport = "$baseUrl/report";

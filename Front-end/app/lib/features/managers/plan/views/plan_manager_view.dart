@@ -226,6 +226,7 @@ class _ManagerPlanViewState extends State<ManagerPlanView> {
       ),
       backgroundColor: const Color(0xFF0F123A),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'plan_manager_fab',
         backgroundColor: const Color(0xFFFFD740),
         onPressed: () => _openForm(),
         child: const Icon(Icons.add, color: Colors.black),

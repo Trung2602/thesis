@@ -30,4 +30,11 @@ public class StaffSchedule {
 
     @Column(name = "staff_uuid", nullable = false)
     private UUID staffUuid;
+
+    @Column(name = "facility_uuid", nullable = false)
+    private UUID facilityUuid;
+
+    @Column(name = "is_approved", nullable = false)
+    @Builder.Default
+    private Boolean approved = false;
 }

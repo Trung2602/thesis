@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../models/Exercise.dart';
+import '../../../../models/exercise.dart';
 import '../providers/exercise_provider.dart';
 import '../widgets/exercise_card.dart';
 import '../../shared/widgets/manager_info_row.dart';
@@ -31,7 +31,6 @@ class _ManagerExerciseViewState extends State<ManagerExerciseView> {
     super.dispose();
   }
 
-  // ───────────────────────── HELPERS ─────────────────────────
   Widget _buildTextField(TextEditingController controller, String label) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -49,7 +48,6 @@ class _ManagerExerciseViewState extends State<ManagerExerciseView> {
     );
   }
 
-  // ───────────────────────── FORM ─────────────────────────
   void _openForm({Exercise? exercise}) {
     final nameController = TextEditingController(text: exercise?.name ?? '');
     final forceController = TextEditingController(text: exercise?.force ?? '');
@@ -154,7 +152,6 @@ class _ManagerExerciseViewState extends State<ManagerExerciseView> {
     );
   }
 
-  // ───────────────────────── DETAIL ─────────────────────────
   void _showDetail(Exercise e) {
     showDialog(
       context: context,
@@ -235,7 +232,6 @@ class _ManagerExerciseViewState extends State<ManagerExerciseView> {
     );
   }
 
-  // ───────────────────────── BUILD ─────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -246,6 +242,7 @@ class _ManagerExerciseViewState extends State<ManagerExerciseView> {
       ),
       backgroundColor: const Color(0xFF0F123A),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'exercise_manager_fab',
         backgroundColor: const Color(0xFFFFD740),
         onPressed: () => _openForm(),
         child: const Icon(Icons.add, color: Colors.black),
@@ -287,6 +284,7 @@ class _ManagerExerciseViewState extends State<ManagerExerciseView> {
                   ? () => _provider.fetchExercises(
                   page: _provider.currentPage + 1)
                   : null,
+              onGoToPage: (page) => _provider.fetchExercises(page: page),
             ),
         ],
       ),
