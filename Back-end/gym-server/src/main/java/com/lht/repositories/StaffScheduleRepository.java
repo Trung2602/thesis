@@ -29,9 +29,12 @@ public interface StaffScheduleRepository extends JpaRepository<StaffSchedule, UU
     JOIN Shift s ON sc.shiftUuid = s.uuid
     WHERE sc.facilityUuid = :facilityUuid
     AND sc.date = :date
-    AND s.checkin < :checkOut
-    AND s.checkout > :checkIn
     AND sc.approved = true
+    AND (
+        (s.checkin < s.checkout AND s.checkin < :checkOut AND s.checkout > :checkIn)
+        OR
+        (s.checkin >= s.checkout AND (s.checkin < :checkOut OR s.checkout > :checkIn))
+    )
     """)
     List<UUID> findWorkingStaff(
             @Param("facilityUuid") UUID facilityUuid,

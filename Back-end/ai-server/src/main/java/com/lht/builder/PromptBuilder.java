@@ -1,129 +1,24 @@
 package com.lht.builder;
 
+import com.lht.dto.BodyLogDTO;
 import com.lht.dto.CustomerDTO;
+import com.lht.dto.GoalDTO;
 import com.lht.dto.RAGContext;
 
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class PromptBuilder {
 
-//    public static String build(CustomerDTO user, RAGContext ctx, String question) {
-//
-//        String foodContext = ctx.getFoods().stream()
-//                .map(f -> f.getName() + " (" + f.getCalories100g() + " kcal)")
-//                .collect(Collectors.joining("\n"));
-//
-//        String exerciseContext = ctx.getExercises().stream()
-//                .map(e -> e.getName() + ": " + String.join("; ", e.getInstructions()))
-//                .collect(Collectors.joining("\n"));
-//
-//        String chatHistoryContext = "";
-//        if (ctx.getRecentChats() != null && !ctx.getRecentChats().isEmpty()) {
-//            chatHistoryContext = ctx.getRecentChats().stream()
-//                    .map(c -> "Người dùng: " + c.getMessage() + "\nTrợ lý: " + c.getAiReply())
-//                    .collect(Collectors.joining("\n"));
-//        }
-//
-//        double weight = user.getWeight().doubleValue(); // kg
-//        double height = user.getHeight().doubleValue(); // cm
-//        int age = Period.between(user.getBirthday(), LocalDate.now()).getYears();
-//
-//        double BMR;
-//        if ("male".equalsIgnoreCase(user.getGender())) {
-//            BMR = 88.36 + (13.4 * weight) + (4.8 * height) - (5.7 * age);
-//        } else if ("female".equalsIgnoreCase(user.getGender())) {
-//            BMR = 447.6 + (9.2 * weight) + (3.1 * height) - (4.3 * age);
-//        } else {
-//            BMR = 1500;
-//        }
-//        double TDEE_coefficient = 1.375;
-//        // ít vận động: 1.2
-//        // tập nhẹ: 1.375
-//        // tập vừa: 1.55
-//        // tập nặng: 1.725
-//
-//        double calories = BMR * TDEE_coefficient;
-//        double bmi = weight / Math.pow(height / 100.0, 2);
-//
-//        String historySection = chatHistoryContext.isBlank() ? "" : """
-//                LỊCH SỬ HỘI THOẠI GẦN ĐÂY (dùng để hiểu ngữ cảnh, KHÔNG lặp lại):
-//                %s
-//
-//                """.formatted(chatHistoryContext);
-//
-//        return """
-//                Bạn là huấn luyện viên gym và chuyên gia dinh dưỡng.
-//
-//                Người dùng hỏi: %s
-//                BMI: %.2f
-//                Daily Calories Target: %.2f kcal
-//
-//                AVAILABLE FOODS (name (calories_per_100g kcal)):
-//                %s
-//
-//                AVAILABLE EXERCISES (name):
-//                %s
-//
-//                NHIỆM VỤ:
-//                Tạo kế hoạch tập luyện và ăn uống trong 1 ngày.
-//
-//                QUY TẮC QUAN TRỌNG:
-//                1. Chỉ sử dụng thực phẩm trong danh sách AVAILABLE FOODS
-//                2. Chỉ sử dụng bài tập trong AVAILABLE EXERCISES
-//                3. Không được tạo thực phẩm hoặc bài tập mới
-//                4. KHÔNG hiển thị UUID trong kết quả
-//                5. Mỗi bữa chỉ 1 dòng (Buổi sáng/Buổi trưa/Buổi tối)
-//                6. Mỗi bữa ăn có thể nhiều món
-//                7. Phải ghi số gram cho mỗi món
-//                8. Trả lời theo ngôn ngữ tiếng người dùng hỏi.
-//                9. Nội dung phải giữ nguyên ý nghĩa nhưng viết lại tự nhiên bằng tiếng Việt.
-//
-//                FORMAT BẮT BUỘC:
-//
-//                Chỉ số BMI (Chỉ số khối cơ thể) hiện tại của bạn: %.2f
-//                Lượng calo cần thiết mỗi ngày: %.2f
-//
-//                ===Chế độ dinh dưỡng của bạn cho một ngày:
-//
-//                - Buổi sáng:
-//                =>> Món ăn - xxx g - Lượng calo : xxx
-//
-//                - Buổi trưa:
-//                =>> Món ăn - xxx g - Lượng calo : xxx
-//
-//                - Buổi tối:
-//                =>> Món ăn - xxx g - Lượng calo : xxx
-//
-//                Kế hoạch tập luyện của bạn cho một ngày:
-//
-//                - Bài tập: Tên
-//                + Sets: xxx
-//                + Reps: xxx lần Hoặc Thời lượng: xxx (phút hoặc giây)
-//                ==> Hướng dẫn:
-//                Bước 1: ...
-//                Bước 2: ...
-//                Bước 3: ...
-//                -------
-//                - Bài tập: Tên
-//                + Sets: xxx
-//                + Reps: xxx lần Hoặc Thời lượng: xxx (phút hoặc giây)
-//                ==> Hướng dẫn:
-//                Bước 1: ...
-//                Bước 2: ...
-//                Bước 3: ...
-//
-//                “Hãy nhớ rằng, mỗi bữa ăn là một bước tiến, và mỗi buổi tập luyện là một cơ hội để giúp cơ thể bạn khỏe mạnh hơn.
-//                Hãy kiên trì hôm nay, và ngày mai bạn sẽ thấy kết quả tuyệt vời. Bạn đang làm rất tốt – đừng bỏ cuộc!”
-//
-//                Chỉ trả về kế hoạch theo format trên.
-//                Không giải thích thêm.
-//                """.formatted(question, bmi, calories, foodContext, exerciseContext, bmi, calories);
-//    }
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
     public static String build(CustomerDTO user, RAGContext ctx, String question) {
 
-        // --- Build RAG context ---
+        // ===== FOOD & EXERCISE =====
         String foodList = ctx.getFoods().isEmpty() ? "" :
                 ctx.getFoods().stream()
                         .map(f -> "  - " + f.getName() + " (" + f.getCalories100g() + " kcal/100g)")
@@ -134,12 +29,19 @@ public class PromptBuilder {
                         .map(e -> "  - " + e.getName() + ": " + String.join("; ", e.getInstructions()))
                         .collect(Collectors.joining("\n"));
 
+        // ===== CHAT HISTORY =====
         String chatHistoryContext = (ctx.getRecentChats() == null || ctx.getRecentChats().isEmpty()) ? "" :
                 ctx.getRecentChats().stream()
                         .map(c -> "Người dùng: " + c.getMessage() + "\nTrợ lý: " + c.getAiReply())
                         .collect(Collectors.joining("\n\n"));
 
-        // --- Tính chỉ số sức khỏe ---
+        // ===== BODY LOGS =====
+        String bodyLogContext = buildBodyLogSection(ctx.getLogs());
+
+        // ===== GOAL =====
+        String goalContext = buildGoalSection(ctx.getGoal());
+
+        // ===== BMR / TDEE / BMI =====
         double weight = user.getWeight().doubleValue();
         double height = user.getHeight().doubleValue();
         int age = Period.between(user.getBirthday(), LocalDate.now()).getYears();
@@ -154,6 +56,10 @@ public class PromptBuilder {
         }
 
         double TDEE = BMR * 1.375;
+        // ít vận động: 1.2
+        // tập nhẹ: 1.375
+        // tập vừa: 1.55
+        // tập nặng: 1.725
         double bmi = weight / Math.pow(height / 100.0, 2);
 
         String historySection = chatHistoryContext.isBlank() ? "" : """
@@ -162,45 +68,40 @@ public class PromptBuilder {
                     
                     """.formatted(chatHistoryContext);
 
-        // --- Xác định có dữ liệu không để cảnh báo AI ---
-        String foodSection;
-        if (ctx.getFoods().isEmpty()) {
-            foodSection = """
-                        === DANH SÁCH THỰC PHẨM TỪ DATABASE ===
-                        [KHÔNG CÓ DỮ LIỆU - TUYỆT ĐỐI KHÔNG được đề xuất bất kỳ thực phẩm nào]
-                        """;
-        } else {
-            foodSection = """
-                        === DANH SÁCH THỰC PHẨM TỪ DATABASE ===
-                        (Đây là danh sách DUY NHẤT được phép dùng. KHÔNG được thêm bất kỳ thực phẩm nào khác.)
-                        %s
-                        """.formatted(foodList);
-        }
+        String foodSection = ctx.getFoods().isEmpty()
+                ? """
+                    === DANH SÁCH THỰC PHẨM TỪ DATABASE ===
+                    [KHÔNG CÓ DỮ LIỆU - TUYỆT ĐỐI KHÔNG được đề xuất bất kỳ thực phẩm nào]
+                    """
+                : """
+                    === DANH SÁCH THỰC PHẨM TỪ DATABASE ===
+                    (Đây là danh sách DUY NHẤT được phép dùng. KHÔNG được thêm bất kỳ thực phẩm nào khác.)
+                    %s
+                    """.formatted(foodList);
 
-        String exerciseSection;
-        if (ctx.getExercises().isEmpty()) {
-            exerciseSection = """
-                        === DANH SÁCH BÀI TẬP TỪ DATABASE ===
-                        [KHÔNG CÓ DỮ LIỆU - TUYỆT ĐỐI KHÔNG được đề xuất bất kỳ bài tập nào]
-                        """;
-        } else {
-            exerciseSection = """
-                        === DANH SÁCH BÀI TẬP TỪ DATABASE ===
-                        (Đây là danh sách DUY NHẤT được phép dùng. KHÔNG được thêm bất kỳ bài tập nào khác.)
-                        %s
-                        """.formatted(exerciseList);
-        }
+        String exerciseSection = ctx.getExercises().isEmpty()
+                ? """
+                    === DANH SÁCH BÀI TẬP TỪ DATABASE ===
+                    [KHÔNG CÓ DỮ LIỆU - TUYỆT ĐỐI KHÔNG được đề xuất bất kỳ bài tập nào]
+                    """
+                : """
+                    === DANH SÁCH BÀI TẬP TỪ DATABASE ===
+                    (Đây là danh sách DUY NHẤT được phép dùng. KHÔNG được thêm bất kỳ bài tập nào khác.)
+                    %s
+                    """.formatted(exerciseList);
 
         return """
                     Bạn là trợ lý AI chuyên về gym, thể hình và dinh dưỡng - thân thiện như một HLV cá nhân.
                     
                     === THÔNG TIN NGƯỜI DÙNG ===
-                    - Cân nặng: %.1f kg | Chiều cao: %.1f cm | Tuổi: %d | Giới tính: %s
+                    - Cân nặng hiện tại: %.1f kg | Chiều cao: %.1f cm | Tuổi: %d | Giới tính: %s
                     - BMI hiện tại: %.2f
-                    - Nhu cầu calo mỗi ngày: %.0f kcal
+                    - Nhu cầu calo mỗi ngày (TDEE): %.0f kcal
                     
-                    %s
-                    %s
+                    %s\
+                    %s\
+                    %s\
+                    %s\
                     %s\
                     === CÂU HỎI ===
                     %s
@@ -222,13 +123,85 @@ public class PromptBuilder {
                     [QUY TẮC 5] Trả lời bằng ngôn ngữ người dùng đang dùng. Giọng điệu tích cực, khuyến khích.
                     
                     [QUY TẮC 6] KHÔNG hiển thị UUID trong bất kỳ trường hợp nào.
+                    
+                    [QUY TẮC 7] Khi phân tích tiến trình: dùng dữ liệu "LỊCH SỬ CHỈ SỐ CƠ THỂ" và "MỤC TIÊU" để đưa ra
+                    nhận xét cụ thể, có số liệu. Nếu không có dữ liệu body log, đừng đề cập đến tiến trình.
+                    
+                    [QUY TẮC 8] Nếu có mục tiêu (GOAL), hãy điều chỉnh lời khuyên về calo, thực phẩm và bài tập
+                    sao cho phù hợp với mục tiêu đó (giảm cân / tăng cơ / duy trì / giảm mỡ).
                     """.formatted(
                 weight, height, age, user.getGender(),
                 bmi, TDEE,
+                goalContext,
+                bodyLogContext,
                 foodSection,
                 exerciseSection,
                 historySection,
                 question
         );
+    }
+
+    private static String buildBodyLogSection(List<BodyLogDTO> logs) {
+        if (logs == null || logs.isEmpty()) {
+            return "";
+        }
+
+        String rows = logs.stream().map(log -> {
+            StringBuilder sb = new StringBuilder("  - ");
+//            sb.append(log.getLoggedAt() != null ? log.getLoggedAt().format(DATETIME_FMT) : "N/A");
+            if (log.getWeight() != null)
+                sb.append(" | Cân nặng: ").append(log.getWeight()).append(" kg");
+            if (log.getHeight() != null)
+                sb.append(" | Chiều cao: ").append(log.getHeight()).append(" cm");
+            if (log.getBodyFatPercent() != null)
+                sb.append(" | Mỡ cơ thể: ").append(log.getBodyFatPercent()).append("%");
+            if (log.getMuscleMass() != null)
+                sb.append(" | Cơ bắp: ").append(log.getMuscleMass()).append(" kg");
+            if (log.getNote() != null && !log.getNote().isBlank())
+                sb.append(" | Ghi chú: ").append(log.getNote());
+            return sb.toString();
+        }).collect(Collectors.joining("\n"));
+
+        return """
+                    === LỊCH SỬ CHỈ SỐ CƠ THỂ (GẦN NHẤT) ===
+                    (Dùng để phân tích tiến trình và đưa ra lời khuyên cá nhân hoá)
+                    %s
+                    
+                    """.formatted(rows);
+    }
+
+    private static String buildGoalSection(GoalDTO goal) {
+        if (goal == null) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== MỤC TIÊU CỦA NGƯỜI DÙNG ===\n");
+
+        if (goal.getGoalType() != null)
+            sb.append("  - Loại mục tiêu: ").append(translateGoalType(goal.getGoalType())).append("\n");
+        if (goal.getTargetWeight() != null)
+            sb.append("  - Cân nặng mục tiêu: ").append(goal.getTargetWeight()).append(" kg\n");
+        if (goal.getTargetBodyFat() != null)
+            sb.append("  - Mỡ cơ thể mục tiêu: ").append(goal.getTargetBodyFat()).append("%\n");
+        if (goal.getDeadline() != null)
+            sb.append("  - Thời hạn: ").append(goal.getDeadline().format(DATE_FMT)).append("\n");
+        if (goal.getIsAchieved() != null)
+            sb.append("  - Trạng thái: ").append(goal.getIsAchieved() ? "Đã đạt được ✓" : "Đang thực hiện").append("\n");
+
+        sb.append("\n");
+        return sb.toString();
+    }
+
+    private static String translateGoalType(String goalType) {
+        return switch (goalType.toLowerCase()) {
+            case "weight_loss"    -> "Giảm cân";
+            case "muscle_gain"    -> "Tăng cơ";
+            case "maintenance"    -> "Duy trì cân nặng";
+            case "fat_loss"       -> "Giảm mỡ";
+            case "body_recomp"    -> "Thay đổi thành phần cơ thể";
+            case "endurance"      -> "Tăng sức bền";
+            default               -> goalType;
+        };
     }
 }

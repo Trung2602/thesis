@@ -42,8 +42,11 @@ public interface CustomerScheduleRepository extends JpaRepository<CustomerSchedu
     FROM CustomerSchedule cs
     WHERE cs.facilityUuid = :facilityUuid
     AND cs.date = :date
-    AND cs.checkin < :checkOut
-    AND cs.checkout > :checkIn
+    AND (
+        (cs.checkin < cs.checkout AND cs.checkin < :checkOut AND cs.checkout > :checkIn)
+        OR
+        (cs.checkin >= cs.checkout AND (cs.checkin < :checkOut OR cs.checkout > :checkIn))
+    )
     """)
     Set<UUID> findBusyStaff(
             @Param("facilityUuid") UUID facilityUuid,

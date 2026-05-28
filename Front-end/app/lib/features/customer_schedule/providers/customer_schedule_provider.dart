@@ -94,10 +94,8 @@ class CustomerScheduleProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final token = await AuthService().getToken();
-      final checkInStr =
-          '${checkIn.hour.toString().padLeft(2, '0')}:${checkIn.minute.toString().padLeft(2, '0')}:00';
-      final checkOutStr =
-          '${checkOut.hour.toString().padLeft(2, '0')}:${checkOut.minute.toString().padLeft(2, '0')}:00';
+      final checkInStr = '${checkIn.hour.toString().padLeft(2, '0')}:${checkIn.minute.toString().padLeft(2, '0')}:00';
+      final checkOutStr = '${checkOut.hour.toString().padLeft(2, '0')}:${checkOut.minute.toString().padLeft(2, '0')}:00';
       final uri = Uri.parse(UserServerApi.getWorkingStaff(facilityUuid))
           .replace(queryParameters: {
         'date': formatDate(date),
@@ -134,7 +132,6 @@ class CustomerScheduleProvider extends ChangeNotifier {
         staffUuid: staff.uuid,
         facilityUuid: staff.facilityUuid,
       );
-      print('SCHEDULE JSON: ${jsonEncode(staff.toJson())}');
       final res = await http.post(
         Uri.parse(GymServerApi.postCustomerSchedule),
         headers: {
@@ -143,8 +140,6 @@ class CustomerScheduleProvider extends ChangeNotifier {
         },
         body: jsonEncode(newSchedule.toJson()),
       );
-      print("STATUS: ${res.statusCode}");
-      print("BODY: ${res.body}");
       if (res.statusCode == 200) {
         cache.remove(formatDate(date));
         await loadSchedulesForDay(date);

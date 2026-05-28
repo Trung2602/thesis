@@ -22,6 +22,6 @@ public interface InternalUserClient {
     @GetMapping("/internal/customer/{uuid}/body-log")
     List<BodyLogDTO> getRecentHistory(@PathVariable UUID uuid, @RequestParam(defaultValue = "0") int limit);
 
-    @GetMapping("/customer/{uuid}/goal")
+    @GetMapping("/internal/customer/{uuid}/goal")
     GoalDTO getGoalByCustomerUuid(@PathVariable UUID uuid);
 }
