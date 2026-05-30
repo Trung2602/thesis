@@ -145,12 +145,33 @@ class _PayCustomerViewState extends State<PayCustomerView> {
         builder: (context, provider, _) => Scaffold(
           backgroundColor: const Color(0xFF0F123A),
           appBar: AppBar(
-            title: Text(
-              'Hạn thành viên: ${account?.expiryDate != null ? account!.expiryDate!.toLocal().toString().split(' ')[0] : 'Chưa có'}',
-              style: const TextStyle(color: Colors.white),
+            title: const Text('Gia hạn thành viên',
+              style: TextStyle(color: Colors.white),
             ),
             backgroundColor: const Color(0xFF1A237E),
             iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              TextButton.icon(
+                onPressed: _handlePay,
+                icon: const Icon(Icons.payment, color: Colors.greenAccent),
+                label: const Text(
+                  'Thanh Toán',
+                  style: TextStyle(color: Colors.greenAccent),
+                ),
+              ),
+            ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(32),
+              child: Container(
+                width: double.infinity,
+                color: const Color(0xFF1A237E),
+                padding: const EdgeInsets.only(left: 16, bottom: 8),
+                child: Text(
+                  'Hạn thành viên: ${account?.expiryDate != null ? account!.expiryDate!.toLocal().toString().split(' ')[0] : 'Chưa có'}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+              ),
+            ),
           ),
           body: Padding(
             padding: const EdgeInsets.all(20),
@@ -159,9 +180,9 @@ class _PayCustomerViewState extends State<PayCustomerView> {
                 : provider.payList.isEmpty
                 ? const Center(
               child: Text('Chưa có thanh toán nào',
-                  style: TextStyle(color: Colors.white)),
-            )
-                : ListView.builder(
+                style: TextStyle(color: Colors.white),
+              ),
+            ) : ListView.builder(
               controller: _scrollController,
               itemCount: provider.payList.length + 1,
               itemBuilder: (context, index) {
@@ -172,21 +193,12 @@ class _PayCustomerViewState extends State<PayCustomerView> {
                     ? const Padding(
                   padding: EdgeInsets.all(16),
                   child: Center(
-                      child: CircularProgressIndicator()),
-                )
-                    : const SizedBox.shrink();
+                    child: CircularProgressIndicator(),
+                  ),
+                ) : const SizedBox.shrink();
               },
             ),
           ),
-          floatingActionButton: FloatingActionButton.extended(
-            heroTag: 'pay_customer_fab',
-            onPressed: _handlePay,
-            label: const Text('Thanh Toán'),
-            icon: const Icon(Icons.payment),
-            backgroundColor: Colors.greenAccent,
-          ),
-          floatingActionButtonLocation:
-          FloatingActionButtonLocation.endFloat,
         ),
       ),
     );
