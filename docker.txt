@@ -40,7 +40,9 @@ aws ecs describe-services \
 
 chạy ngrok cho vnpay
 ngrok config add-authtoken "3DbhqIikxdjdpLzosIbWHAyy7th_4NLbvbi5s1GSUXJzwQney"
+ngrok http 8080
 
 
-xây dựng kịch bản vd từ 80kg xuống 60.
+zip file lại
+Compress-Archive -Path ".\*" -DestinationPath "..\db_init.zip" -Force
 

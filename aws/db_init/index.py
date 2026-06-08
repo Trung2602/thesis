@@ -2,6 +2,7 @@ import psycopg2
 import os
 import json
 import urllib3
+import time
 
 http = urllib3.PoolManager()
 
@@ -238,7 +239,6 @@ CREATE TABLE goal (
 );
 """
 
-# Map database name -> schema SQL
 DB_SCHEMAS = {
     "gymdb": GYMDB_SCHEMA,
     "userdb": USERDB_SCHEMA,
@@ -256,9 +256,7 @@ def send(event, context, status, data):
         "LogicalResourceId": event["LogicalResourceId"],
         "Data": data
     }
-
     encoded_body = json.dumps(response_body).encode("utf-8")
-
     http.request(
         "PUT",
         event["ResponseURL"],
@@ -267,16 +265,31 @@ def send(event, context, status, data):
     )
 
 
+def connect_with_retry(host, port, username, password, dbname, max_retries=10, delay=15):
+    """Retry connect tới RDS — cần thiết vì RDS có thể chưa ready ngay sau CREATE_COMPLETE."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"[{dbname}] Connect attempt {attempt}/{max_retries}...")
+            conn = psycopg2.connect(
+                host=host,
+                port=port,
+                user=username,
+                password=password,
+                dbname=dbname,
+                connect_timeout=10
+            )
+            print(f"[{dbname}] Connected.")
+            return conn
+        except Exception as e:
+            print(f"[{dbname}] Attempt {attempt} failed: {e}")
+            if attempt < max_retries:
+                time.sleep(delay)
+            else:
+                raise
+
+
 def run_schema(host, port, username, password, dbname, schema_sql):
-    """Connect to a specific database and execute its schema."""
-    conn = psycopg2.connect(
-        host=host,
-        port=port,
-        user=username,
-        password=password,
-        dbname=dbname,
-        connect_timeout=10
-    )
+    conn = connect_with_retry(host, port, username, password, dbname)
     conn.autocommit = True
     cur = conn.cursor()
     cur.execute(schema_sql)
@@ -298,15 +311,7 @@ def handler(event, context):
     password = os.environ['DB_PASSWORD']
 
     try:
-        # Step 1: Connect to postgres to create databases
-        conn = psycopg2.connect(
-            host=host,
-            port=port,
-            user=username,
-            password=password,
-            dbname='postgres',
-            connect_timeout=10
-        )
+        conn = connect_with_retry(host, port, username, password, 'postgres')
         conn.autocommit = True
         cur = conn.cursor()
 
@@ -321,7 +326,6 @@ def handler(event, context):
         cur.close()
         conn.close()
 
-        # Step 2: Apply schema to each database
         for db, schema in DB_SCHEMAS.items():
             run_schema(host, port, username, password, db, schema)
 
